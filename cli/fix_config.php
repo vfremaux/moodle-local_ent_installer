@@ -1,7 +1,23 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-// this is a root script intended to add to the generated config file of Moodle the additional snippet
-// of config code that provides additional settings and virtualisation hooking.
+/*
+ * this is a root script intended to add to the generated config file of Moodle the additional snippet
+ * of config code that provides additional settings and virtualisation hooking.
+ */
 
 $configfilelocation = dirname(dirname(dirname(dirname(__FILE__)))).'/config.php';
 $configsavefilelocation = dirname(dirname(dirname(dirname(__FILE__)))).'/config.save.php';
@@ -10,18 +26,20 @@ $CFG = new StdClass();
 $CFG->dirroot = dirname(dirname(dirname(dirname(__FILE__))));
 require_once($CFG->dirroot.'/local/libloader.php');
 
-// Execute a post install MNET initialisation if configuration allows it
-// This should create a first valid SSL key.
+/*
+ * Execute a post install MNET initialisation if configuration allows it
+ * This should create a first valid SSL key.
+ */
 define('CLI_SCRIPT', 1);
 require($configfilelocation);
 $mnet = get_mnet_environment();
 $mnet->init();
 
-// Fix some master admin account information
+// Fix some master admin account information.
 $DB->set_field('user', 'email', 'admin@foo.atrium-paca.fr', array('username' => 'admin', 'auth' => 'manual'));
 $DB->set_field('user', 'city', 'MARSEILLE', array('username' => 'admin', 'auth' => 'manual'));
 
-// pull down debug mode to minimal
+// Pull down debug mode to minimal.
 $DB->set_field('config', 'value', DEBUG_MINIMAL, array('name' => 'debug'));
 
 if (!file_exists($configfilelocation)) {

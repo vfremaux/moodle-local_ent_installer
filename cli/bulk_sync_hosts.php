@@ -8,7 +8,7 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
@@ -22,7 +22,7 @@ define('JOB_INTERLEAVE', 2);
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
 
-// Ensure options are blanck;
+// Ensure options are blanck.
 unset($options);
 
 // Now get cli options.
@@ -152,7 +152,8 @@ foreach ($joblist as $jl) {
     $jobids = array();
     if (!empty($jl)) {
         $hids = implode(',', $jl);
-        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_hosts_worker.php --nodes=\"$hids\" --logfile={$logroot}/ent_sync_log_{$i}.log {$force} {$role} {$empty} {$verbose} {$fulldelete} {$notify} {$hardstop}";
+        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_hosts_worker.php --nodes=\"$hids\" ";
+        $workercmd .= "--logfile={$logroot}/ent_sync_log_{$i}.log {$force} {$role} {$empty} {$verbose} {$fulldelete} {$notify} {$hardstop}";
         if ($options['distributed']) {
             $workercmd .= ' &';
         }
