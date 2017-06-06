@@ -36,15 +36,13 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     $config = get_config('local_ent_installer');
 
     mtrace('');
-    $enable = get_config('local_ent_installer', 'sync_enable');
-    if (!$enable) {
+    if (empty($config->sync_enable)) {
         mtrace(get_string('syncdisabled', 'local_ent_installer'));
         return;
     }
 
-    $enable = get_config('local_ent_installer', 'sync_enable_roles');
-    if (!$enable) {
-        mtrace(get_string('syncrolesdisabled', 'local_ent_installer'));
+    if (empty($config->sync_roleassigns_enable)) {
+        mtrace(get_string('syncroleassignsdisabled', 'local_ent_installer'));
         return;
     }
 
@@ -169,12 +167,24 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                         $clevelvalue = local_ent_installer_remap_contextlevel($value, $config);
 
                         // Get context object id part.
-                        $value = ldap_get_values_len($ldapconnection, $entry, $config->roleassign_contextid_attribute);
-                        $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
-                        if (preg_match('/'.$config->roleassign_contextid_filter.'/', $value, $matches)) {
-                            $value = $matches[1];
+                        /*
+                         * the context id may be obtrained indirectly giving a context instance identifier and a
+                         * context level info.
+                         * The context finder will match any instance at the appropriate level using the required
+                         * identifying field, and gives back the context object required for the role assignation.
+                         *
+                         * If the context attribute is not defined, then only system context assignations are
+                         * possible.
+                         */
+                        $cidvalue = 0;
+                        if (!empty($config->roleassign_contextid_attribute)) {
+                            $value = ldap_get_values_len($ldapconnection, $entry, $config->roleassign_contextid_attribute);
+                            $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
+                            if (preg_match('/'.$config->roleassign_contextid_filter.'/', $value, $matches)) {
+                                $value = $matches[1];
+                            }
+                            $cidvalue = $value;
                         }
-                        $cidvalue = $value;
                         $context = local_ent_installer_find_context($clevelvalue, $cidvalue);
 
                         $modify = ldap_get_values_len($ldapconnection, $entry, 'modifyTimestamp');
@@ -486,12 +496,16 @@ function local_ent_installer_remap_contextlevel($input) {
     }
 }
 
-function local_ent_installer_find_context($clevelvalue, $cidvalue) {
+function local_ent_installer_find_context($clevelvalue, $cidvalue = 0) {
     static $contextcache = array();
     static $config;
 
     if (!isset($config)) {
         $config = get_config('local_ent_installer');
+    }
+
+    if (($clevelvalue != 'system') && empty($cidvalue)) {
+        return false;
     }
 
     if (!isset($contextcache[$clevelvalue])) {

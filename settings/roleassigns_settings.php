@@ -52,13 +52,7 @@ $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 $key = 'local_ent_installer/roleassign_id_attribute';
 $label = get_string('configroleassignidattribute', 'local_ent_installer');
 $desc = get_string('configroleassignidattribute_desc', 'local_ent_installer');
-$default = '';
-$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
-
-$key = 'local_ent_installer/roleassign_membership_filter';
-$label = get_string('configroleassignmembershipfilter', 'local_ent_installer');
-$desc = get_string('configroleassignmembershipfilter_desc', 'local_ent_installer');
-$default = '';
+$default = 'cn';
 $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
 $key = 'local_ent_installer/roleassign_role_attribute';
@@ -113,7 +107,11 @@ $key = 'local_ent_installer/roleassign_coursecat_key';
 $label = get_string('configroleassigncoursecatkey', 'local_ent_installer');
 $desc = get_string('configroleassigncoursecatkey_desc', 'local_ent_installer');
 $default = 'idnumber';
-$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+$options = array(
+    'id' => 'ID',
+    'idnumber' => get_string('idnumber'),
+);
+$settings->add(new admin_setting_configselect($key, $label, $desc, $default, $options));
 
 $key = 'local_ent_installer/roleassign_course_key';
 $label = get_string('configroleassigncoursekey', 'local_ent_installer');
@@ -131,7 +129,7 @@ $label = get_string('configroleassignmodulekey', 'local_ent_installer');
 $desc = get_string('configroleassignmodulekey_desc', 'local_ent_installer');
 $default = 'idumber';
 $options = array(
-    'id' => get_string('coursemodule').' ID',
+    'id' => get_string('module', 'local_ent_installer').' ID',
     'idnumber' => get_string('idnumber'),
 );
 $settings->add(new admin_setting_configselect($key, $label, $desc, $default, $options));
@@ -148,9 +146,9 @@ if (is_dir($CFG->dirroot.'/course/format/page')) {
 }
 $settings->add(new admin_setting_configselect($key, $label, $desc, $default, $options));
 
-$key = 'local_ent_installer/roleassign_usertarget_key';
-$label = get_string('configroleassignusertargetkey', 'local_ent_installer');
-$desc = get_string('configroleassignusertargetkey_desc', 'local_ent_installer');
+$key = 'local_ent_installer/roleassign_targetuser_key';
+$label = get_string('configroleassigntargetuserkey', 'local_ent_installer');
+$desc = get_string('configroleassigntargetuserkey_desc', 'local_ent_installer');
 $default = 'username';
 $options = array(
      'id' => get_string('id', 'local_ent_installer'),
@@ -163,6 +161,12 @@ $settings->add(new admin_setting_configselect($key, $label, $desc, $default, $op
 $key = 'local_ent_installer/roleassign_membership_attribute';
 $label = get_string('configroleassignmembershipattribute', 'local_ent_installer');
 $desc = get_string('configroleassignmembershipattribute_desc', 'local_ent_installer');
+$default = '';
+$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
+$key = 'local_ent_installer/roleassign_membership_filter';
+$label = get_string('configroleassignmembershipfilter', 'local_ent_installer');
+$desc = get_string('configroleassignmembershipfilter_desc', 'local_ent_installer');
 $default = '';
 $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 

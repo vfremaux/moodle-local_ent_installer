@@ -25,7 +25,7 @@
  */
 
 require_once($CFG->dirroot.'/mnet/lib.php');
-require_once($CFG->dirroot.'/blocks/vmoodle/plugins/plugins/pluginscontrolslib.php');
+require_once($CFG->dirroot.'/local/vmoodle/plugins/plugins/pluginscontrolslib.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 /**

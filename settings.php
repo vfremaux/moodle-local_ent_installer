@@ -178,9 +178,9 @@ if ($hassiteconfig) {
 
     /* **************************** Entities synchronisation **************************** */
 
-    include($CFG->dirroot.'/local/ent_installer/settings/user_settings.php');
+    include($CFG->dirroot.'/local/ent_installer/settings/users_settings.php');
 
-    include($CFG->dirroot.'/local/ent_installer/settings/cohort_settings.php');
+    include($CFG->dirroot.'/local/ent_installer/settings/cohorts_settings.php');
 
     include($CFG->dirroot.'/local/ent_installer/settings/roleassigns_settings.php');
 

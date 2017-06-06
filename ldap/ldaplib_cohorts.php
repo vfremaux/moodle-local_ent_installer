@@ -35,9 +35,14 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
     $config = get_config('local_ent_installer');
 
     mtrace('');
-    $enable = get_config('local_ent_installer', 'sync_enable');
-    if (!$enable) {
+
+    if (empty($config->sync_enable)) {
         mtrace(get_string('syncdisabled', 'local_ent_installer'));
+        return;
+    }
+
+    if (empty($config->sync_cohorts_enable)) {
+        mtrace(get_string('synccohortsdisabled', 'local_ent_installer'));
         return;
     }
 

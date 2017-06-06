@@ -61,13 +61,17 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     core_php_time_limit::raise(120);
 
     mtrace('');
-    $enable = get_config('local_ent_installer', 'sync_enable');
-    if (!$enable) {
+
+    $config = get_config('local_ent_installer');
+    if (!$config->sync_enable) {
         mtrace(get_string('syncdisabled', 'local_ent_installer'));
         return;
     }
 
-    $config = get_config('local_ent_installer');
+    if (!$config->sync_users_enable) {
+        mtrace(get_string('syncusersdisabled', 'local_ent_installer'));
+        return;
+    }
 
     ent_installer_check_archive_category_exists();
     if ($config->create_students_site_cohort) {
@@ -128,14 +132,16 @@ function local_ent_installer_sync_users($ldapauth, $options) {
      */
 
     if (empty($options['role']) || preg_match('/eleve/', $options['role'])) {
-        $filterdef = new StdClass();
-        foreach($institutionids as $iid) {
-            $institutionfilter = $config->student_institution_filter;
-            $filterdef->institutions[] = str_replace('%ID%', $iid, $institutionfilter);
+        if (!empty($config->student_usertype_filter)) {
+            $filterdef = new StdClass();
+            foreach ($institutionids as $iid) {
+                $institutionfilter = $config->student_institution_filter;
+                $filterdef->institutions[] = str_replace('%ID%', $iid, $institutionfilter);
+            }
+            $filterdef->usertype = $config->student_usertype_filter;
+            $filterdef->userfield = 'eleve';
+            $filters[] = $filterdef;
         }
-        $filterdef->usertype = $config->student_usertype_filter;
-        $filterdef->userfield = 'eleve';
-        $filters[] = $filterdef;
     }
 
     // Teaching staff.
@@ -148,13 +154,15 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     if (empty($options['role']) || preg_match('/enseignant/', $options['role'])) {
         $filterdef = new StdClass();
-        foreach ($institutionids as $iid) {
-            $institutionfilter = $config->teachstaff_institution_filter;
-            $filterdef->institutions[] = str_replace('%ID%', $iid, $institutionfilter);
+        if (!empty($config->teachstaff_usertype_filter)) {
+            foreach ($institutionids as $iid) {
+                $institutionfilter = $config->teachstaff_institution_filter;
+                $filterdef->institutions[] = str_replace('%ID%', $iid, $institutionfilter);
+            }
+            $filterdef->usertype = $config->teachstaff_usertype_filter;
+            $filterdef->userfield = 'enseignant';
+            $filters[] = $filterdef;
         }
-        $filterdef->usertype = $config->teachstaff_usertype_filter;
-        $filterdef->userfield = 'enseignant';
-        $filters[] = $filterdef;
     }
 
     // Non teaching staff.
@@ -166,14 +174,16 @@ function local_ent_installer_sync_users($ldapauth, $options) {
      */
 
     if (empty($options['role']) || preg_match('/administration/', $options['role'])) {
-        $filterdef = new StdClass();
-        foreach ($institutionids as $iid) {
-            $institutionfilter = $config->adminstaff_institution_filter;
-            $filterdef->institutions[] = str_replace('%ID%', $iid, $institutionfilter);
+        if (!empty($config->adminstaff_usertype_filter)) {
+            $filterdef = new StdClass();
+            foreach ($institutionids as $iid) {
+                $institutionfilter = $config->adminstaff_institution_filter;
+                $filterdef->institutions[] = str_replace('%ID%', $iid, $institutionfilter);
+            }
+            $filterdef->usertype = $config->adminstaff_usertype_filter;
+            $filterdef->userfield = 'administration';
+            $filters[] = $filterdef;
         }
-        $filterdef->usertype = $config->adminstaff_usertype_filter;
-        $filterdef->userfield = 'administration';
-        $filters[] = $filterdef;
     }
 
     // Site admins
@@ -186,17 +196,19 @@ function local_ent_installer_sync_users($ldapauth, $options) {
      */
 
     if (empty($options['role']) || preg_match('/siteadmins/', $options['role'])) {
-        $filterdef = new StdClass();
-        if (!empty($config->siteadmins_institution_filter)) {
-            // Note that siteadmins may be global admins and have no institution restrictions.
-            foreach($institutionids as $iid) {
-                $institutionfilter = $config->siteadmins_institution_filter;
-                $filterdef->institutions[] = str_replace('%ID%', $iid, $institutionfilter);
+        if (!empty($config->siteadmins_usertype_filter)) {
+            $filterdef = new StdClass();
+            if (!empty($config->siteadmins_institution_filter)) {
+                // Note that siteadmins may be global admins and have no institution restrictions.
+                foreach($institutionids as $iid) {
+                    $institutionfilter = $config->siteadmins_institution_filter;
+                    $filterdef->institutions[] = str_replace('%ID%', $iid, $institutionfilter);
+                }
             }
+            $filterdef->usertype = $config->siteadmins_usertype_filter;
+            $filterdef->userfield = 'siteadmin';
+            $filters[] = $filterdef;
         }
-        $filterdef->usertype = $config->siteadmins_usertype_filter;
-        $filterdef->userfield = 'siteadmin';
-        $filters[] = $filterdef;
     }
 
     $contexts = explode(';', $ldapauth->config->contexts);
@@ -1229,8 +1241,6 @@ function local_ent_installer_ldap_search_institution_id($ldapauth, $search, $sea
 function local_ent_installer_get_userinfo($ldapauth, $username, $options = array()) {
     static $entattributes;
 
-    $config = get_config('local_ent_installer');
-
     // Load some cached static data.
     if (!isset($entattributes)) {
         // aggregate additional ent specific attributes that hold interesting information
@@ -1527,7 +1537,7 @@ function local_ent_installer_teacher_category_name($user) {
         // Initialize firstname
         preg_match_all('/[\wéèöëêôÏîàùç]+/u', $user->firstname, $matches);
         $firstnameinitials = '';
-        foreach($matches as $resid => $res) {
+        foreach (array_values($matches) as $res) {
             $firstnameinitials .= core_text::strtoupper(substr($res[0], 0, 1)).'.';
         }
 

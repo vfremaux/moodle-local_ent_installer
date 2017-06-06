@@ -32,15 +32,27 @@ class SyncUsersForm extends moodleform {
 
     public function definition() {
 
+        $config = get_config('local_ent_installer');
+
         $mform = $this->_form;
 
         $mform->addElement('html', '<h3>'.get_string('entities', 'local_ent_installer').'</h3>');
 
-        $mform->addElement('checkbox', 'users', get_string('users', 'local_ent_installer'));
+        if (!empty($config->sync_users_enable)) {
+            $mform->addElement('checkbox', 'users', get_string('users', 'local_ent_installer'));
+        }
 
-        $mform->addElement('checkbox', 'cohorts', get_string('cohorts', 'local_ent_installer'));
+        if (!empty($config->sync_cohorts_enable)) {
+            $mform->addElement('checkbox', 'cohorts', get_string('cohorts', 'local_ent_installer'));
+        }
 
-        $mform->addElement('checkbox', 'coursegroups', get_string('coursegroups', 'local_ent_installer'));
+        if (!empty($config->sync_groups_enable)) {
+            $mform->addElement('checkbox', 'groups', get_string('coursegroups', 'local_ent_installer'));
+        }
+
+        if (!empty($config->sync_roleassigns_enable)) {
+            $mform->addElement('checkbox', 'roleassigns', get_string('roleassigns', 'local_ent_installer'));
+        }
 
         $mform->addElement('html', '<h3>'.get_string('options', 'local_ent_installer').'</h3>');
 

@@ -8,7 +8,7 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
@@ -20,9 +20,9 @@ define('ENT_INSTALLER_SYNC_MAX_WORKERS', 2);
 define('JOB_INTERLEAVE', 2);
 
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
-require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions
+require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
 
-// Ensure options are blanck;
+// Ensure options are blanck.
 unset($options);
 
 // Now get cli options.
@@ -130,7 +130,7 @@ if (!empty($options['empty'])) {
     $empty = ' --empty ';
 }
 
-// Start spreading workers, and pass the list of vhost ids. Launch workers in background
+// Start spreading workers, and pass the list of vhost ids. Launch workers in background.
 // Linux only implementation.
 
 $i = 1;
@@ -138,7 +138,8 @@ foreach ($joblist as $jl) {
     $jobids = array();
     if (!empty($jl)) {
         $hids = implode(',', $jl);
-        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts_worker.php --nodes=\"$hids\" --logfile={$logroot}/ent_sync_cohorts_log_{$i}.log {$force} {$verbose} {$empty} {$notify} {$hardstop}";
+        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts_worker.php --nodes=\"$hids\" ";
+        $workercmd = "--logfile={$logroot}/ent_sync_cohorts_log_{$i}.log {$force} {$verbose} {$empty} {$notify} {$hardstop}";
         if ($options['distributed']) {
             $workercmd .= ' &';
         }

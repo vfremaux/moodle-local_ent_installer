@@ -75,12 +75,13 @@ class local_ent_installer_external extends external_api {
             $arrdates[0]['lastruntimedate'] = self::format_date($settingvalue, $dateformat);
         } else {
             if (is_dir($CFG->dirroot.'/blocks/vmoodle')) {
-                $vmoodles = $DB->get_records('local_vmoodle', array('enabled' => 1), 'name', 'id,name,vhostname,vdbhost,vdbname,vdbprefix');
+                $fields = 'id,name,vhostname,vdbhost,vdbname,vdbprefix';
+                $vmoodles = $DB->get_records('local_vmoodle', array('enabled' => 1), 'name', $fields);
     
                 foreach($vmoodles as $vm) {
                     if ($vm->vdbhost == $CFG->dbhost) {
                         // Databases on same host so use direct query.
-                        // Note we DO NOT use moodle query format as using a cross base extension
+                        // Note we DO NOT use moodle query format as using a cross base extension.
                         $result = false;
                         if ($params['setting'] == 'sync') {
                             $sql = "
