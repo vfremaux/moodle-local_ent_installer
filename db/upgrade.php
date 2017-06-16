@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 function xmldb_local_ent_installer_upgrade($oldversion) {
-    global $CFG, $DB, $OUTPUT;
+    global $DB;
 
     $dbman = $DB->get_manager();
 
@@ -91,7 +91,7 @@ function xmldb_local_ent_installer_upgrade($oldversion) {
         $lastorder = $DB->get_field('user_info_field', 'MAX(sortorder)', array('categoryid' => $academicinfocategoryid));
 
         // Adding primary assignation.
-        // Primary assignation should be marked if the Moodle node
+        // Primary assignation should be marked if the Moodle node.
         // matches the registered primary facility of the user in ldap attributes.
         $userfield = new StdClass;
         $userfield->name = ent_installer_string('personaltitle');

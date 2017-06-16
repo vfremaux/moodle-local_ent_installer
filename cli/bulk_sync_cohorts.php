@@ -36,6 +36,7 @@ list($options, $unrecognized) = cli_get_params(
         'logroot'          => false,
         'force'            => false,
         'verbose'          => false,
+        'horodate'           => false,
         'notify'           => false,
         'hardstop'         => false,
     ),
@@ -46,8 +47,8 @@ list($options, $unrecognized) = cli_get_params(
         'e' => 'empty',
         'l' => 'logroot',
         'f' => 'force',
-        'r' => 'role',
         'v' => 'verbose',
+        'H' => 'horodate',
         'N' => 'notify',
         'S' => 'hardstop',
     )
@@ -69,8 +70,8 @@ if ($options['help']) {
     -l, --logroot       Root directory for logs.
     -D, --fulldelete    Propagates a full delete option to all workers.
     -f, --force         Force updating accounts even if not modified in user sourse.
-    -r, --role          Role to process if not empty : (eleve,enseignant,administration).
     -v, --verbose       More output.
+    -H, --horodate      If set horodate log files
     -N, --notify        Notifies on failure
     -S, --hardstop      Stops on first failure
 
@@ -87,7 +88,7 @@ if ($options['workers'] === false) {
 if (!empty($options['logroot'])) {
     $logroot = $options['logroot'];
 } else {
-    $logroot = $CFG->dataroot;
+    $logroot = '';
 }
 
 $force = '';
@@ -98,6 +99,11 @@ if (!empty($options['force'])) {
 $notify = '';
 if (!empty($options['notify'])) {
     $notify = '--notify';
+}
+
+$horodate = '';
+if (!empty($options['horodate'])) {
+    $horodate = '--horodate';
 }
 
 $hardstop = '';
@@ -139,7 +145,7 @@ foreach ($joblist as $jl) {
     if (!empty($jl)) {
         $hids = implode(',', $jl);
         $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts_worker.php --nodes=\"$hids\" ";
-        $workercmd = "--logfile={$logroot}/ent_sync_cohorts_log_{$i}.log {$force} {$verbose} {$empty} {$notify} {$hardstop}";
+        $workercmd = "--logroot={$logroot} {$horodate} {$force} {$verbose} {$empty} {$notify} {$hardstop}";
         if ($options['distributed']) {
             $workercmd .= ' &';
         }

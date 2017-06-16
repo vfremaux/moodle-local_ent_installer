@@ -90,7 +90,8 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
     }
 
     $contexts = explode(';', $config->group_contexts);
-    $institutionids = explode(',', $config->institution_id);
+    list($institutionidlist, $institutionalias) = local_ent_installer_strip_alias($config->institution_id);
+    $institutionids = explode(',', $institutionidlist);
 
     $ldap_pagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
     $ldapcookie = '';

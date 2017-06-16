@@ -36,6 +36,7 @@ list($options, $unrecognized) = cli_get_params(
         'logroot'          => false,
         'force'            => false,
         'verbose'          => false,
+        'horodate'         => false,
         'notify'           => false,
         'hardstop'         => false,
     ),
@@ -47,6 +48,7 @@ list($options, $unrecognized) = cli_get_params(
         'l' => 'logroot',
         'f' => 'force',
         'v' => 'verbose',
+        'H' => 'horodate',
         'N' => 'notify',
         'S' => 'hardstop',
     )
@@ -69,8 +71,9 @@ if ($options['help']) {
     -D, --empty         Propagates a empty option to all workers.
     -f, --force         Force updating accounts even if not modified in user sourse.
     -v, --verbose       More output.
-    -N, --notify        Sends email on failure
-    -S, --hardstop      Stops on first failure
+    -H, --horodate      If set, horodates log files.
+    -N, --notify        Sends email on finish.
+    -S, --hardstop      Stops on first failure.
 
     "; // TODO: localize - to be translated later when everything is finished.
 
@@ -85,12 +88,17 @@ if ($options['workers'] === false) {
 if (!empty($options['logroot'])) {
     $logroot = $options['logroot'];
 } else {
-    $logroot = $CFG->dataroot;
+    $logroot = '';
 }
 
 $force = '';
 if (!empty($options['force'])) {
     $force = '--force';
+}
+
+$horodate = '';
+if (!empty($options['horodate'])) {
+    $horodate = '--horodate';
 }
 
 $verbose = '';
@@ -127,7 +135,7 @@ foreach ($joblist as $jl) {
     if (!empty($jl)) {
         $hids = implode(',', $jl);
         $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_groups_worker.php --nodes=\"$hids\" ";
-        $workercmd .= "--logfile={$logroot}/ent_sync_groups_log_{$i}.log {$force} {$verbose} {$empty} {$notify} {$hardstop}";
+        $workercmd .= "--logroot={$logroot} {$horodate} {$force} {$verbose} {$empty} {$notify} {$hardstop}";
         if ($options['distributed']) {
             // Spawn a detached execution.
             $workercmd .= ' &';

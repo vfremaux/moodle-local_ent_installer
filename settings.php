@@ -176,11 +176,17 @@ if ($hassiteconfig) {
     $default = '';
     $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
 
+    $key = 'local_ent_installer/enrol_deans';
+    $label = get_string('configenroldeans', 'local_ent_installer');
+    $desc = get_string('configenroldeans_desc', 'local_ent_installer');
+    $default = '';
+    $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
+
     /* **************************** Entities synchronisation **************************** */
 
-    include($CFG->dirroot.'/local/ent_installer/settings/user_settings.php');
+    include($CFG->dirroot.'/local/ent_installer/settings/users_settings.php');
 
-    include($CFG->dirroot.'/local/ent_installer/settings/cohort_settings.php');
+    include($CFG->dirroot.'/local/ent_installer/settings/cohorts_settings.php');
 
     include($CFG->dirroot.'/local/ent_installer/settings/roleassigns_settings.php');
 
