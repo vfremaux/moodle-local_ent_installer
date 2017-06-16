@@ -51,6 +51,7 @@ list($options, $unrecognized) = cli_get_params(
         'f' => 'force',
         'r' => 'role',
         'v' => 'verbose',
+        'H' => 'horodate',
         'N' => 'notify',
         'S' => 'hardstop',
     )
@@ -75,6 +76,7 @@ if ($options['help']) {
     -e, --empty         Empty user structures if no more users in it.
     -r, --role          Role to process if not empty : (eleve,enseignant,administration).
     -v, --verbose       More output.
+    -H, --horodate      Horodate log files.
     -N, --notify        Notify on failure.
     -S, --hardstop      Stop on first failure.
 
@@ -105,13 +107,23 @@ if (!empty($options['empty'])) {
 }
 
 $notify = '';
-if (!notify($options['notify'])) {
+if (!empty($options['notify'])) {
     $notify = '--notify';
 }
 
 $hardstop = '';
-if (!hardstop($options['hardstop'])) {
+if (!empty($options['hardstop'])) {
     $hardstop = '--hardstop';
+}
+
+$horodate = '';
+if (!empty($options['horodate'])) {
+    $horodate = '--horodate';
+}
+
+$logroot = '';
+if (!empty($options['logroot'])) {
+    $logroot = '--logroot';
 }
 
 $role = '';
@@ -153,7 +165,7 @@ foreach ($joblist as $jl) {
     if (!empty($jl)) {
         $hids = implode(',', $jl);
         $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_hosts_worker.php --nodes=\"$hids\" ";
-        $workercmd .= "--logfile={$logroot}/ent_sync_log_{$i}.log {$force} {$role} {$empty} {$verbose} {$fulldelete} {$notify} {$hardstop}";
+        $workercmd .= "--logroot={$logroot} {$horodate} {$force} {$role} {$empty} {$verbose} {$fulldelete} {$notify} {$hardstop}";
         if ($options['distributed']) {
             $workercmd .= ' &';
         }

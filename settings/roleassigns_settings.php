@@ -43,6 +43,12 @@ $desc = get_string('configroleassignselectorfilter_desc', 'local_ent_installer')
 $default = '';
 $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
+$key = 'local_ent_installer/roleassign_use_alias';
+$label = get_string('configroleassignusealias', 'local_ent_installer');
+$desc = get_string('configroleassignusealias_desc', 'local_ent_installer');
+$default = true;
+$settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
+
 $key = 'local_ent_installer/roleassign_objectclass';
 $label = get_string('configroleassignobjectclass', 'local_ent_installer');
 $desc = get_string('configroleassignobjectclass_desc', 'local_ent_installer');

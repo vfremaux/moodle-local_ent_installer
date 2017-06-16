@@ -24,8 +24,10 @@
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();
+require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_cohorts.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_coursegroups.php');
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_roleassigns.php');
 require_once($CFG->dirroot.'/cohort/lib.php');
 
 define('ENT_MATCH_FULL', 100);
@@ -121,7 +123,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     $filters = array();
 
-    $institutionids = explode(',', $config->institution_id);
+    list($institutionidlist, $institutionalias) = local_ent_installer_strip_alias($config->institution_id);
+    $institutionids = explode(',', $institutionidlist);
 
     // Students.
 
@@ -170,7 +173,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     /*
      * Implementation notes :
      * - Atrium : Legacy scheme. => user must have class ENTAuxEnseignant AND have a ENTPersonFonctions containing intitutionid
-     * - Toutatice : user must have class ENTAuxEnseignant AND title is DIR or DOC or CPE and have a ENTPersonFonctions containing intitutionid
+     * - Toutatice : user must have class ENTAuxEnseignant AND title is DIR or DOC or ADOC or EDU and have a ENTPersonFonctions containing intitutionid
      */
 
     if (empty($options['role']) || preg_match('/administration/', $options['role'])) {
@@ -829,7 +832,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
                 // Identify librarians and give library enabled role at system level.
                 mtrace('Checking librarian attributes');
-                if (preg_match('#\\$DOC\\$#', $personfunction)) {
+                if (preg_match('#(\\$DOC\\$|\\$ADOC\\$)#', $personfunction)) {
                     mtrace('Adding librarian attributes');
                     if ($role = $DB->get_record('role', array('shortname' => 'librarian'))) {
                         $systemcontext = context_system::instance();
@@ -846,12 +849,14 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 }
 
                 // Identify school deans and give them Manager role.
-                mtrace('Checking school dean attributes');
-                if (preg_match('#\\$DIR\\$#', $personfunction)) {
-                    mtrace('Adding school dean attributes');
-                    if ($role = $DB->get_record('role', array('shortname' => 'manager'))) {
-                        $systemcontext = context_system::instance();
-                        role_assign($role->id, $id, $systemcontext->id);
+                if ($config->enrol_deans) {
+                    mtrace('Checking school dean attributes');
+                    if (preg_match('#\\$DIR\\$#', $personfunction)) {
+                        mtrace('Adding school dean attributes');
+                        if ($role = $DB->get_record('role', array('shortname' => 'manager'))) {
+                            $systemcontext = context_system::instance();
+                            role_assign($role->id, $id, $systemcontext->id);
+                        }
                     }
                 }
             }
@@ -1466,17 +1471,6 @@ function local_ent_installer_update_info_data($userid, $fieldid, $data) {
 }
 
 /**
- * Provides an uniform scheme for a teacher category identifier.
- * @param object $user a user object
- * @return string
- */
-function local_ent_get_teacher_cat_idnumber($user) {
-    $teachercatidnum = strtoupper($user->lastname).'_'.substr(strtoupper($user->firstname), 0, 1).'$'.$user->idnumber.'$CAT';
-
-    return $teachercatidnum;
-}
-
-/**
  * make a course category for the teacher and give full control to it
  *
  *
@@ -1493,7 +1487,7 @@ function local_ent_installer_make_teacher_category($user) {
         return;
     }
 
-    $teachercatidnum = local_ent_get_teacher_cat_idnumber($user);
+    $teachercatidnum = local_ent_installer_get_teacher_cat_idnumber($user);
 
     $managerrole = $DB->get_record('role', array('shortname' => 'manager'));
 
@@ -1515,114 +1509,6 @@ function local_ent_installer_make_teacher_category($user) {
         $catcontext = context_coursecat::instance($oldcat->id);
         role_assign($managerrole->id, $user->id, $catcontext->id);
     }
-}
-
-/**
- * Provides an uniforme naming scheme for a teacher category
- * @param object $user
- * @return string
- */
-function local_ent_installer_teacher_category_name($user) {
-    static $USERFIELDS;
-    global $DB;
-
-    if (empty($USERFIELDS)) {
-        // Initialise once.
-        $USERFIELDS = local_ent_installer_load_user_fields();
-    }
-
-    $config = get_config('local_ent_installer');
-
-    if (!empty($config->teacher_mask_firstname)) {
-        // Initialize firstname
-        preg_match_all('/[\wéèöëêôÏîàùç]+/u', $user->firstname, $matches);
-        $firstnameinitials = '';
-        foreach (array_values($matches) as $res) {
-            $firstnameinitials .= core_text::strtoupper(substr($res[0], 0, 1)).'.';
-        }
-
-        if (empty($user->personalTitle)) {
-            $personaltitle = $DB->get_field('user_info_data', 'data', array('fieldid' => $USERFIELDS['personaltitle'], 'userid' => $user->id));
-        }
-
-        $name = $personaltitle.' '.$firstnameinitials.' '.$user->lastname;
-    } else {
-        $name = fullname($user);
-    }
-    return $name;
-}
-
-/**
- * Fix categories idnumbers to help reordering. We find teacher owner of category interrogating
- * the role assignements
- */
-function local_ent_installer_fix_teacher_categories() {
-    global $DB;
-
-    $config = get_config('local_ent_installer');
-
-    if (empty($config->teacher_stub_category)) {
-        if (defined('CLI_SCRIPT')) {
-            mtrace("Teacher category unconfigured");
-        }
-        return;
-    }
-
-    // Get all categories in the teacher's stub.
-    if (!$DB->get_record('course_categories', array('id' => $config->teacher_stub_category))) {
-        if (defined('CLI_SCRIPT')) {
-            mtrace("Teacher category missing");
-        }
-        return;
-    }
-
-    $allcats = $DB->get_records('course_categories', array('parent' => $config->teacher_stub_category), 'sortorder', 'id,idnumber,sortorder');
-    $managerrole = $DB->get_record('role', array('shortname' => 'manager'));
-    if ($allcats) {
-        foreach ($allcats as $cat) {
-            $catcontext = context_coursecat::instance($cat->id);
-            $managers = $DB->get_records('role_assignments', array('roleid' => $managerrole->id, 'contextid' => $catcontext->id));
-            if (count($managers) > 1) {
-                mtrace("Warning : More than one in category $cat->id : $cat->name");
-            }
-            if ($managers) {
-                // We usually expect one manager here
-                $first = array_shift($managers);
-                $user = $DB->get_record('user', array('id' => $first->userid));
-                $teachercatidnum = core_text::strtoupper($user->lastname).'_'.core_text::substr(core_text::strtoupper($user->firstname), 0, 1).'$'.$user->idnumber.'$CAT';
-                $DB->set_field('course_categories', 'idnumber', $teachercatidnum, array('id' => $cat->id));
-                $DB->set_field('course_categories', 'name', local_ent_installer_teacher_category_name($user), array('id' => $cat->id));
-            }
-        }
-    }
-    local_ent_installer_reorder_teacher_categories();
-}
-
-/**
- * Reorders teachers category based on teacher name stored in idnumber
- */
-function local_ent_installer_reorder_teacher_categories() {
-    global $DB;
-
-    $teacherrootcat = get_config('local_ent_installer', 'teacher_stub_category');
-
-    if (empty($teacherrootcat)) {
-        if (defined('CLI_SCRIPT')) {
-            mtrace("Ordering : Teacher category unconfigured");
-        }
-        return;
-    }
-
-    if (!$teacherstub = $DB->get_record('course_categories', array('id' => $teacherrootcat))) {
-        if (defined('CLI_SCRIPT')) {
-            mtrace("Ordering : Teacher category missing");
-        }
-        return;
-    }
-
-    $sort = 'idnumber';
-    $cattosort = coursecat::get($teacherrootcat, MUST_EXIST, true);
-    \core_course\management\helper::action_category_resort_subcategories($cattosort, $sort, true);
 }
 
 /**
@@ -1675,7 +1561,7 @@ function ent_installer_check_category_archiving($user) {
     $archivecat = $DB->get_record('course_categories', array('idnumber' => 'ARCHIVE'));
 
     // Check we have a owned catefory in the place.
-    $catidnumber = local_ent_get_teacher_cat_idnumber($user);
+    $catidnumber = local_ent_installer_get_teacher_cat_idnumber($user);
 
     // Archive category if found.
     if ($teachercat = $DB->get_record('course_categories', array('idnumber' => $catidnumber))) {

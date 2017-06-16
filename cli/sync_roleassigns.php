@@ -64,12 +64,14 @@ list($options, $unrecognized) = cli_get_params(
         'help'              => false,
         'simulate'          => false,
         'host'              => false,
+        'enrol'             => false,
         'force'             => false,
     ),
     array(
         'h' => 'help',
         'f' => 'force',
         'v' => 'verbose',
+        'e' => 'enrol',
         's' => 'simulate',
         'H' => 'host'
     )
@@ -88,6 +90,7 @@ if ($options['help']) {
      v, --verbose       Provides lot of output
     -h, --help          Print out this help
     -s, --simulate      Get all data for simulation but will NOT process any writing in database.
+    -e, --enrol         If an enrol method is given in this argument, and resolved contextlevel is a course, then enrol with role.
     -f, --force         Force updating all data.
     -H, --host          Set the host (physical or virtual) to operate on
 

@@ -32,7 +32,9 @@ $string['configcohortsortprefixlength_desc'] = '';
 $string['configcronenable'] = 'Intégration par le cron';
 $string['configcronenable_desc'] = 'Activez cette option si vous voulez laisser effectuer l\'intégration des utilisateurs par le cron Moodle. Désactivez cette option si vous prévoyez de planifier ce traitement par vous-même (mode CLI).';
 $string['configcrontime'] = 'Heure de traitement';
-$string['configfakemaildomain'] = 'Domaine des mails autogénérés ';
+$string['configenroldeans'] = 'Nommer les directeurs';
+$string['configenroldeans_desc'] = 'Si actif, donne les droits de gestionnaire aux directeus d\'établissement identifiés par \'DIR\' (champ ENTPersonFonctions)';
+$string['configfakemaildomain'] = 'Domaine des mails autogénérés';
 $string['configfakemaildomain_desc'] = ' Domaine utilisé pour générer des adresses mail factices lorsqu\'elles sont manquantes dans les profils importés';
 $string['configgetid'] = 'ID de structure';
 $string['configgetinstitutionidservice'] = 'Chercher un ID d\'établissement';
@@ -89,6 +91,7 @@ $string['dbinsertuser'] = 'ALIMENTATION : Création utilisateur {$a->username} -
 $string['dbinsertusersimul'] = 'SIMULATION : Création utilisateur {$a->username} - {$a->idnumber}] role : {$a->usertype} / {$a->function}';
 $string['dbupdateuser'] = 'ALIMENTATION : Mise à jour utilisateur {$a->username} - {$a->idnumber}] role : {$a->usertype} / {$a->function}';
 $string['dbupdateusersimul'] = 'SIMULATION : Mise à jour utilisateur {$a->username} - {$a->idnumber}] role : {$a->usertype} / {$a->function}';
+$string['enrolmethod'] = 'Méthode d\'inscription';
 $string['finaloperations'] = 'Opérations finales';
 $string['force'] = 'Forcer la mise à jour de toutes les entrées (y compris celles non modifiées dans la période de référence)';
 $string['getinstitutionidservice'] = 'Recherche d\'identifiants d\'établissements';
@@ -103,6 +106,7 @@ $string['mergesiteadmins'] = 'Mise à jour des administrateurs de site à {$a}';
 $string['minduration'] = 'Durée min';
 $string['noresults'] = 'Aucun résultat';
 $string['normalmeantime'] = 'Moyenne usuelle (sans dépassements)';
+$string['nothingtodo'] = 'Aucune donnée à traiter';
 $string['nousers'] = 'Aucun utilisateur dans la cohorte';
 $string['overtime'] = 'Dépassements';
 $string['overtimes'] = 'Dépassement de temps critique (> {$a} secs)';
@@ -146,6 +150,8 @@ $string['coursegroups'] = 'Groupes des cours';
 $string['module'] = 'Module de cours';
 $string['options'] = 'Options de traitement';
 $string['entities'] = 'Entités';
+$string['enrolled'] = 'Inscrit par la méthode {$a}';
+$string['unenrolled'] = 'Désinscrit de la méthode {$a}';
 
 $string['personfilters'] = 'Filtres LDAP pour les comptes utilisateur';
 $string['configstudentusertypefilter'] = 'Discriminant des élèves';
@@ -222,7 +228,7 @@ $string['cohortmemberadded'] = 'Membre {$a->username} ajouté à la cohorte {$a-
 $string['cohortmemberremoved'] = 'Membre {$a->username} supprimé de la cohorte {$a->idnumber}';
 $string['disableautocohortscheck'] = 'Désactiver le verrou de cohortes automatiques';
 
-// Rôles système.
+// Associations de rôles.
 
 $string['roleassignsfilters'] = 'Filtres pour l\'association de rôles';
 
@@ -230,6 +236,8 @@ $string['configsyncroleassignsenable'] = 'Activer la synchro des associations de
 $string['configsyncroleassignsenable_desc'] = '';
 $string['configroleassigncontexts'] = 'Contextes pour les associations de rôle';
 $string['configroleassigncontexts_desc'] = 'Les contextes LDAP où sont stockées les associations de rôle. Plusieurs contextes peuvent être donnés, séparés par des ;';
+$string['configroleassignusealias'] = 'Utiliser l\'alias de l\'institution';
+$string['configroleassignusealias_desc'] = 'Si actif, la synchronisaton ne tournera qu\'une fois sur le nom d\'alias de l\'institution. Ceci suppose que toutes les données intégrées soient indexées sur le nom d\'alias';
 $string['configroleassignobjectclass'] = 'Classes d\'objets des associations de rôle';
 $string['configroleassignobjectclass_desc'] = 'Les classes d\'objet ldap légitimes à détenir des associations de rôle';
 $string['configroleassignidattribute'] = 'Attribut des associations de rôle';
@@ -268,6 +276,13 @@ $string['configroleassignmembershipattribute'] = 'Attribut des éléments d\'ass
 $string['configroleassignmembershipattribute_desc'] = 'L\'attribut LDAP permettant de lister les bénéficiares de l\'attribution';
 $string['configroleassignmembershipfilter'] = 'Filtre des éléments d\'association';
 $string['configroleassignmembershipfilter_desc'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier sous-motif disponible';
+
+$string['deletingroleassigns'] = 'Suppression d\'assignation de rôle';
+$string['creatingroleassigns'] = 'Nouvelles assignations de rôle';
+$string['unchangedroleassigns'] = 'Sans changement';
+$string['roleassigned'] = 'Rôle {$a->roleinfo} ajouté pour  {$a->userinfo} dans {$a->contextinfo}';
+$string['roleunassigned'] = 'Rôle {$a->roleinfo} supprimé pour {$a->userinfo} dans {$a->contextinfo}';
+$string['norolechange'] = '{$a->roleinfo} maintenu pour {$a->userinfo} dans {$a->contextinfo}';
 
 // Groupes
 

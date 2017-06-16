@@ -78,7 +78,8 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
     $dbman->create_temp_table($table);
 
     $contexts = explode(';', $config->cohort_contexts);
-    $institutionids = explode(',', $config->institution_id);
+    list($institutionidlist, $institutionalias) = local_ent_installer_strip_alias($config->institution_id);
+    $institutionids = explode(',', $institutionidlist);
 
     $ldap_pagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
     $ldapcookie = '';
@@ -107,7 +108,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 if ($ldapauth->config->search_sub) {
                     // Use ldap_search to find first user from subtree.
                     mtrace("ldapsearch $context, $filter for ".$config->cohort_idnumber_attribute);
-                    $ldap_result = ldap_search($ldapconnection, $context, $filter, $config->cohort_idnumber_attribute, 'modifyTimestamp');
+                    $ldap_result = ldap_search($ldapconnection, $context, $filter, array($config->cohort_idnumber_attribute, 'modifyTimestamp'));
                 } else {
                     // Search only in this context.
                     mtrace("ldaplist $context, $filter for ".$config->cohort_idnumber_attribute);
@@ -226,6 +227,8 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 mtrace('[SIMULATION] '.get_string('cohortdeleted', 'local_ent_installer', $dl->idnumber));
             }
         }
+    } else {
+        mtrace(get_string('nothingtodo', 'local_ent_installer'));
     }
 
     mtrace("\n>> ".get_string('updatingcohorts', 'local_ent_installer'));
@@ -306,6 +309,8 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 }
             }
         }
+    } else {
+        mtrace(get_string('nothingtodo', 'local_ent_installer'));
     }
 
     mtrace("\n>> ".get_string('creatingcohorts', 'local_ent_installer'));
@@ -350,6 +355,8 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 }
             }
         }
+    } else {
+        mtrace(get_string('nothingtodo', 'local_ent_installer'));
     }
 
     mtrace("\n>> ".get_string('finaloperations', 'local_ent_installer'));

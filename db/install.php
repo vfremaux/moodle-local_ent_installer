@@ -112,7 +112,8 @@ function xmldb_local_ent_installer_install() {
         $categories = array(
             'Administration Moodle' => 'ADMIN',
             'Corbeille' => 'ARCHIVE',
-            'Espaces enseignants' => 'ACADEMIC'
+            'Espaces enseignants' => 'ACADEMIC',
+            'Modèles' => 'TEMPLATES',
         );
     }
 

@@ -30,20 +30,22 @@ list($options, $unrecognized) = cli_get_params(
         'force'             => false,
         'role'              => false,
         'verbose'           => false,
-        'logfile'           => false,
+        'logroot'           => false,
+        'horodate'            => false,
         'notify'            => false,
         'hardstop'          => false,
     ),
     array(
         'h' => 'help',
         'n' => 'nodes',
-        'l' => 'logfile',
+        'l' => 'logroot',
         'D' => 'fulldelete',
         'm' => 'logmode',
         'v' => 'verbose',
         'f' => 'force',
         'r' => 'role',
-        'n' => 'notify',
+        'H' => 'horodate',
+        'N' => 'notify',
         'S' => 'hardstop',
     )
 );
@@ -66,7 +68,8 @@ if ($options['help'] || empty($options['nodes'])) {
     -f, --force         Force updating accounts even if not modified in user sourse.
     -r, --role          Role to process if not empty : (eleve,enseignant,administration).
     -v, --verbose       More output.
-    -n, --notify        If present will send a mail when a sync host fails.
+    -H, --horodate      If set, horodates log files.
+    -N, --notify        If present will send a mail when a sync host fails.
     -S, --hardstop      If present, will stop on first errored worker result.
 
     "; // TODO: localize - to be translated later when everything is finished.
@@ -77,10 +80,6 @@ if ($options['help'] || empty($options['nodes'])) {
 
 if (empty($options['logmode'])) {
     $options['logmode'] = 'w';
-}
-
-if (!empty($options['logfile'])) {
-    $LOG = fopen($options['logfile'], $options['logmode']);
 }
 
 $force = '';
@@ -100,9 +99,6 @@ if (!empty($options['verbose'])) {
 
 // Fire sequential synchronisation.
 mtrace("Starting worker for nodes ".$options['nodes']);
-if (isset($LOG)) {
-    fputs($LOG, "Starting worker for nodes {$options['nodes']}\n");
-};
 
 $fulldelete = '';
 if (!empty($options['fulldelete'])) {
@@ -111,6 +107,20 @@ if (!empty($options['fulldelete'])) {
 
 $nodes = explode(',', $options['nodes']);
 foreach ($nodes as $nodeid) {
+
+    if (!empty($options['logroot'])) {
+        $logfile = $options['logroot'].'/ent_sync_'.$host->shortname;
+        if (!empty($options['horodate'])) {
+            $logfile .= '_'.$runtime;
+        }
+        $logfile .= '.log';
+        $LOG = fopen($logfile, $options['logmode']);
+    }
+
+    if (isset($LOG)) {
+        fputs($LOG, "Starting worker for nodes {$options['nodes']}\n");
+    };
+
     mtrace("\nStarting process for node $nodeid\n");
     $host = $DB->get_record('local_vmoodle', array('id' => $nodeid));
     $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users.php --host={$host->vhostname} {$force} {$role} {$fulldelete}";
@@ -132,9 +142,9 @@ foreach ($nodes as $nodeid) {
             echo "User Worker execution error on {$host->vhostname}... Continuing anyway\n";
         }
     }
+    fclose($LOG);
+
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
 }
-
-fclose($LOG);
 
 return 0;
