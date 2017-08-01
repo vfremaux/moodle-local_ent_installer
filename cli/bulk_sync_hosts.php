@@ -21,6 +21,7 @@ define('JOB_INTERLEAVE', 2);
 
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
+require_once($CFG->dirroot.'/local/vmoodle/lib.php');
 
 // Ensure options are blanck.
 unset($options);
@@ -38,6 +39,7 @@ list($options, $unrecognized) = cli_get_params(
         'empty'            => false,
         'role'             => false,
         'verbose'          => false,
+        'horodate'         => false,
         'notify'           => false,
         'hardstop'         => false,
     ),
@@ -64,7 +66,7 @@ if ($unrecognized) {
 
 if ($options['help']) {
     $help = "
-    Command line ENT Sync worker.
+    VMoodle based Command line ENT Sync worker.
 
     Options:
     -h, --help          Print out this help
@@ -91,9 +93,9 @@ if ($options['workers'] === false) {
 }
 
 if (!empty($options['logroot'])) {
-    $logroot = $options['logroot'];
+    $logroot = '--logroot='.$options['logroot'];
 } else {
-    $logroot = $CFG->dataroot;
+    $logroot = '--logroot='.$CFG->dataroot;
 }
 
 $force = '';
@@ -121,11 +123,6 @@ if (!empty($options['horodate'])) {
     $horodate = '--horodate';
 }
 
-$logroot = '';
-if (!empty($options['logroot'])) {
-    $logroot = '--logroot';
-}
-
 $role = '';
 if (!empty($options['role']) && in_array($options['role'], array('eleve', 'enseignant', 'administration'))) {
     $role = '--role='.$options['role'];
@@ -137,7 +134,21 @@ if (!empty($options['verbose'])) {
     $verbose = '--verbose';
 }
 
-$allhosts = $DB->get_records('local_vmoodle', array('enabled' => 1));
+$config = get_config('local_vmoodle');
+
+$clusters = 1;
+if (!empty($config->clusters)) {
+    $clusters = $config->clusters;
+}
+
+$clusterix = 1;
+if (!empty($config->clusterix)) {
+    $clusterix = $config->clusterix;
+}
+
+if (!$allhosts = vmoodle_get_vmoodleset($clusters, $clusterix)) {
+    die("Nothing to do. No Vhosts");
+}
 
 // Make worker lists
 
@@ -165,7 +176,7 @@ foreach ($joblist as $jl) {
     if (!empty($jl)) {
         $hids = implode(',', $jl);
         $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_hosts_worker.php --nodes=\"$hids\" ";
-        $workercmd .= "--logroot={$logroot} {$horodate} {$force} {$role} {$empty} {$verbose} {$fulldelete} {$notify} {$hardstop}";
+        $workercmd .= "{$logroot} {$horodate} {$force} {$role} {$empty} {$verbose} {$fulldelete} {$notify} {$hardstop}";
         if ($options['distributed']) {
             $workercmd .= ' &';
         }

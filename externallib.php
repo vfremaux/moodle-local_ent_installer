@@ -74,7 +74,7 @@ class local_ent_installer_external extends external_api {
             $arrdates[0]['wwwroot'] = $CFG->wwwroot;
             $arrdates[0]['lastruntimedate'] = self::format_date($settingvalue, $dateformat);
         } else {
-            if (is_dir($CFG->dirroot.'/blocks/vmoodle')) {
+            if (is_dir($CFG->dirroot.'/local/vmoodle')) {
                 $fields = 'id,name,vhostname,vdbhost,vdbname,vdbprefix';
                 $vmoodles = $DB->get_records('local_vmoodle', array('enabled' => 1), 'name', $fields);
     

@@ -21,6 +21,7 @@ define('JOB_INTERLEAVE', 2);
 
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions
+require_once($CFG->dirroot.'/local/vmoodle/lib.php');
 
 // Ensure options are blanck;
 unset($options);
@@ -117,7 +118,21 @@ if (!empty($options['verbose'])) {
     $verbose = '--verbose';
 }
 
-$allhosts = $DB->get_records('local_vmoodle', array('enabled' => 1));
+$config = get_config('local_vmoodle');
+
+$clusters = 1;
+if (!empty($config->clusters)) {
+    $clusters = $config->clusters;
+}
+
+$clusterix = 1;
+if (!empty($config->clusterix)) {
+    $clusterix = $config->clusterix;
+}
+
+if (!$allhosts = vmoodle_get_vmoodleset($clusters, $clusterix) {
+    die("Nothing to do. No Vhosts");
+}
 
 // Make worker lists.
 

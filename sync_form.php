@@ -48,10 +48,20 @@ class SyncUsersForm extends moodleform {
 
         if (!empty($config->sync_groups_enable)) {
             $mform->addElement('checkbox', 'groups', get_string('coursegroups', 'local_ent_installer'));
+
+            $mform->addElement('checkbox', 'emptygroups', get_string('emptygroups', 'local_ent_installer'), get_string('clear', 'local_ent_installer'));
         }
 
         if (!empty($config->sync_roleassigns_enable)) {
             $mform->addElement('checkbox', 'roleassigns', get_string('roleassigns', 'local_ent_installer'));
+
+            $enrolplugins = enrol_get_plugins(true);
+            $options = array();
+            foreach ($enrolplugins as $key => $epl) {
+                $options[$key] = $epl->get_instance_name(null);
+            }
+            $mform->addElement('select', 'enrol', get_string('enrolmethod', 'local_ent_installer'), $options);
+            $mform->setDefault('enrol', 'manual');
         }
 
         $mform->addElement('html', '<h3>'.get_string('options', 'local_ent_installer').'</h3>');

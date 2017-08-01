@@ -33,7 +33,7 @@ list($options, $unrecognized) = cli_get_params(
     array(
         'h' => 'help',
         'l' => 'logroot',
-        's' => 'fullstop',
+        'f' => 'fullstop',
     )
 );
 
@@ -44,15 +44,14 @@ if ($unrecognized) {
 
 if ($options['help']) {
     $help = "
-Command line ENT Global course relocator.
+Command line ENT Global categories initialisation.
 
-Relocates courses belonging to a single teacher or assumed to be in their owned category.
-This script needs run after users feeding have succeeded and teachers have there owned categories.
+Creates initial categories based on 'initialcategories' settings.
 
     Options:
     -h, --help              Print out this help
     -l, --logroot           Root directory for logs.
-    -s, --fullstop          Root directory for logs.
+    -s, --fullstop          Stops on fist error.
 
 "; // TODO: localize - to be translated later when everything is finished.
 
@@ -68,18 +67,18 @@ if (!empty($options['logroot'])) {
 
 $allhosts = $DB->get_records('local_vmoodle', array('enabled' => 1));
 
-// Start updating.
 // Linux only implementation.
 
-echo "Starting relocating courses....";
+echo "Starting creating/checking site categories....\n";
 
 $i = 1;
 foreach ($allhosts as $h) {
-    $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/relocate_courses.php --host=\"{$h->vhostname}\" ";
+    $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/init_categories.php --host=\"{$h->vhostname}\" ";
 
     mtrace("Executing $workercmd\n######################################################\n");
     $output = array();
     exec($workercmd, $output, $return);
+    echo implode("\n", $output);
     if ($return) {
         if (!empty($options['fullstop'])) {
             die("Worker ended with error");

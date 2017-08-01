@@ -90,7 +90,7 @@ if (!empty($members)) {
     $table->size = array('10%', '25%', '25%', '40%');
     $table->align = array('left', 'left', 'left', 'right');
     $table->width = '90%';
-    foreach($members as $u) {
+    foreach ($members as $u) {
         $table->data[] = array($OUTPUT->user_picture($u), $u->lastname, $u->firstname, userdate($u->cohorttimeadded));
     }
 
@@ -98,5 +98,8 @@ if (!empty($members)) {
 } else {
     echo $OUTPUT->notification(get_string('nousers', 'local_ent_installer'));
 }
+
+$buttonurl = new moodle_url('/cohort/index.php', array('cohortid' => $contextid));
+echo $OUTPUT->single_button($buttonurl, get_string('backtocohorts', 'local_ent_installer'));
 
 echo $OUTPUT->footer();

@@ -79,6 +79,8 @@ if ($data = $mform->get_data()) {
         $options['simulate'] = @$data->simulate;
         $options['verbose'] = @$data->verbose;
         $options['disableautocohortscheck'] = @$data->disableautocohortscheck;
+        $options['empty'] = @$data->clearemptygroups;
+        $options['enrol'] = @$data->enrol;
 
         if (!empty(@$data->users)) {
             echo '<div class="console">';

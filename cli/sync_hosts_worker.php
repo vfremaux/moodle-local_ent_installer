@@ -107,13 +107,20 @@ if (!empty($options['fulldelete'])) {
     $fulldelete = ' --fulldelete ';
 }
 
-$runtime = strftime('%Y%m%d%H%i', time());
+$runtime = strftime('%Y%m%d%H%s', time());
+
+/**
+ * We run all tools on all nodes. At this level we do not know wether
+ * we can or annot run each task. the task will know with its local host level
+ * configuration of ent_installer processes.
+ */
 
 $nodes = explode(',', $options['nodes']);
 foreach ($nodes as $nodeid) {
 
     $host = $DB->get_record('local_vmoodle', array('id' => $nodeid));
 
+    $LOG = false;
     if (!empty($options['logroot'])) {
         $logfile = $options['logroot'].'/ent_sync_'.$host->shortname;
         if (!empty($options['horodate'])) {
@@ -123,11 +130,11 @@ foreach ($nodes as $nodeid) {
         $LOG = fopen($logfile, $options['logmode']);
     }
 
-    if (isset($LOG)) {
+    if ($LOG) {
         fputs($LOG, "Starting worker for node {$host->shortname}\n");
     };
 
-    if (isset($LOG)) {
+    if ($LOG) {
         fputs($LOG, "\nStarting user process for node $nodeid\n");
     }
     $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users.php --host={$host->vhostname} {$force} {$role} {$fulldelete}";
@@ -135,12 +142,12 @@ foreach ($nodes as $nodeid) {
     $output = array();
     mtrace("\n".$cmd);
     exec($cmd, $output, $return);
-    if (isset($LOG)) {
+    if ($LOG) {
         fputs($LOG, "\n$cmd\n#-------------------\n");
         fputs($LOG, implode("\n", $output));
     };
     if ($return) {
-        if (isset($LOG)) {
+        if ($LOG) {
             fputs($LOG, 'Process failure. No output of user feeder.');
         }
         if (!empty($options['hardstop'])) {
@@ -158,12 +165,12 @@ foreach ($nodes as $nodeid) {
     $output = array();
     mtrace("\n".$cmd);
     exec($cmd, $output, $return);
-    if (isset($LOG)) {
+    if ($LOG) {
         fputs($LOG, "\n$cmd\n#-------------------\n");
         fputs($LOG, implode("\n", $output));
     };
     if ($return) {
-        if (isset($LOG)) {
+        if ($LOG) {
             fputs($LOG, 'Process failure. No output of cohort feeder.');
         }
         if (!empty($options['hardstop'])) {
@@ -181,12 +188,12 @@ foreach ($nodes as $nodeid) {
     $output = array();
     mtrace("\n".$cmd);
     exec($cmd, $output, $return);
-    if (isset($LOG)) {
+    if ($LOG) {
         fputs($LOG, "\n$cmd\n#-------------------\n");
         fputs($LOG, implode("\n", $output));
     };
     if ($return) {
-        if (isset($LOG)) {
+        if ($LOG) {
             fputs($LOG, 'Process failure. No output of cohort feeder.');
         }
         if (!empty($options['hardstop'])) {
@@ -204,12 +211,12 @@ foreach ($nodes as $nodeid) {
     $output = array();
     mtrace("\n".$cmd);
     exec($cmd, $output, $return);
-    if (isset($LOG)) {
+    if ($LOG) {
         fputs($LOG, "\n$cmd\n#-------------------\n");
         fputs($LOG, implode("\n", $output));
     };
     if ($return) {
-        if (isset($LOG)) {
+        if ($LOG) {
             fputs($LOG, 'Process failure. No output of coursegroups feeder.');
         }
         if (!empty($options['hardstop'])) {
@@ -219,7 +226,9 @@ foreach ($nodes as $nodeid) {
         }
     }
 
-    fclose($LOG);
+    if ($LOG) {
+        fclose($LOG);
+    }
 
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
 }
