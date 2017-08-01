@@ -60,12 +60,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     list($usec, $sec) = explode(' ',microtime());
     $starttick = (float)$sec + (float)$usec;
 
-    if (!isset($config->last_roleassign_sync_date)) {
-        $config->last_roleassign_sync_date = 0;
-        set_config('last_roleassign_sync_date', 0, 'local_ent_installer');
-    }
-
-    mtrace(get_string('lastrun', 'local_ent_installer', userdate($config->last_roleassign_sync_date)));
+    mtrace(get_string('lastrun', 'local_ent_installer', userdate(@$config->last_sync_date_roles)));
 
     // Define table roleassigns to be created.
 
@@ -179,25 +174,17 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                         $dn = ldap_get_dn($ldapconnection, $entry);
                         $dn = core_text::convert($dn, $ldapauth->config->ldapencoding, 'utf-8');
 
-                        // Get role part.
-                        $value = ldap_get_values_len($ldapconnection, $entry, $config->roleassign_role_attribute);
-                        $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
-                        if (preg_match('/'.$config->roleassign_role_filter.'/', $value, $matches)) {
-                            $value = $matches[1];
+                        // Get role part in primary entity.
+                        if ($config->roleassign_role_attribute != $config->roleassign_membership_attribute) {
+                            $value = ldap_get_values_len($ldapconnection, $entry, $config->roleassign_role_attribute);
+                            $roleid = local_ent_installer_get_role_from_value($value, $ldapauth, $config);
                         }
-                        $rolevalue = local_ent_installer_remap_role($value, $config);
-                        if (!array_key_exists($rolevalue, $rolemapcache)) {
-                            $rolemapcache[$rolevalue] = $DB->get_record('role', array('shortname' => $rolevalue), 'id,shortname');
-                        }
-                        $roleid = $rolemapcache[$rolevalue]->id;
 
                         // Get context part.
-                        $value = ldap_get_values_len($ldapconnection, $entry, $config->roleassign_contextlevel_attribute);
-                        $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
-                        if (preg_match('/'.$config->roleassign_contextlevel_filter.'/', $value, $matches)) {
-                            $value = $matches[1];
+                        if ($config->roleassign_contextlevel_attribute != $config->roleassign_membership_attribute) {
+                            $value = ldap_get_values_len($ldapconnection, $entry, $config->roleassign_contextlevel_attribute);
+                            $clevelvalue = local_ent_installer_get_clevel_from_value($value, $ldapauth, $config);
                         }
-                        $clevelvalue = local_ent_installer_remap_contextlevel($value, $config);
 
                         // Get context object id part.
                         /*
@@ -210,20 +197,26 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                          * possible.
                          */
                         $cidvalue = 0;
-                        if (!empty($config->roleassign_contextid_attribute)) {
-                            $value = ldap_get_values_len($ldapconnection, $entry, $config->roleassign_contextid_attribute);
-                            $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
-                            if (preg_match('/'.$config->roleassign_contextid_filter.'/', $value, $matches)) {
-                                $value = $matches[1];
+                        if (($config->roleassign_context_attribute != $config->roleassign_membership_attribute) && isset($clevelvalue)) {
+                            if (!empty($config->roleassign_context_attribute)) {
+                                $value = ldap_get_values_len($ldapconnection, $entry, $config->roleassign_context_attribute);
+                                $cidvalue = local_ent_installer_get_from_value('context', $value, $ldapauth, $config);
                             }
-                            $cidvalue = $value;
+                            if (!empty($options['verbose'])) {
+                                mtrace("Searching context level $clevelvalue for identifier $cidvalue ");
+                            }
+                            $context = local_ent_installer_find_context($clevelvalue, $cidvalue);
+
+                            if (!$context) {
+                                mtrace("ERROR : Missing $clevelvalue context for identifier $cidvalue ");
+                                continue;
+                            }
                         }
-                        $context = local_ent_installer_find_context($clevelvalue, $cidvalue);
 
                         $modify = ldap_get_values_len($ldapconnection, $entry, 'modifyTimestamp');
                         $modify = strtotime($modify[0]);
 
-                        if (!empty($options['force']) || ($modify > $config->last_roleassign_sync_date)) {
+                        if (!empty($options['force']) || ($modify > 0 + $config->last_sync_date_roles)) {
 
                             mtrace("Searching members for $dn");
                             // Get members from the roleassign dn.
@@ -233,15 +226,43 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                             }
 
                             if (!empty($roleassigninfo->members)) {
-                                $roleinfo = $rolemapcache[$rolevalue]->shortname;
-                                $contextinfo = $clevelvalue.' '. (0 + @$context->instanceid);
                                 foreach ($roleassigninfo->members as $m) {
+
+                                    // If some data need be fetched in the member value. We get it from memberdn attribute.
+                                    if ($config->roleassign_role_attribute == $config->roleassign_membership_attribute) {
+                                        $roleid = local_ent_installer_get_role_from_value($m->memberdn, $ldapauth, $config);
+                                    }
+
+                                    if ($config->roleassign_contextlevel_attribute == $config->roleassign_membership_attribute) {
+                                        $clevelvalue = local_ent_installer_get_clevel_from_value($m-memberdn, $ldapauth, $config);
+                                    }
+
+                                    if (($config->roleassign_context_attribute == $config->roleassign_membership_attribute)) {
+                                        $cidvalue = local_ent_installer_get_from_value('context', $m-memberdn, $ldapauth, $config);
+                                        if (!empty($options['verbose'])) {
+                                            mtrace("Searching context level in membership $clevelvalue for identifier $cidvalue ");
+                                        }
+                                        $context = local_ent_installer_find_context($clevelvalue, $cidvalue);
+
+                                        if (!$context) {
+                                            mtrace("ERROR : Missing $clevelvalue context for identifier $cidvalue ");
+                                            continue;
+                                        }
+                                    }
+
+                                    $roleinfo = $DB->get_field('role', 'shortname', array('id' => $roleid));
+                                    $contextinfo = $clevelvalue.' '. (0 + @$context->instanceid);
+
                                     // Store in temp table all composites plus full dn of the roleassign set.
                                     local_ent_installer_ldap_bulk_roleassign_insert($roleid, 0 + @$context->id, $m->id,
                                                                                     $roleinfo,
                                                                                     $contextinfo,
                                                                                     $clevelvalue,
                                                                                     $m->lastname.' '.$m->firstname);
+                                }
+                            } else {
+                                if (!empty($options['verbose'])) {
+                                    mtrace("No members");
                                 }
                             }
                         }
@@ -312,7 +333,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     // New roleassigns.
     $sql = "
         SELECT
-            CONCAT(tra.roleid,'-',tra.contextid,'-',tra.userid) as pkey,
+            CONCAT(tra.role,'-',tra.context,'-',tra.user) as pkey,
             tra.role as roleid,
             tra.context as contextid,
             tra.user as userid,
@@ -429,8 +450,42 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
     $ldapauth->ldap_close();
 
-    set_config('last_roleassign_sync_date', time(), 'local_ent_installer');
+    set_config('last_sync_date_roles', time(), 'local_ent_installer');
+}
 
+function local_ent_installer_get_role_from_value($value, $ldapauth, $config) {
+    global $DB;
+    static $rolemapcache = array();
+
+    $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
+    if (preg_match('/'.$config->roleassign_role_filter.'/', $value, $matches)) {
+        $value = $matches[1];
+    }
+    $rolevalue = local_ent_installer_remap_role($value, $config);
+    if (!array_key_exists($rolevalue, $rolemapcache)) {
+        $rolemapcache[$rolevalue] = $DB->get_record('role', array('shortname' => $rolevalue), 'id,shortname');
+    }
+    $roleid = $rolemapcache[$rolevalue]->id;
+    return $roleid;
+
+}
+
+function local_ent_installer_get_clevel_from_value($value, $ldapauth, $config) {
+    $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
+    if (preg_match('/'.$config->roleassign_contextlevel_filter.'/', $value, $matches)) {
+        $value = $matches[1];
+    }
+    $clevelvalue = local_ent_installer_remap_contextlevel($value, $config);
+    return $clevelvalue;
+}
+
+function local_ent_installer_get_from_value($key, $value, $ldapauth, $config) {
+    $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
+    $varkey = 'roleassign_'.$key.'_filter';
+    if (preg_match('/'.$config->$varkey.'/', $value, $matches)) {
+        $value = $matches[1];
+    }
+    return $value;
 }
 
 /**
@@ -459,14 +514,14 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
     $extdn = core_text::convert($dn, 'utf-8', $ldapauth->config->ldapencoding);
 
     if ($options['verbose']) {
-        mtrace("Getting $dn for ".$config->roleassign_membership_attribute);
+        mtrace("\nGetting $dn for ".$config->roleassign_membership_attribute);
     }
     if (!$roleassign_info_result = ldap_read($ldapconnection, $extdn, '(objectClass=*)', array($config->roleassign_membership_attribute))) {
         $ldapauth->ldap_close();
         return false;
     }
 
-    $attrmap = array('members' => $config->roleassign_membership_attribute);
+    $attrmap = array('members' => core_text::strtolower($config->roleassign_membership_attribute));
 
     $roleassign_entry = ldap_get_entries_moodle($ldapconnection, $roleassign_info_result);
     if (empty($roleassign_entry)) {
@@ -491,6 +546,10 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
         if ($key == 'members') {
             // Get the full array of values.
             $newval = array();
+            $arity = array_pop($entry[$value]);
+            if (!empty($options['verbose'])) {
+                mtrace("Found $arity record...");
+            }
             foreach ($entry[$value] as $newvalopt) {
                 $newvalopt  = core_text::convert($newvalopt, $ldapauth->config->ldapencoding, 'utf-8');
                 if (!empty($options['verbose'])) {
@@ -498,15 +557,20 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
                 }
                 if (preg_match('/'.$config->roleassign_membership_filter.'/', $newvalopt, $matches)) {
                     // Exclude potential arity count that comes at end of multivalued entries.
-                    $identifier = core_text::strtolower($matches[1]);
+                    if ($config->roleassign_user_key == 'username') {
+                        $identifier = core_text::strtolower($matches[1]);
+                    } else {
+                        $identifier = $matches[1];
+                    }
                     if (!empty($options['verbose'])) {
                         mtrace("Getting user record for {$config->roleassign_user_key} = $identifier");
                     }
-                    $user = $DB->get_record('user', array($config->roleassign_user_key => $identifier), 'id,username,firstname,lastname');
+                    $user = $DB->get_record('user', array($config->roleassign_user_key => $identifier, 'deleted' => 0), 'id,username,firstname,lastname');
                     if (!$user) {
                         mtrace("Error : User record not found for $identifier. Skipping membership");
                         continue;
                     }
+                    $user->memberdn = $newvalopt; // Store original ldap record value into user.
                     $newval[] = $user;
                 }
             }
@@ -558,6 +622,7 @@ function local_ent_installer_ldap_bulk_roleassign_insert($roleid, $contextid, $u
                         'contextinfo' => shorten_text($contextinfo, 50),
                         'contextlevel' => $contextlevel,
                         'userinfo' => shorten_text($userinfo, 50));
+
         $DB->insert_record_raw('tmp_extroleassigns', $params, false, true);
     }
     echo '.';
@@ -612,6 +677,8 @@ function local_ent_installer_remap_contextlevel($input) {
 }
 
 function local_ent_installer_find_context($clevelvalue, $cidvalue = 0) {
+    global $DB;
+
     static $contextcache = array();
     static $config;
 
@@ -641,6 +708,7 @@ function local_ent_installer_find_context($clevelvalue, $cidvalue = 0) {
                 break;
 
             case 'course':
+                mtrace("Search course context by $config->roleassign_course_key with identifier $cidvalue ");
                 if (!$objid = $DB->get_field('course', 'id', array($config->roleassign_course_key => $cidvalue))) {
                     return false;
                 }

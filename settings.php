@@ -88,6 +88,12 @@ if ($hassiteconfig) {
     $default = '';
     $settings->add(new admin_setting_configdatetime($key, $label, $desc, $default));
 
+    $key = 'local_ent_installer/record_date_fieldname';
+    $label = get_string('configrecorddatefieldname', 'local_ent_installer');
+    $desc = get_string('configrecorddatefieldname_desc', 'local_ent_installer');
+    $default = 'modifyTimestamp';
+    $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
     $authplugins = get_enabled_auth_plugins(true);
     $authoptions = array();
     foreach ($authplugins as $authname) {
@@ -232,11 +238,21 @@ if ($hassiteconfig) {
     $default = '(&(objectClass=ENTEtablissement)(ENTDisplayName=%SEARCH%))';
     $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
-    $key = 'local_ent_installer_searchid';
+    $key = 'local_ent_installer_getid';
     $label = get_string('configgetid', 'local_ent_installer');
     $getidstr = get_string('configgetinstitutionidservice', 'local_ent_installer');
     $html = '<a href="'.$CFG->wwwroot.'/local/ent_installer/getid.php">'.$getidstr.'</a>';
     $settings->add(new admin_setting_heading($key, $label, $html));
+
+    $installcatsstr = get_string('configinstallcategories', 'local_ent_installer');
+    $html = '<a href="'.$CFG->wwwroot.'/local/ent_installer/installcats.php">'.$installcatsstr.'</a>';
+
+    $settings->add(new admin_setting_heading('head6', get_string('sitecategories', 'local_ent_installer'), $html));
+
+    $key = 'local_ent_installer/initialcategories';
+    $label = get_string('configinitialcategories', 'local_ent_installer');
+    $desc = get_string('configinitialcategories_desc', 'local_ent_installer');
+    $settings->add(new admin_setting_configtextarea($key, $label, $desc, ''));
 
     $ADMIN->add('localplugins', $settings);
 }

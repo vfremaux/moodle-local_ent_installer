@@ -69,65 +69,8 @@ function xmldb_local_ent_installer_install() {
 
         // Initial categories.
 
-        if ($CFG->wwwroot == @$CFG->mainhostroot) {
+        local_ent_installer_install_categories();
 
-            $categories = array(
-                'Administration Moodle' => 'ADMIN',
-                'Cours mutualisés' => '',
-                'Cours mutualisés/Exemples de cours' => 'EXEMPLE',
-                'Cours mutualisés/Cours déployables' => 'SHARED',
-                'Espaces de travail inter-établissements' => 'WORKPLACES',
-                'Gabarits et modèles' => 'TEMPLATES',
-            );
-
-        } else {
-            $categories = array(
-                'Administration Moodle' => 'ADMIN',
-                'Corbeille' => 'ARCHIVE',
-                'Espaces enseignants' => 'ACADEMIC',
-                'Modèles' => 'TEMPLATES',
-            );
-        }
-
-        if ($categories) {
-            foreach ($categories as $category => $catidnumber) {
-                $parts = explode('/', $category);
-                $maxdepth = count($parts);
-                $parentid = 0;
-                $depth = 1;
-                $path = '';
-                foreach ($parts as $part) {
-                    if (!$thiscat = $DB->get_record('course_categories', array('name' => $part))) {
-                        // Do not try to create them twice or more times.
-                        $catrec = new StdClass();
-                        $catrec->parent = $parentid;
-                        $catrec->visible = 1;
-                        $catrec->visibleold = 1;
-                        $catrec->timemodified = time();
-                        $catrec->depth = $depth;
-                        $catrec->name = $part;
-                        if ($depth == $maxdepth) {
-                            $catrec->idnumber = $catidnumber;
-                        }
-                        $parentid = $DB->insert_record('course_categories', $catrec);
-                        $path = $path . '/'.$parentid;
-                        // Post update the path chen knowning the inserted ID.
-                        $DB->set_field('course_categories', 'path', $path, array('id' => $parentid));
-                        $depth++;
-                    } else {
-                        $parentid = $thiscat->id;
-                        $depth++;
-                        $path = $path . '/'.$parentid;
-                    }
-                };
-            }
-
-            if ($CFG->wwwroot != @$CFG->mainhostroot) {
-                // Fix stub category id, where teacher owned categories will be created. This is only for subsites.
-                $stubcat = $DB->get_record('course_categories', array('idnumber' => 'ACADEMIC'));
-                set_config('teacher_stub_category', $stubcat->id, 'local_ent_installer');
-            }
-        }
     }
 
     // Sharedresource.
@@ -167,6 +110,13 @@ function xmldb_local_ent_installer_install() {
     $field = new xmldb_field('department');
     $field->set_attributes(XMLDB_TYPE_CHAR, '126', null, null, null, null, 'institution');
     $dbman->change_field_precision($table, $field);
+
+    // ## Adding student role as default role for home pages
+
+    if (is_dir($CFG->dirroot.'/local/ent_access_point')) {
+        $studentrole = $DB->get_record('role', array('shortname' => 'student'));
+        set_config('defaultfrontpageroleid', $studentrole->id);
+    }
 
     // ## Adding usertypes categorization
 

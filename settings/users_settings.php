@@ -127,6 +127,24 @@ $desc = get_string('configstudentfullageuserfieldfilter_desc', 'local_ent_instal
 $default = '';
 $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
+$key = 'local_ent_installer/user_picture_field';
+$label = get_string('configuserpicturefield', 'local_ent_installer');
+$desc = get_string('configuserpicturefield_desc', 'local_ent_installer');
+$default = '';
+$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
+$key = 'local_ent_installer/user_picture_filter';
+$label = get_string('configuserpicturefilter', 'local_ent_installer');
+$desc = get_string('configuserpicturefilter_desc', 'local_ent_installer');
+$default = '(.*)';
+$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
+$key = 'local_ent_installer/user_picture_url_pattern';
+$label = get_string('configuserpictureurlpattern', 'local_ent_installer');
+$desc = get_string('configuserpictureurlpattern_desc', 'local_ent_installer');
+$default = '%PICTURE%';
+$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
 $key = 'local_ent_installer/ent_userinfo_attributes';
 $label = get_string('configentuserinfoattributes', 'local_ent_installer');
 $desc = get_string('configentuserinfoattributes_desc', 'local_ent_installer');

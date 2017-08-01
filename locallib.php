@@ -82,18 +82,6 @@ function local_ent_installer_strip_alias($data) {
     return array($data, $alias);
 }
 
-function local_ent_installer_relocate_courses($simulate = false) {
-    global $DB;
-
-    $courses = $DB->get_records('course', array(), 'shortname', 'id, shortname, fullname');
-
-    if ($courses) {
-        foreach ($courses as $c) {
-            mtrace("relocating course {$c->shortname} {$c->fullname} ");
-            $result = local_ent_installer_relocate_course($courseid, $simulate);
-        }
-    }
-}
 
 /**
  * Provides an uniform scheme for a teacher category identifier.
@@ -221,28 +209,62 @@ function local_ent_installer_reorder_teacher_categories() {
  */
 function local_ent_installer_relocate_course($courseid, $simulate = false) {
     global $DB;
+    static $rolecache = array();
+    static $usercache = array();
 
-    // Set this to true to enable the "first enrolled teachers owns" additional method.
+    /*
+     * Set this to true to enable the "first enrolled teachers owns" additional method, Otherwise only courses
+     * with only one editing teachers will be processed
+     */
     $hardconfigguessfirstteacher = false;
 
     $context = context_course::instance($courseid);
 
-    // True teachers
-    if (!$teachers = get_users_by_capability($context, 'moodle/course:manageactivities', '*')) {
+    // Need get this to ensure we are getting only the course context.
+    $editorroles = get_roles_with_caps_in_context($context, array('moodle/course:manageactivities'));
+    $ras = array();
+    foreach ($editorroles as $rid) {
+        if (!array_key_exists($rid, $rolecache)) {
+            $rolecache[$rid] = $DB->get_record('role', array('id' => $rid));
+        }
+        $ra = get_users_from_role_on_context($rolecache[$rid], $context);
+        if ($ra) {
+            $ras = array_merge($ras, $ra);
+        }
+    }
+
+    // True teachers in course context strictly.
+    $teachers = array();
+    foreach ($ras as $ra) {
+        // Fill full teacher array.
+        if (!array_key_exists($ra->userid, $usercache)) {
+            $usercache[$ra->userid] = $DB->get_record('user', array('id' => $ra->userid));
+        }
+        $teachers[] = $usercache[$ra->userid];
+    }
+
+    if (empty($teachers)) {
+        mtrace("No editing teacher for $courseid");
         return false;
     }
 
-    if (count($teachers) == 1) {
+    $numteachers = count($teachers);
+
+    if ($numteachers == 1) {
         // We have a single editing teacher. He is owner of the course.
-        $teachercatidnum = local_ent_installer_get_teacher_cat_idnumber($user);
+        $teacher = array_pop($teachers);
+        $teachercatidnum = local_ent_installer_get_teacher_cat_idnumber($teacher);
         if ($teachercat = $DB->get_record('course_categories', array('idnumber' => $teachercatidnum))) {
             // Relocate if teacher cat exists.
             if (!$simulate) {
+                mtrace("Relocating course $courseid to category $teachercatidnum");
                 $DB->set_field('course', 'category', $teachercat->id, array('id' => $courseid));
             } else {
-                mtrace("[SIMULATION] Relocating course $courseid to category $teachercatidnun");
+                mtrace("[SIMULATION] Relocating course $courseid to category $teachercatidnum");
             }
             return true;
+        } else {
+            mtrace("Could not find teacher category $teachercatidnum");
         }
     } else if ($hardconfigguessfirstteacher) {
 
@@ -285,17 +307,35 @@ function local_ent_installer_relocate_course($courseid, $simulate = false) {
                 if ($teachercat = $DB->get_record('course_categories', array('idnumber' => $teachercatidnum))) {
                     // Relocate if teacher cat exists.
                     if (!$simulate) {
+                        mtrace("Relocating course $courseid to category $teachercatidnun as oldest enrolled");
                         $DB->set_field('course', 'category', $teachercat->id, array('id' => $courseid));
                     } else {
                         mtrace("[SIMULATION] Relocating course $courseid to category $teachercatidnun as oldest enrolled");
                     }
                     return true;
+                } else {
+                    mtrace("could not find teacher category $teachercatidnun");
                 }
             }
         }
+    } else {
+        mtrace("No relocate conditions found. Too many ($numteachers) editing teachers");
     }
 
     return false;
+}
+
+function local_ent_installer_relocate_courses($simulate = false) {
+    global $DB;
+
+    $courses = $DB->get_records('course', array(), 'shortname', 'id, shortname, fullname');
+
+    if ($courses) {
+        foreach ($courses as $c) {
+            mtrace("Relocating course {$c->shortname} {$c->fullname}...");
+            $result = local_ent_installer_relocate_course($c->id, $simulate);
+        }
+    }
 }
 
 /**
@@ -341,5 +381,136 @@ function local_ent_installer_fix_unprefixed_cohorts() {
     } else {
         echo "No cohort prefix defined. Nothing done.\n";
     }
+}
 
+/**
+ * Installs a top category scheme for academic platforms.
+ * @param boolean $simulate are we really doing it ?
+ */
+function local_ent_installer_install_categories($simulate = false) {
+    global $CFG, $DB;
+
+    include_once($CFG->dirroot.'/lib/coursecatlib.php');
+
+    $configcategories = get_config('local_ent_installer', 'initialcategories');
+    $categories = (array) json_decode($configcategories);
+
+    if (!empty($categories)) {
+        foreach ($categories as $setting => $category) {
+
+            list($plugin, $settingkey) = explode('/', $setting);
+
+            $parts = explode('/', $category->name);
+            $maxdepth = count($parts);
+            $parentid = 0;
+            $depth = 1;
+            $path = '';
+            $namepath = '';
+
+            if (!isset($category->visible)) {
+                $category->visible = 1;
+            }
+
+            /*
+             * We explore by name from root for existing parts of path.
+             * We create missing parts with no idnumber.
+             * We may update an existing intermediary category if idnumber is available (last part).
+             */
+            foreach ($parts as $part) {
+                $namepath .= '/'.$part;
+                if (!$thiscat = $DB->get_record('course_categories', array('name' => $part))) {
+                    if (!$simulate) {
+
+                        if ($depth == $maxdepth) {
+                            // Pre check idnumber. We may already have one with this IDNum.
+                            if (!empty($category->idnumber)) {
+                                if ($oldcategory = $DB->get_record('course_categories', array('idnumber' => $category->idnumber))) {
+                                    // Bind this category to plugin before leaving.
+                                    local_ent_installer_bind_cat_to_plugin($plugin, $settingkey, $oldcategory, $simulate);
+                                    continue 2;
+                                }
+                            }
+                        }
+
+                        // Do not try to create them twice or more times.
+                        $catrec = new StdClass();
+                        $catrec->parent = $parentid;
+                        $catrec->visible = 1;
+                        $catrec->visibleold = 1;
+                        $catrec->timemodified = time();
+                        $catrec->depth = $depth;
+                        $catrec->name = $part;
+                        if ($depth == $maxdepth) {
+                            $catrec->idnumber = $category->idnumber;
+                            // Fix category visibility on last node.
+                            $catrec->visible = $category->visible;
+                        }
+                        $newcat = coursecat::create($catrec);
+                        $parentid = $newcat->id;
+                        if ($depth == $maxdepth) {
+                            $category->id = $parentid;
+                        }
+                        $depth++;
+                    } else {
+                        mtrace("Category $namepath is missing at depth $depth.");
+                        $depth++;
+                    }
+                } else {
+                    $coursecat = coursecat::get($thiscat->id);
+                    $parentid = $thiscat->id;
+                    if (!$simulate) {
+                        $thiscat->idnumber = $category->idnumber;
+                        if ($depth == $maxdepth) {
+                            // Fix category visibility on last node.
+                            $thiscat->visible = $category->visible;
+                            // Only update on last node.
+                            $parentid = $coursecat->update($thiscat);
+                            $category->id = $thiscat->id;
+                        }
+                    } else {
+                        if ($depth == $maxdepth) {
+                            mtrace("Category exists as $namepath. Will be updated. \n");
+                        } else {
+                            mtrace("Intermediary category exists as $namepath \n");
+                        }
+                    }
+                    $depth++;
+                }
+
+                local_ent_installer_bind_cat_to_plugin($plugin, $settingkey, $category, $simulate);
+            };
+        }
+    }
+
+    if (!$simulate) {
+    }
+}
+
+/**
+ * Binds the category to a plugin setting
+ * @param string $plugin plugin name
+ * @param string $settingkey the setting  key
+ * @param object $category the course category to bind
+ * @param boolean $simulate are we really doing it ?
+ */
+function local_ent_installer_bind_cat_to_plugin($plugin, $settingkey, &$category, $simulate) {
+
+    // Finally attempt to bind a setting if exists.
+    $config = get_config($plugin);
+
+    if (isset($config->$settingkey) && !empty($category->id)) {
+        if (!$simulate) {
+            set_config($settingkey, $category->id, $plugin);
+        } else {
+            mtrace("Will change setting $settingkey in $plugin \n");
+        }
+    } else {
+        if ($simulate) {
+            if (!isset($config->$settingkey)) {
+                mtrace("Foo setting $settingkey in $plugin \n");
+            } else {
+                mtrace("Will change setting $settingkey in $plugin \n");
+            }
+        }
+    }
 }

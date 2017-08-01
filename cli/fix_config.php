@@ -79,7 +79,7 @@ require_once \$CFG->dirroot.'/local/libloader.php';
 \$CFG->vmoodle_force_https_proto = true;
 \$CFG->sslproxy = true;
 
-require_once \$CFG->dirroot.'/blocks/vmoodle/vconfig.php';
+require_once \$CFG->dirroot.'/local/vmoodle/vconfig.php';
 
 if (!preg_match('/^https?:\/\/commun/', \$CFG->wwwroot)) {
     \$CFG->user_mnet_hosts_admin_override = true;

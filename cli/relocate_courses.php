@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package    local_vmoodle
+ * @package    local_entinstaller
  * @subpackage cli
  * @copyright  2017 Valery Fremaux (valery.fremaux@gmail.com)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -29,22 +29,18 @@ $CLI_VMOODLE_PRECHECK = true; // Force first config to be minimal.
 
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php');
 
-if (!isset($CFG->dirroot)) {
-    die ('$CFG->dirroot must be explicitely defined in moodle config.php for this script to be used');
-}
-
 require_once($CFG->dirroot.'/lib/clilib.php'); // Cli only functions.
 
 list($options, $unrecognized) = cli_get_params(array('help' => false,
                                                      'simulate' => false,
                                                      'host' => true),
                                                array('h' => 'help',
-                                                     'S' => 'simulate',
+                                                     's' => 'simulate',
                                                      'H' => 'host'));
 
 if ($unrecognized) {
     $unrecognized = implode("\n", $unrecognized);
-    cli_error("Not recognized options ".$unrecognized);
+    cli_error("Not recognized option ".$unrecognized);
 }
 
 if ($options['help']) {
@@ -53,7 +49,7 @@ Batch relocate all courses when a owner teacher is identified.
 
 Options:
 -h, --help            Print out this help
--S, --simulate        Do not write anything to DB.
+-s, --simulate        Do not write anything to DB.
 -H, --host            the virtual host you are working for
 
 Example:
@@ -70,12 +66,14 @@ if (!empty($options['host'])) {
     define('CLI_VMOODLE_OVERRIDE', $options['host']);
 }
 
+$CFG->debug = E_ALL;
+
 // Replay full config whenever. If vmoodle switch is armed, will switch now config.
 
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 echo('Config check : playing for '.$CFG->wwwroot."\n");
-require_once($CFG->libdir . '/adminlib.php');
-require_once($CFG->dirroot . '/'.$CFG->admin.'/local/ent_installer/locallib.php');
+require_once($CFG->libdir.'/adminlib.php');
+require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 mtrace('Starting examinating courses...');
 
@@ -85,4 +83,9 @@ $USER = $admin;
 
 local_ent_installer_relocate_courses(@$options['simulate']);
 
+cache_helper::invalidate_by_definition('core', 'coursecattree');
+cache_helper::invalidate_by_definition('core', 'coursecat');
+cache_helper::invalidate_by_definition('core', 'coursecatrecords');
+
 mtrace('Done.');
+exit(0);

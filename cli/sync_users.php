@@ -53,8 +53,6 @@ global $CLI_VMOODLE_PRECHECK;
 $CLI_VMOODLE_PRECHECK = true; // force first config to be minimal
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions
-require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php'); // Ldap primitives.
-require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // general primitives.
 
 // Now get cli options.
 list($options, $unrecognized) = cli_get_params(
@@ -80,7 +78,7 @@ list($options, $unrecognized) = cli_get_params(
 
 if ($unrecognized) {
     $unrecognized = implode("\n  ", $unrecognized);
-    cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
+    cli_error("$unrecognized is not a recognized option\n");
 }
 
 if ($options['help']) {
@@ -114,12 +112,8 @@ require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global m
 echo('Config check : playing for '.$CFG->wwwroot);
 require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // ensure we have coursecat class.
 
-// Ensure errors are well explained.
-$CFG->debug = DEBUG_DEVELOPER;
-
-if (empty($CFG->version)) {
-    cli_error(get_string('missingconfigversion', 'debug'));
-}
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php'); // Ldap primitives.
+require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // general primitives.
 
 // require_once($CFG->dirroot.'/course/lib.php');
 

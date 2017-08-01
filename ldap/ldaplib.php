@@ -29,6 +29,7 @@ require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_cohorts.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_coursegroups.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_roleassigns.php');
 require_once($CFG->dirroot.'/cohort/lib.php');
+require_once($CFG->dirroot.'/lib/coursecatlib.php');
 
 define('ENT_MATCH_FULL', 100);
 define('ENT_MATCH_ID_NO_USERNAME', 50);
@@ -60,7 +61,15 @@ $MATCH_STATUS = array(
 function local_ent_installer_sync_users($ldapauth, $options) {
     global $CFG, $DB, $MATCH_STATUS;
 
+    $debughardlimit = '';
+    if ($CFG->debug == DEBUG_DEVELOPER) {
+        $debughardlimit = ' LIMIT 300 ';
+        mtrace('RUNNING WITH HARD LIMIT');
+    }
+
     core_php_time_limit::raise(120);
+
+    $isent = is_dir($CFG->dirroot.'/local/ent_access_point');
 
     mtrace('');
 
@@ -76,6 +85,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     }
 
     ent_installer_check_archive_category_exists();
+
     if ($config->create_students_site_cohort) {
         $studentsitecohortid = local_ent_installer_ensure_global_cohort_exists('students', $options);
     }
@@ -84,9 +94,13 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     }
     $adminssitecohortid = local_ent_installer_ensure_global_cohort_exists('admins', $options);
 
-    $USERFIELDS = local_ent_installer_load_user_fields();
+    if ($isent) {
+        $USERFIELDS = local_ent_installer_load_user_fields();
+    } else {
+        $USERFIELDS = array();
+    }
 
-    mtrace(get_string('lastrun', 'local_ent_installer', userdate($config->last_sync_date)));
+    mtrace(get_string('lastrun', 'local_ent_installer', userdate(@$config->last_sync_date_user)));
     mtrace("\n>> ".get_string('connectingldap', 'auth_ldap'));
     $ldapconnection = $ldapauth->ldap_connect();
 
@@ -248,11 +262,11 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 if ($ldapauth->config->search_sub) {
                     // Use ldap_search to find first user from subtree.
                     mtrace("ldapsearch $context, $filter for ".$ldapauth->config->user_attribute);
-                    $ldap_result = ldap_search($ldapconnection, $context, $filter, array($ldapauth->config->user_attribute, 'modifyTimestamp'));
+                    $ldap_result = ldap_search($ldapconnection, $context, $filter, array($ldapauth->config->user_attribute, $config->record_date_fieldname));
                 } else {
                     // Search only in this context.
                     mtrace("ldaplist $context, $filter for ".$ldapauth->config->user_attribute);
-                    $ldap_result = ldap_list($ldapconnection, $context, $filter, array($ldapauth->config->user_attribute, 'modifyTimestamp'));
+                    $ldap_result = ldap_list($ldapconnection, $context, $filter, array($ldapauth->config->user_attribute, $config->record_date_fieldname));
                 }
                 if (!$ldap_result) {
                     continue;
@@ -265,7 +279,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         $value = ldap_get_values_len($ldapconnection, $entry, $ldapauth->config->user_attribute);
                         $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
 
-                        $modify = ldap_get_values_len($ldapconnection, $entry, 'modifyTimestamp');
+                        $modify = ldap_get_values_len($ldapconnection, $entry, $config->record_date_fieldname);
                         $modify = strtotime($modify[0]);
 
                         local_ent_installer_ldap_bulk_insert($value, $filterdef->userfield, $modify);
@@ -308,7 +322,9 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     local_ent_installer_release_old_cohorts();
 
-    if (!empty($options['force'])) {
+    if (!empty($options['force']) && !empty($config->create_cohorts_from_user_records)) {
+
+        // clean out old cohort memberships that will be renewed from the directory.
         $select = " component = 'local_ent_installer' AND name LIKE '{$cohortix}%' ";
         $automated = $DB->get_records_select_menu('cohort', $select, array(), 'id,name');
         mtrace("\n>> ".get_string('cleaningautomatedcohortscontent', 'local_ent_installer', count($automated)));
@@ -331,7 +347,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
      * Find users in DB that aren't in ldap -- to be removed!
      * this is still not as scalable (but how often do we mass delete?)
      */
-    if ($ldapauth->config->removeuser != AUTH_REMOVEUSER_KEEP) {
+    if (@$ldapauth->config->removeuser != AUTH_REMOVEUSER_KEEP) {
 
         mtrace("\n>> ".get_string('usersdeletion', 'local_ent_installer'));
 
@@ -349,7 +365,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 u.deleted = 0 AND
                 u.suspended = 0 AND
                 e.username IS NULL
-        ';
+        '.@$debughardlimit;
         $real_user_auth = $config->real_used_auth;
         $remove_users = $DB->get_records_sql($sql, array($real_user_auth));
 
@@ -381,7 +397,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                             }
                         }
                     } else {
-                        mtrace(get_string('simulateuserdelete', 'ent_installer', $user->username));
+                        mtrace("[SIMULATION] User $user->username deleted");
                     }
                 } else if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_SUSPEND) {
                     if (empty($options['simulate'])) {
@@ -395,17 +411,18 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         $euser = $DB->get_record('user', array('id' => $user->id));
                         \core\event\user_updated::create_from_userid($euser->id)->trigger();
                     } else {
-                        mtrace(get_string('simulateusersuspend', 'ent_installer', $user->username));
+                        mtrace("[SIMULATION] User $user->username suspended");
                     }
                 }
             }
         } else {
-            mtrace("\n-- ".get_string('nouserentriestoremove', 'auth_ldap'));
+            mtrace("\n-- No user entries to remove.");
         }
         unset($remove_users); // Free mem!
     }
 
     // Revive suspended users. *********************************.
+
     if (!empty($ldapauth->config->removeuser) && $ldapauth->config->removeuser == AUTH_REMOVEUSER_SUSPEND) {
 
         mtrace("\n>> ".get_string('revivingdeletedorsuspended', 'local_ent_installer'));
@@ -421,7 +438,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 (u.username = e.username AND u.mnethostid = e.mnethostid)
             WHERE
                 u.auth = 'nologin' AND u.deleted = 0
-        ";
+
+        ".@$debughardlimit;
         $revive_users = $DB->get_records_sql($sql);
 
         if (!empty($revive_users)) {
@@ -445,7 +463,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     }
 
     // User Updates - time-consuming (optional). ***************************.
-    // This might be an OBSOLETE code, regarding the updat ecapability of the create process.
+
+    // This might be an OBSOLETE code, regarding the update capability of the create process.
     if (!empty($options['doupdates'])) {
 
         mtrace("\n>> ".get_string('updatingusers', 'local_ent_installer'));
@@ -470,10 +489,17 @@ function local_ent_installer_sync_users($ldapauth, $options) {
         unset($key);
 
         // Run updates only if relevant.
-        $users = $DB->get_records_sql('SELECT u.username, u.id
-                                         FROM {user} u
-                                        WHERE u.deleted = 0 AND u.auth = ? AND u.mnethostid = ?',
-                                      array($ldapauth->authtype, $CFG->mnet_localhost_id));
+        $sql = '
+            SELECT
+                u.username,
+                u.id
+            FROM
+                {user} u
+            WHERE
+                u.deleted = 0 AND
+                u.auth = ?
+                AND u.mnethostid = ?'.@$debughardlimit;
+        $users = $DB->get_records_sql($sql, array($ldapauth->authtype, $CFG->mnet_localhost_id));
         if (!empty($users)) {
             mtrace(get_string('userentriestoupdate', 'auth_ldap', count($users)));
 
@@ -516,6 +542,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     }
 
     // User Additions or full profile update. ********************************.
+
     /*
      * Find users missing in DB that are in LDAP or users that have been modified since last run
      * and gives me a nifty object I don't want.
@@ -541,8 +568,9 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 u.id IS NULL OR
                 (e.lastmodified > ? )
             ORDER BY
-                e.username';
-        $params = array($config->last_sync_date);
+                e.username
+        '.@$debughardlimit;
+        $params = array(0 + $config->last_sync_date_user);
     } else {
         $sql = '
             SELECT
@@ -552,7 +580,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
             FROM
                 {tmp_extuser} e
             ORDER BY
-                e.username';
+                e.username
+        '.@$debughardlimit;
         $params = array();
     }
     $add_users = $DB->get_records_sql($sql, $params);
@@ -582,8 +611,13 @@ function local_ent_installer_sync_users($ldapauth, $options) {
             mtrace('----');
             // Save usertype.
             $usertype = $user->usertype;
-
+            $username = $user->username;
             $user = local_ent_installer_get_userinfo_asobj($ldapauth, $user->username, $options);
+
+            if (!$user) {
+                mtrace("Failed getting user data for $username");
+                continue;
+            }
 
             // Restore usertype in user.
             $user->usertype = $usertype;
@@ -623,12 +657,13 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
             // Authentication is the ldap plugin or a real auth plugin defined in setup.
             $realauth = $config->real_used_auth;
-            $user->auth = (empty($realauth)) ? $ldapauth->authtype : $realauth ;
+            $user->auth = (empty($realauth)) ? $ldapauth->authtype : $realauth;
             $user->mnethostid = $CFG->mnet_localhost_id;
             $user->country = $CFG->country;
 
             // If is set, User is being deleted or faked account. Ignore.
-            if (!empty($user->ENTPersonDateSuppression)) {
+            // Atrium related.
+            if (!empty($user->entpersondatesuppression)) {
                 mtrace('ERROR : User upon deletion process '.$user->username);
                 $updateerrorcount++;
 
@@ -638,7 +673,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
             }
 
             // This is a declared duple. Ignore
-            if (!empty($user->seeAlso)) {
+            // Atrium related.
+            if (!empty($user->seealso)) {
                 mtrace('ERROR : User '.$user->username.' is a duple. Ignoring.');
                 $updateerrorcount++;
                 continue;
@@ -657,34 +693,50 @@ function local_ent_installer_sync_users($ldapauth, $options) {
              * Process additional info for student :
              * extra information fields transport and regime.
              */
-            if ($user->usertype == 'eleve') {
+            if ($isent) {
 
-                // Transport.
-                local_ent_installer_user_add_info($user, 'student', 'transport');
+                // Do we work within an ENT SDET compliant environment ?
 
-                // Regime.
-                local_ent_installer_user_add_info($user, 'student', 'regime');
+                if ($user->usertype == 'eleve') {
 
-                // Bare legal.
-                local_ent_installer_user_add_info($user, 'student', 'fullage');
+                    // Transport.
+                    local_ent_installer_user_add_info($user, 'student', 'transport');
 
-                // Cohort (must have).
-                local_ent_installer_user_add_info($user, 'student', 'cohort');
-            }
+                    // Regime.
+                    local_ent_installer_user_add_info($user, 'student', 'regime');
 
-            $personfunction = @$user->ENTPersonFonctions;
-            unset($user->ENTPersonFonctions);
+                    // Bare legal.
+                    local_ent_installer_user_add_info($user, 'student', 'fullage');
 
-            $personstructure = @$user->ENTPersonStructRattach;
-            unset($user->ENTPersonStructRattach);
-
-            // Get the last term of personfunction and set it as department.
-            if (!empty($personfunction)) {
-                if (preg_match('/\\$([^\\$]+)$/', $personfunction, $matches)) {
-                    $user->department = $matches[1];
-                } else {
-                    $user->department = '';
+                    // Cohort (must have).
+                    local_ent_installer_user_add_info($user, 'student', 'cohort');
                 }
+
+                $personfunction = @$user->entpersonfonctions;
+                unset($user->entpersonfonctions);
+
+                // Lowest handling level, if several, take first.
+                // This may not be accurate for some users.
+                if (is_array($personfunction)) {
+                    $personfunction = $personfunction[0];
+                }
+
+                $personstructure = @$user->entpersonstructrattach;
+                if (is_array($personstructure)) {
+                    $personstructure = $personstructure[0];
+                }
+                unset($user->entpersonstructrattach);
+
+                // Get the last term of personfunction and set it as department.
+                if (!empty($personfunction)) {
+                    if (preg_match('/\\$([^\\$]+)$/', $personfunction, $matches)) {
+                        $user->department = $matches[1];
+                    } else {
+                        $user->department = '';
+                    }
+                }
+            } else {
+                $personfunction = '';
             }
 
             if (empty($options['simulate'])) {
@@ -745,9 +797,18 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         $siteadmins[] = $user->username;
                     }
                 }
+
+                // For explicit simulation output.
+                mtrace('Checking network accesses');
+                if (file_exists($CFG->dirroot.'/blocks/user_mnet_hosts/xlib.php')) {
+                    $user->id = $euser->id;
+                    require_once($CFG->dirroot.'/blocks/user_mnet_hosts/xlib.php');
+                    user_mnet_host_update_ldapuser($user, $options);
+                }
             }
 
             if (empty($options['simulate'])) {
+                // REAL PROCESSING.
                 $euser = $DB->get_record('user', array('id' => $id));
                 if (empty($oldrec)) {
                     \core\event\user_created::create_from_userid($euser->id)->trigger();
@@ -761,27 +822,32 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 // Cohort information / create/update cohorts.
                 if ($user->usertype == 'eleve') {
 
-                    // Adds user to cohort and create cohort if missing.
-                    $cohortshort = local_ent_installer_check_cohort($id, $user->profile_field_cohort);
 
-                    local_ent_installer_update_info_data($id, $USERFIELDS['transport'], @$user->profile_field_transport);
-                    local_ent_installer_update_info_data($id, $USERFIELDS['regime'], @$user->profile_field_regime);
-                    local_ent_installer_update_info_data($id, $USERFIELDS['fullage'], @$user->profile_field_fullage);
-                    local_ent_installer_update_info_data($id, $USERFIELDS['cohort'], $cohortshort);
+                    if ($isent) {
+                        // Adds user to cohort and create cohort if missing.
+                        $cohortshort = local_ent_installer_check_cohort($id, @$user->profile_field_cohort);
 
-                    if (isset($studentsitecohortid)) {
+                        local_ent_installer_update_info_data($id, $USERFIELDS['transport'], @$user->profile_field_transport);
+                        local_ent_installer_update_info_data($id, $USERFIELDS['regime'], @$user->profile_field_regime);
+                        local_ent_installer_update_info_data($id, $USERFIELDS['fullage'], @$user->profile_field_fullage);
+                        local_ent_installer_update_info_data($id, $USERFIELDS['cohort'], $cohortshort);
+                    }
+
+                    if (!empty($studentsitecohortid)) {
                         cohort_add_member($studentsitecohortid, $id);
                     }
                 } else {
-                    if (isset($staffsitecohortid)) {
-                        cohort_add_member($studentsitecohortid, $id);
+                    if (!empty($staffsitecohortid)) {
+                        cohort_add_member($staffsitecohortid, $id);
                     }
                 }
 
-                // Update primary assignation for all classes of users.
-                mtrace('Checking user primary assignation in '.$personstructure);
-                $isprimaryassignation = (local_ent_installer_match_structure($personstructure)) ? 1 : 0;
-                local_ent_installer_update_info_data($id, $USERFIELDS['isprimaryassignation'], $isprimaryassignation);
+                if ($isent) {
+                    // Update primary assignation for all classes of users.
+                    mtrace('Checking user primary assignation in '.$personstructure);
+                    $isprimaryassignation = (local_ent_installer_match_structure($personstructure)) ? 1 : 0;
+                    local_ent_installer_update_info_data($id, $USERFIELDS['isprimaryassignation'], $isprimaryassignation);
+                }
 
                 // Add course creators if needed.
                 mtrace('Checking course creator status');
@@ -789,37 +855,28 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                     role_assign($creatorrole->id, $id, $sitecontext->id, $ldapauth->roleauth);
                 }
 
-                // Process user_fields setup.
-                mtrace('Checking user profile fields');
-                if (preg_match('#\\$CTR\\$#', $personfunction)) {
-                    // Special case.
-                    local_ent_installer_update_info_data($id, $USERFIELDS['cdt'], 1);
-                    $user->usertype = 'cdt';
-                } else if ($user->usertype != 'siteadmin') {
-                    // Other user types unless site admins.
-                    local_ent_installer_update_info_data($id, $USERFIELDS[$user->usertype], 1);
-                }
-
-                if (!empty($user->personalTitle)) {
-                    local_ent_installer_update_info_data($id, $USERFIELDS['personaltitle'], $user->personalTitle);
-                }
-
-                mtrace('Checking network accesses');
-                if (file_exists($CFG->dirroot.'/blocks/user_mnet_hosts/locallib.php')) {
-                    require_once($CFG->dirroot.'/blocks/user_mnet_hosts/locallib.php');
-
-                    // All users have access marked on self.
-                    user_mnet_hosts_set_access($id, true);
-
-                    // Setting default access field policy for powered users.
-                    if ($user->usertype == 'enseignant' || $user->usertype == 'administration' || $user->usertype == 'cdt') {
-                        $like = $DB->sql_like('wwwroot', ':wwwroot', false, false);
-                        if ($commonroot = $DB->get_field_select('mnet_host', 'wwwroot', $like, array('wwwroot' => $CFG->mainhostprefix.'%'))){
-                            user_mnet_hosts_set_access($id, true, $commonroot);
-                        } else {
-                            mtrace('Giving teacher access : common host not found ');
-                        }
+                if ($isent) {
+                    // Process user_fields setup.
+                    mtrace('Checking user profile fields');
+                    if (preg_match('#\\$CTR\\$#', $personfunction)) {
+                        // Special case.
+                        local_ent_installer_update_info_data($id, $USERFIELDS['cdt'], 1);
+                        $user->usertype = 'cdt';
+                    } else if ($user->usertype != 'siteadmin') {
+                        // Other user types unless site admins.
+                        local_ent_installer_update_info_data($id, $USERFIELDS[$user->usertype], 1);
                     }
+
+                    if (!empty($user->personalTitle)) {
+                        local_ent_installer_update_info_data($id, $USERFIELDS['personaltitle'], $user->personalTitle);
+                    }
+                }
+
+                if (file_exists($CFG->dirroot.'/blocks/user_mnet_hosts/xlib.php')) {
+                    mtrace('Checking network accesses');
+                    require_once($CFG->dirroot.'/blocks/user_mnet_hosts/xlib.php');
+                    $user->id = $euser->id;
+                    user_mnet_host_update_ldapuser($user, $options);
                 }
 
                 // Add a workplace to teachers.
@@ -830,34 +887,42 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                     }
                 }
 
-                // Identify librarians and give library enabled role at system level.
-                mtrace('Checking librarian attributes');
-                if (preg_match('#(\\$DOC\\$|\\$ADOC\\$)#', $personfunction)) {
-                    mtrace('Adding librarian attributes');
-                    if ($role = $DB->get_record('role', array('shortname' => 'librarian'))) {
-                        $systemcontext = context_system::instance();
-                        role_assign($role->id, $id, $systemcontext->id);
+                if ($isent) {
+                    // Identify librarians and give library enabled role at system level.
+                    mtrace('Checking librarian attributes');
+                    if (preg_match('#(\\$DOC\\$|\\$ADOC\\$)#', $personfunction)) {
+                        mtrace('Adding librarian attributes');
+                        if ($role = $DB->get_record('role', array('shortname' => 'librarian'))) {
+                            $systemcontext = context_system::instance();
+                            role_assign($role->id, $id, $systemcontext->id);
+                        }
+                    }
+
+                    // Identify school deans and give them Manager role.
+                    if ($config->enrol_deans) {
+                        mtrace('Checking school dean attributes');
+                        if (preg_match('#\\$DIR\\$#', $personfunction)) {
+                            mtrace('Adding school dean attributes');
+                            if ($role = $DB->get_record('role', array('shortname' => 'manager'))) {
+                                $systemcontext = context_system::instance();
+                                role_assign($role->id, $id, $systemcontext->id);
+                            }
+                        }
                     }
                 }
 
                 if ($user->usertype == 'siteadmin') {
                     // Add all site administrators. Mark them as keys to be merged back.
-                    $siteadmins[$id] = true;
-                    if (isset($adminssitecohortid)) {
+                    $siteadmins[] = $id;
+                    if (!empty($adminssitecohortid)) {
                         cohort_add_member($adminssitecohortid, $id);
                     }
                 }
 
-                // Identify school deans and give them Manager role.
-                if ($config->enrol_deans) {
-                    mtrace('Checking school dean attributes');
-                    if (preg_match('#\\$DIR\\$#', $personfunction)) {
-                        mtrace('Adding school dean attributes');
-                        if ($role = $DB->get_record('role', array('shortname' => 'manager'))) {
-                            $systemcontext = context_system::instance();
-                            role_assign($role->id, $id, $systemcontext->id);
-                        }
-                    }
+                if (!empty($user->userpicture)) {
+                    mtrace('Getting/updating user picture');
+                    // Could we get some info about a user picture url ?
+                    local_installer_get_user_picture($euser->id, $user, $options);
                 }
             }
         }
@@ -867,7 +932,11 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     }
 
     if (!empty($siteadmins)) {
-        local_ent_installer_merge_siteadmins($siteadmins, $options);
+        if (!$debughardlimit) {
+            local_ent_installer_merge_siteadmins($siteadmins, $options);
+        } else {
+            mtrace('Site admins integration skipped because of debugging Hard Limit. Turn debugging off for complete operation.');
+        }
     }
 
     local_ent_installer_reorder_teacher_categories();
@@ -934,7 +1003,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     }
 
     // Mark last time the user sync was run.
-    set_config('last_sync_date', time(), 'local_ent_installer');
+    set_config('last_sync_date_user', time(), 'local_ent_installer');
+    
 
     return true;
 }
@@ -955,7 +1025,7 @@ function local_ent_installer_user_add_info(&$user, $role, $info) {
 
     $fieldkey = $role.'_'.$info.'_userfield';
     $filterkey = $role.'_'.$info.'_userfield_filter';
-    $field = @$config->$fieldkey;
+    $field = core_text::strtolower(@$config->$fieldkey);
 
     if ($field) {
         if (empty($config->$filterkey)) {
@@ -964,7 +1034,7 @@ function local_ent_installer_user_add_info(&$user, $role, $info) {
             $filter = $config->$filterkey;
         }
 
-        preg_match("/$filter/", $user->$field, $matches);
+        preg_match("/$filter/", @$user->$field, $matches);
         $pfkey = 'profile_field_'.$info;
 
         $value = @$matches[1];
@@ -1274,8 +1344,15 @@ function local_ent_installer_get_userinfo($ldapauth, $username, $options = array
         return false;
     }
 
+
     $searchattribs = array();
-    $attrmap = $ldapauth->ldap_attributes();
+    $ldapmap = $attrmap = $ldapauth->ldap_attributes();
+
+    // Add provision for external user pictures.
+    if (!empty($userpicattr = get_config('local_ent_installer', 'user_picture_field'))) {
+        $attrmap['userpicture'] = core_text::strtolower($userpicattr);
+    }
+
     foreach ($attrmap as $key => $values) {
         if (!is_array($values)) {
             $values = array($values);
@@ -1288,10 +1365,13 @@ function local_ent_installer_get_userinfo($ldapauth, $username, $options = array
     }
 
     foreach ($entattributes as $value) {
-        if (!in_array($value, $searchattribs)) {
-            array_push($searchattribs, $value);
+        $lowvalue = core_text::strtolower($value);
+        if (!in_array($lowvalue, $searchattribs)) {
+            array_push($searchattribs, $lowvalue);
             // Add attributes to $attrmap so they are pulled down into final user object.
-            $attrmap[$value] = strtolower($value);
+        }
+        if (!array_key_exists($value, $attrmap)) {
+            $attrmap[$value] = $lowvalue;
         }
     }
 
@@ -1324,14 +1404,22 @@ function local_ent_installer_get_userinfo($ldapauth, $username, $options = array
             }
 
             if (!array_key_exists($value, $entry)) {
-                if ($options['verbose']) {
-                    mtrace("Requested value $value but missing in record");
+                if (!empty($options['verbose'])) {
+                    mtrace("Requested value $key/$value but missing in record");
                 }
                 continue; // Wrong data mapping!
             }
 
             if (is_array($entry[$value])) {
-                $newval = core_text::convert($entry[$value][0], $ldapauth->config->ldapencoding, 'utf-8');
+                $arity = array_pop($entry[$value]);
+                if ($arity == 1) {
+                    $newval = core_text::convert($entry[$value][0], $ldapauth->config->ldapencoding, 'utf-8');
+                } else {
+                    $newval = array();
+                    foreach ($entry[$value] as $val) {
+                        $newval[] = core_text::convert($val, $ldapauth->config->ldapencoding, 'utf-8');
+                    }
+                }
             } else {
                 $newval = core_text::convert($entry[$value], $ldapauth->config->ldapencoding, 'utf-8');
             }
@@ -1340,12 +1428,29 @@ function local_ent_installer_get_userinfo($ldapauth, $username, $options = array
                 $ldapval = $newval;
             }
         }
-        if (!is_null($ldapval)) {
-            $result[$key] = $ldapval;
+
+        // Post fix ldap mapped attributes that MUST be scalar.
+        if (array_key_exists($key, $ldapmap) && is_array($ldapval)) {
+            // We only take the first value and ignore further.
+            /*
+             * This might raise side effects and ùmay be a temporary resolution. It might be
+             * better to map another field known as scalar here.
+             */
+            $ldapval = $ldapval[0];
         }
+
+        if (!is_null($ldapval)) {
+            $result[core_text::strtolower($key)] = $ldapval;
+        }
+
     }
 
     $ldapauth->ldap_close();
+
+    if (!empty($options['verbose'])) {
+        print_r($result);
+    }
+
     return $result;
 }
 
@@ -1362,7 +1467,7 @@ function local_ent_installer_get_userinfo_asobj($ldapauth, $username, $options =
     $user_array = local_ent_installer_get_userinfo($ldapauth, $username, $options);
 
     if ($user_array == false) {
-        return false; //error or not found
+        return false; // Error or not found.
     }
 
     $user_array = truncate_userinfo($user_array);
@@ -1413,7 +1518,7 @@ function local_ent_installer_check_cohort($userid, $cohortidentifier) {
     $cohortix = get_config('local_ent_installer', 'cohort_ix');
     if (!empty($cohortix)) {
         $cohortname = $cohortix.'_'.$cohortname;
-        $idnumber = $cohortix.'_'.$institutionid.'$'.$cohortname;
+        $idnumber = $cohortix.'_'.$config->institution_id.'$'.$cohortname;
     }
 
     if (!$cohort = $DB->get_record('cohort', array('name' => $cohortname))) {
@@ -1422,7 +1527,7 @@ function local_ent_installer_check_cohort($userid, $cohortidentifier) {
         $cohort = new StdClass();
         $cohort->name = $cohortname;
         $cohort->contextid = $systemcontext->id;
-        $cohort->idnumber = $institutionid.'$'.$cohortname;
+        $cohort->idnumber = $config->institution_id.'$'.$cohortname;
         $cohort->description = '';
         $cohort->descriptionformat = 0;
         $cohort->component = 'local_ent_installer';
@@ -1512,7 +1617,12 @@ function local_ent_installer_make_teacher_category($user) {
 }
 
 /**
- * releases all non matching en_installer specific cohorts with the year prefix.
+ * Active cohorts are bound to the ent_installer compoenent to protect them from 
+ * manual operations.
+ * Any other cohort should loose the ent_installer tagging and thus become free to
+ * be manually altered or deleted by administrators.
+ *
+ * releases all non matching ent_installer specific cohorts with the year prefix.
  * release them removing the component name so turn back the cohorts to manual handling
  */
 function local_ent_installer_release_old_cohorts() {
@@ -1603,39 +1713,32 @@ function local_ent_installer_merge_siteadmins($newadmins, $options = array()) {
     }
 
     $oldadmins = array();
-    if ($oldadminlist = $DB->get_field('config', 'value', array('name' => 'siteadmins'))) {
+    if ($oldadminlist = get_config('moodle', 'siteadmins')) {
 
         $oldadmins = explode(',', $oldadminlist);
 
         // First remove all site admins having ent_installer auth method.
         foreach ($oldadmins as $oldid) {
-            if ($auth = $DB->get_field('user', 'auth', array('id' => $oldid))) {
+            $lightuser = $DB->get_record('user', array('id' => $oldid), 'id,suspended,deleted');
+            if ($lightuser && !$lightuser->suspended && !$lightuser->deleted) {
+                // If not a deleted user keep it.
                 if (!in_array($oldid, $newadmins)) {
-                    if (($auth != $config->real_used_auth) || empty($options['force'])) {
-                        // If not a synced user and was admin, maintain it.
-                        /*
-                         * If we are not playing 'forced' mode, just add new to existing list, or we may
-                         * revoke accidentally old users.
-                         */
-                        $newadmins[] = $oldid;
-                    }
+                    $newadmins[] = $oldid;
                 }
             }
         }
     }
 
-    sort($newadmins);
-
     $newadminlist = implode(',', $newadmins);
+    $newadminlist = rtrim(preg_replace('/,+/', ',', $newadminlist), ','); // Fix and cleanup the list.
 
     if (empty($options['simulate'])) {
-        $DB->set_field('config', 'value', $newadminlist, array('name' => 'siteadmins'));
+        set_config('siteadmins', $newadminlist);
         mtrace(get_string('mergesiteadmins', 'local_ent_installer', $newadminlist));
     } else {
         mtrace('[SIMULATION] '.get_string('mergesiteadmins', 'local_ent_installer', $newadminlist));
     }
 
-    cache_helper::invalidate_by_definition('core', 'config');
 }
 
 function sortbyidnumber($a, $b) {
@@ -1659,20 +1762,21 @@ function local_ent_installer_ensure_global_cohort_exists($type, $options) {
     }
 
     $key = $type.'_site_cohort_name';
-    if (!empty($config->$key)) {
-        $cohortname = $config->$key;
-        if (!$oldcohort = $DB->get_record('cohort', array('name' => $config->$key))) {
 
-            if (strpos($cohortname, '/') !== false) {
-                // We have idnumber / name scheme.
-                list($idnumber, $cname) = explode('/', $cohortname);
-                $idnumber = $config->institution_id.'$'.$idnumber;
-            } else {
-                $cname = $cohortname;
-                $idnumber = $config->institution_id.'$'.$defaultsidnums($type);
-            }
+    if (!empty($config->$key)) {
+
+        list($institutionidlist, $institutionalias) = local_ent_installer_strip_alias($config->institution_id);
+        if (empty($institutionalias)) {
+            $idnumber = $config->cohort_ix.'_'.$config->institution_id.'_'.$defaultidnums[$type];
+        } else {
+            $idnumber = $config->cohort_ix.'_'.$institutionalias.'_'.$defaultidnums[$type];
+        }
+        if (!$oldcohort = $DB->get_record('cohort', array('idnumber' => $idnumber))) {
+
+            $cohortname = $config->cohort_ix.' '.$config->$key;
+
             $cohort = new StdClass;
-            $cohort->name = $cname;
+            $cohort->name = $cohortname;
             $cohort->idnumber = $idnumber;
             $cohort->description = '';
             $cohort->descriptionformat = FORMAT_HTML;
@@ -1691,4 +1795,115 @@ function local_ent_installer_ensure_global_cohort_exists($type, $options) {
             return $oldcohort->id;
         }
     }
+}
+
+function local_installer_get_user_picture($userid, &$user, $options = array()) {
+    global $CFG;
+
+    $config = get_config('local_ent_installer');
+
+    if (empty($config->user_picture_url_pattern)) {
+        return;
+    }
+
+    if (empty($user->userpicture)) {
+        return;
+    }
+
+    if (!empty($config->user_picture_filter)) {
+        if (!preg_match('/'.$config->student_picture_filter.'/', $user->userpicture, $matches)) {
+            // No data could be obtained.
+            return;
+        }
+
+        $pictureinfo = $matches[1];
+        $pictureurl = str_replace('%PICTURE%', $pictureinfo, $config->user_picture_url_pattern);
+        if (!empty($pictureurl) && (strpos($pictureurl, 'http:') !== false)) {
+
+            if (!preg_match('/(\\.jpg|\\.gif|\\.png)/', $pictureurl, $matches)) {
+                // Not an image url.
+                return;
+            }
+            $ext = $matches[1];
+
+            if (!empty($options['verbose'])) {
+                mtrace("Getting $pictureurl HHTP content");
+            }
+            $ch = curl_init($pictureurl);
+
+            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, false);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'Moodle LDAP Ent Installer');
+            curl_setopt($ch, CURLOPT_POSTFIELDS, '');
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: text/xml charset=UTF-8"));
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+
+            if (!empty($CFG->proxyhost)) {
+                if (empty($CFG->proxyport)) {
+                    $proxyhost = $CFG->proxyhost;
+                } else {
+                    $proxyhost = $CFG->proxyhost.':'.$CFG->proxyport;
+                }
+                curl_setopt($ch, CURLOPT_PROXY, $proxyhost);
+
+                if (!empty($CFG->proxyuser) and !empty($CFG->proxypassword)) {
+                    $proxyauth = $CFG->proxyuser.':'.$CFG->proxypassword;
+                    curl_setopt($ch, CURL_AUTHHTTP, CURLAUTH_BASIC);
+                    curl_setopt($ch, CURL_PROXYAUTH, $proxyauth);
+                }
+
+                if (!empty($CFG->proxytype)) {
+                    if ($CFG->proxytype == 'SOCKS5') {
+                        $proxytype = CURLPROXY_SOCKS5;
+                    } else {
+                        $proxytype = CURLPROXY_HTTP;
+                    }
+                    curl_setopt($ch, CURL_PROXYTYPE, $proxytype);
+                }
+            }
+
+            $raw = curl_exec($ch);
+
+            $error = curl_error($ch);
+            $info = curl_getinfo($ch);
+
+            $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+            if (!is_dir($CFG->tempdir.'/local_ent_installer/')) {
+                mkdir($CFG->tempdir.'/local_ent_installer/');
+            }
+
+            if ($httpcode == 200) {
+                if (!empty($options['verbose'])) {
+                    mtrace("Storing local user picture");
+                }
+                $imagefile = $CFG->tempdir.'/local_ent_installer/'.md5($user->username).$ext;
+                $USERPIC = fopen($imagefile, 'wb');
+                fputs($USERPIC, $raw);
+                fclose($USERPIC);
+
+                ent_installer_save_profile_image($userid, $imagefile, $options);
+            }
+        }
+    }
+
+}
+
+/**
+ * Try to save the given file (specified by its full path) as the
+ * picture for the user with the given id.
+ *
+ * @param integer $id the internal id of the user to assign the picture file to.
+ * @param string $originalfile the full path of the picture file.
+ *
+ * @return bool
+ */
+function ent_installer_save_profile_image($userid, $originalfile, $options = array()) {
+    $context = context_user::instance($userid);
+    if (!empty($options['verbose'])) {
+        mtrace("Procesisng icon file for user $userid");
+    }
+    return process_new_icon($context, 'user', 'icon', 0, $originalfile);
 }

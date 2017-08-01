@@ -112,3 +112,9 @@ $options = array('username' => get_string('username'),
                  'idnumber' => get_string('idnumber'),
                  'email' => get_string('email'));
 $settings->add(new admin_setting_configselect($key, $label, $desc, $default, $options));
+
+$key = 'local_ent_installer/cohort_old_prefixes';
+$label = get_string('configcohortoldprefixes', 'local_ent_installer');
+$desc = get_string('configcohortoldprefixes_desc', 'local_ent_installer');
+$default = '';
+$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
