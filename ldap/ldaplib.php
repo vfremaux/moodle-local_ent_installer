@@ -1937,7 +1937,8 @@ function ent_installer_save_profile_image($userid, $originalfile, $options = arr
 
     $context = context_user::instance($userid);
     if (!empty($options['verbose'])) {
-        mtrace("Procesisng icon file for user $userid");
+        mtrace("Processing icon file for user $userid");
     }
     return process_new_icon($context, 'user', 'icon', 0, $originalfile);
 }
+
