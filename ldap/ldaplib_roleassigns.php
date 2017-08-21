@@ -114,7 +114,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     }
     if (!empty($config->roleassign_context_attribute)) {
         if (!in_array($config->roleassign_context_attribute, $rarecordfields)) {
-            $rarecordfields[] = $config->roleassign_contextlevel_attribute;
+            $rarecordfields[] = $config->roleassign_context_attribute;
         }
     }
     if (!in_array($config->roleassign_contextlevel_attribute, $rarecordfields)) {
@@ -188,7 +188,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
                         // Get context object id part.
                         /*
-                         * the context id may be obtrained indirectly giving a context instance identifier and a
+                         * the context id may be obtained indirectly giving a context instance identifier and a
                          * context level info.
                          * The context finder will match any instance at the appropriate level using the required
                          * identifying field, and gives back the context object required for the role assignation.
@@ -199,6 +199,9 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                         $cidvalue = 0;
                         if (($config->roleassign_context_attribute != $config->roleassign_membership_attribute) && isset($clevelvalue)) {
                             if (!empty($config->roleassign_context_attribute)) {
+                                if (!empty($options['verbose'])) {
+                                    mtrace("Searching context identifier value in {$config->roleassign_context_attribute}");
+                                }
                                 $value = ldap_get_values_len($ldapconnection, $entry, $config->roleassign_context_attribute);
                                 $cidvalue = local_ent_installer_get_from_value('context', $value, $ldapauth, $config);
                             }
@@ -708,7 +711,7 @@ function local_ent_installer_find_context($clevelvalue, $cidvalue = 0) {
                 break;
 
             case 'course':
-                mtrace("Search course context by $config->roleassign_course_key with identifier $cidvalue ");
+                mtrace("Search course context by {$config->roleassign_course_key} with identifier $cidvalue ");
                 if (!$objid = $DB->get_field('course', 'id', array($config->roleassign_course_key => $cidvalue))) {
                     return false;
                 }

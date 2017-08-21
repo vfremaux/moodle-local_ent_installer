@@ -245,7 +245,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
             // Build an external pattern.
             $cohortldapidentifier = $config->cohort_id_pattern;
-            $cidnumber = preg_replace('/'.$config->cohort_ix.'_/', '', $up->idnumber); // Unprefix the cohort idnumber.
+            $cidnumber = preg_replace('/^'.$config->cohort_ix.'_/', '', $up->idnumber); // Unprefix the cohort idnumber.
 
             // The following filters may not be usefull.
             $cohortldapidentifier = str_replace('%CID%', $cidnumber, $cohortldapidentifier);
@@ -259,7 +259,11 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
             $oldrec = $DB->get_record('cohort', array('id' => $up->cid));
             $oldrec->name = $config->cohort_ix.' '.$cohortinfo->name;
             // Ensure we have a correctly prefixed cohort IDNum and wellformed idnumber.
-            $oldrec->idnumber = str_replace('__', '_', $config->cohort_ix.'_'.$cidnumber);
+            if (!empty($config->cohort_ix)) {
+                $oldrec->idnumber = str_replace('__', '_', $config->cohort_ix.'_'.$cidnumber);
+            } else {
+                $oldrec->idnumber = $cidnumber;
+            }
             $oldrec->description = $cohortinfo->description;
             $oldrec->descriptionformat = FORMAT_HTML;
             $oldrec->contextid = $systemcontext->id;
@@ -329,7 +333,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
                 // Build an external pattern
                 $cohortldapidentifier = $config->cohort_id_pattern;
-                $cidnumber = str_replace($config->cohort_ix.'_', '', $cr->idnumber); // Unprefix the cohort idnumber.
+                $cidnumber = preg_replace('/^'.$config->cohort_ix.'_/', '', $cr->idnumber); // Unprefix the cohort idnumber.
                 $cohortldapidentifier = str_replace('%CID%', $cidnumber, $cohortldapidentifier);
                 $cohortldapidentifier = str_replace('%ID%', $config->institution_id, $cohortldapidentifier);
 
@@ -485,11 +489,11 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
                         mtrace("Getting user record for {$config->cohort_user_identifier} = $identifier");
                     }
                     $user = $DB->get_record('user', array($config->cohort_user_identifier => $identifier), 'id,username,firstname,lastname');
-                    $user->userid = $user->id;
                     if (!$user) {
                         mtrace("Error : User record not found for $identifier. Skipping membership");
                         continue;
                     }
+                    $user->userid = $user->id;
                     $newval[] = $user;
                 }
             }
