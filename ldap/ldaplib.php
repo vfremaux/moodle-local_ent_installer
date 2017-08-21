@@ -765,14 +765,19 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                     }
                 } else {
                     // This is a real new user.
-                    $user->maildisplay = 0 + $maildisplay;
-                    try {
-                        $id = $DB->insert_record('user', $user);
-                        mtrace(get_string('dbinsertuser', 'local_ent_installer', $a));
-                        $insertcount++;
-                    } catch(Exception $e) {
-                        mtrace('ERROR : Failed insert '.$user->username);
-                        $inserterrorcount++;
+                    if (empty($options['updateonly'])) {
+                        $user->maildisplay = 0 + $maildisplay;
+                        try {
+                            $id = $DB->insert_record('user', $user);
+                            mtrace(get_string('dbinsertuser', 'local_ent_installer', $a));
+                            $insertcount++;
+                        } catch(Exception $e) {
+                            mtrace('ERROR : Failed insert '.$user->username);
+                            $inserterrorcount++;
+                            continue;
+                        }
+                    } else {
+                        mtrace(get_string('dbskipnewuser', 'local_ent_installer', $a));
                         continue;
                     }
                 }
@@ -782,7 +787,12 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 $a = clone($user);
                 $a->function = $personfunction;
                 if (!$oldrec = local_ent_installer_guess_old_record($user, $status)) {
-                    mtrace(get_string('dbinsertusersimul', 'local_ent_installer', $a));
+                    if (empty($options['updateonly'])) {
+                        mtrace(get_string('dbinsertusersimul', 'local_ent_installer', $a));
+                    } else {
+                        mtrace(get_string('dbskipnewusersimul', 'local_ent_installer', $a));
+                        continue;
+                    }
                 } else {
                     $a->status = $MATCH_STATUS[$status];
                     mtrace(get_string('dbupdateusersimul', 'local_ent_installer', $a));
@@ -1803,31 +1813,43 @@ function local_installer_get_user_picture($userid, &$user, $options = array()) {
     $config = get_config('local_ent_installer');
 
     if (empty($config->user_picture_url_pattern)) {
+        if (!empty($options['verbose'])) {
+            mtrace("No picture url pattern in config");
+        }
         return;
     }
 
     if (empty($user->userpicture)) {
+        if (!empty($options['verbose'])) {
+            mtrace("Empty userpicture value");
+        }
         return;
     }
 
     if (!empty($config->user_picture_filter)) {
-        if (!preg_match('/'.$config->student_picture_filter.'/', $user->userpicture, $matches)) {
+        if (!preg_match('/'.$config->user_picture_filter.'/', $user->userpicture, $matches)) {
             // No data could be obtained.
+            if (!empty($options['verbose'])) {
+                mtrace("User filter could not grab any data");
+            }
             return;
         }
 
         $pictureinfo = $matches[1];
         $pictureurl = str_replace('%PICTURE%', $pictureinfo, $config->user_picture_url_pattern);
-        if (!empty($pictureurl) && (strpos($pictureurl, 'http:') !== false)) {
+        if (!empty($pictureurl) && (preg_match('#https?://#', $pictureurl))) {
 
             if (!preg_match('/(\\.jpg|\\.gif|\\.png)/', $pictureurl, $matches)) {
                 // Not an image url.
+                if (!empty($options['verbose'])) {
+                    mtrace("Not an image url");
+                }
                 return;
             }
             $ext = $matches[1];
 
             if (!empty($options['verbose'])) {
-                mtrace("Getting $pictureurl HHTP content");
+                mtrace("Getting $pictureurl HTTP content");
             }
             $ch = curl_init($pictureurl);
 
@@ -1885,6 +1907,14 @@ function local_installer_get_user_picture($userid, &$user, $options = array()) {
                 fclose($USERPIC);
 
                 ent_installer_save_profile_image($userid, $imagefile, $options);
+            } else {
+                if (!empty($options['verbose'])) {
+                    mtrace("No image found");
+                }
+            }
+        } else {
+            if (!empty($options['verbose'])) {
+                mtrace("Url malformed or empty : $pictureurl ");
             }
         }
     }
@@ -1901,6 +1931,10 @@ function local_installer_get_user_picture($userid, &$user, $options = array()) {
  * @return bool
  */
 function ent_installer_save_profile_image($userid, $originalfile, $options = array()) {
+    global $CFG;
+
+    include_once($CFG->dirroot.'/lib/gdlib.php');
+
     $context = context_user::instance($userid);
     if (!empty($options['verbose'])) {
         mtrace("Procesisng icon file for user $userid");

@@ -173,8 +173,9 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
             tc.idnumber IS NULL
             $captureautocohorts
         HAVING
-           c.idnumber LIKE '".$config->cohort_ix."_%' // Only delete cohorts of the same milesim
+           c.idnumber LIKE '".$config->cohort_ix."_%'
     ";
+    // HAVING : Only delete cohorts of the same milesim
 
     $deleted = $DB->get_records_sql($sql);
 
@@ -216,24 +217,26 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     $updated = $DB->get_records_sql($sql, array($lastmodified));
 
-    mtrace("\n>> ".get_string('deletingcohorts', 'local_ent_installer'));
-    if ($deleted) {
-        foreach ($deleted as $dl) {
-            if (empty($options['simulate'])) {
-                if ($members = $DB->get_records('cohort_members', array('cohortid' => $dl->cid))) {
-                    foreach($members as $m) {
-                        // This will trigger cascade events to get everything clean.
-                        \cohort_remove_member($dl->cid, $m->userid);
+    if (empty($options['updateonly'])) {
+        mtrace("\n>> ".get_string('deletingcohorts', 'local_ent_installer'));
+        if ($deleted) {
+            foreach ($deleted as $dl) {
+                if (empty($options['simulate'])) {
+                    if ($members = $DB->get_records('cohort_members', array('cohortid' => $dl->cid))) {
+                        foreach($members as $m) {
+                            // This will trigger cascade events to get everything clean.
+                            \cohort_remove_member($dl->cid, $m->userid);
+                        }
                     }
+                    $DB->delete_records('cohort', array('id' => $dl->cid));
+                    mtrace(get_string('cohortdeleted', 'local_ent_installer', $dl->idnumber));
+                } else {
+                    mtrace('[SIMULATION] '.get_string('cohortdeleted', 'local_ent_installer', $dl->idnumber));
                 }
-                $DB->delete_records('cohort', array('id' => $dl->cid));
-                mtrace(get_string('cohortdeleted', 'local_ent_installer', $dl->idnumber));
-            } else {
-                mtrace('[SIMULATION] '.get_string('cohortdeleted', 'local_ent_installer', $dl->idnumber));
             }
+        } else {
+            mtrace(get_string('nothingtodo', 'local_ent_installer'));
         }
-    } else {
-        mtrace(get_string('nothingtodo', 'local_ent_installer'));
     }
 
     mtrace("\n>> ".get_string('updatingcohorts', 'local_ent_installer'));
@@ -319,50 +322,52 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
         mtrace(get_string('nothingtodo', 'local_ent_installer'));
     }
 
-    mtrace("\n>> ".get_string('creatingcohorts', 'local_ent_installer'));
-    if ($created) {
-        foreach ($created as $cr) {
+    if (empty($options['updateonly'])) {
+        mtrace("\n>> ".get_string('creatingcohorts', 'local_ent_installer'));
+        if ($created) {
+            foreach ($created as $cr) {
 
-            // Build an external pattern
-            $cohortldapidentifier = $config->cohort_id_pattern;
-            $cidnumber = str_replace($config->cohort_ix.'_', '', $cr->idnumber); // Unprefix the cohort idnumber.
-            $cohortldapidentifier = str_replace('%CID%', $cidnumber, $cohortldapidentifier);
-            $cohortldapidentifier = str_replace('%ID%', $config->institution_id, $cohortldapidentifier);
+                // Build an external pattern
+                $cohortldapidentifier = $config->cohort_id_pattern;
+                $cidnumber = str_replace($config->cohort_ix.'_', '', $cr->idnumber); // Unprefix the cohort idnumber.
+                $cohortldapidentifier = str_replace('%CID%', $cidnumber, $cohortldapidentifier);
+                $cohortldapidentifier = str_replace('%ID%', $config->institution_id, $cohortldapidentifier);
 
-            $cohortinfo = local_ent_installer_get_cohortinfo_asobj($ldapauth, $cohortldapidentifier, $options);
+                $cohortinfo = local_ent_installer_get_cohortinfo_asobj($ldapauth, $cohortldapidentifier, $options);
 
-            $cohort = new StdClass;
-            $cohort->name = $cohortinfo->name;
-            $cohort->description = $cohortinfo->description;
-            $cohort->descriptionformat = FORMAT_HTML;
-            $cohort->idnumber = $config->cohort_ix.'_'.$cohortinfo->idnumber;
-            $cohort->contextid = $systemcontext->id;
-            $cohort->component = 'local_ent_installer';
-            $cohort->timecreated = time();
-            $cohort->timemodified = time();
-            if (empty($options['simulate'])) {
-                $cohort->id = $DB->insert_record('cohort', $cohort);
-                mtrace(get_string('cohortcreated', 'local_ent_installer', $cohort));
-            } else {
-                mtrace('[SIMULATION] '.get_string('cohortcreated', 'local_ent_installer', $cohort));
-            }
+                $cohort = new StdClass;
+                $cohort->name = $cohortinfo->name;
+                $cohort->description = $cohortinfo->description;
+                $cohort->descriptionformat = FORMAT_HTML;
+                $cohort->idnumber = $config->cohort_ix.'_'.$cohortinfo->idnumber;
+                $cohort->contextid = $systemcontext->id;
+                $cohort->component = 'local_ent_installer';
+                $cohort->timecreated = time();
+                $cohort->timemodified = time();
+                if (empty($options['simulate'])) {
+                    $cohort->id = $DB->insert_record('cohort', $cohort);
+                    mtrace(get_string('cohortcreated', 'local_ent_installer', $cohort));
+                } else {
+                    mtrace('[SIMULATION] '.get_string('cohortcreated', 'local_ent_installer', $cohort));
+                }
 
-            if (!empty($cohortinfo->members)) {
-                foreach ($cohortinfo->members as $m) {
-                    $e = new StdClass;
-                    $e->username = $DB->get_field('user', 'username', array('id' => $m->username));
-                    $e->idnumber = $cohort->idnumber;
-                    if (empty($options['simulate'])) {
-                        \cohort_add_member($cohort->id, $m->userid);
-                        mtrace(get_string('cohortmemberadded', 'local_ent_installer', $e));
-                    } else {
-                        mtrace('[SIMULATION] '.get_string('cohortmemberadded', 'local_ent_installer', $e));
+                if (!empty($cohortinfo->members)) {
+                    foreach ($cohortinfo->members as $m) {
+                        $e = new StdClass;
+                        $e->username = $DB->get_field('user', 'username', array('id' => $m->username));
+                        $e->idnumber = $cohort->idnumber;
+                        if (empty($options['simulate'])) {
+                            \cohort_add_member($cohort->id, $m->userid);
+                            mtrace(get_string('cohortmemberadded', 'local_ent_installer', $e));
+                        } else {
+                            mtrace('[SIMULATION] '.get_string('cohortmemberadded', 'local_ent_installer', $e));
+                        }
                     }
                 }
             }
+        } else {
+            mtrace(get_string('nothingtodo', 'local_ent_installer'));
         }
-    } else {
-        mtrace(get_string('nothingtodo', 'local_ent_installer'));
     }
 
     mtrace("\n>> ".get_string('finaloperations', 'local_ent_installer'));

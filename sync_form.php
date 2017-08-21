@@ -68,6 +68,8 @@ class SyncUsersForm extends moodleform {
 
         $mform->addElement('checkbox', 'force', get_string('force', 'local_ent_installer'));
 
+        $mform->addElement('checkbox', 'updateonly', get_string('updateonly', 'local_ent_installer'));
+
         $mform->addElement('checkbox', 'simulate', get_string('simulate', 'local_ent_installer'));
 
         $mform->addElement('checkbox', 'verbose', get_string('verbose', 'local_ent_installer'));

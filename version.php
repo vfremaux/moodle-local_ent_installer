@@ -26,7 +26,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2017062100;   // The (date) version of this plugin.
+$plugin->version  = 2017080800;   // The (date) version of this plugin.
 $plugin->requires = 2016051900;   // Requires this Moodle version.
 $plugin->component = 'local_ent_installer';
 $plugin->release = '3.1.0 (Build 2017062100)';

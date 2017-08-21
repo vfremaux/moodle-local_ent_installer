@@ -22,7 +22,33 @@
 
 defined('MOODLE_INTERNAL') || die;
 
+if (is_dir($CFG->dirroot.'/local/adminsettings')) {
+    require_once($CFG->dirroot.'/local/adminsettings/lib.php');
+    list($hasconfig, $hassiteconfig, $capability) = local_adminsettings_access();
+} else {
+    // Standard Moodle code
+    $capability = 'moodle/site:config';
+    $hasconfig = $hassiteconfig = has_capability($capability, context_system::instance());
+}
+
 require_once $CFG->dirroot.'/local/ent_installer/adminlib.php';
+
+if ($hasconfig && is_dir($CFG->dirroot.'/admin/tool/sync')) {
+
+    // Add a light weight resync service access to site managers.
+
+    $settings = new admin_settingpage('local_ent_installer_light', get_string('entupdate', 'local_ent_installer'));
+
+    $settingurl = new moodle_url('/local/ent_installer/synctimereport.php');
+    $settings->add(new admin_setting_heading('syncbench', get_string('syncbench', 'local_ent_installer'),
+                   get_string('syncbenchreport_desc', 'local_ent_installer', $settingurl->out())));
+
+    $settingurl = new moodle_url('/local/ent_installer/sync.php');
+    $settings->add(new admin_setting_heading('syncusers', get_string('syncusers', 'local_ent_installer'),
+                   get_string('syncusers_desc', 'local_ent_installer', $settingurl->out())));
+
+    $ADMIN->add('automation', $settings);
+}
 
 if ($hassiteconfig) {
     // Needs this condition or there is error on login page.
