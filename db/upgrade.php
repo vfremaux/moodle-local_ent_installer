@@ -27,9 +27,11 @@ defined('MOODLE_INTERNAL') || die();
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 function xmldb_local_ent_installer_upgrade($oldversion) {
-    global $CFG, $DB, $OUTPUT;
+    global $DB, $CFG;
 
     $dbman = $DB->get_manager();
+
+    $isent = is_dir($CFG->dirroot.'/local/ent_access_point');
 
     if ($oldversion < 2014061600) {
 
@@ -57,28 +59,30 @@ function xmldb_local_ent_installer_upgrade($oldversion) {
 
     if ($oldversion < 2016050200) {
 
-        $categoryname = ent_installer_string('academicinfocategoryname');
-        $academicinfocategoryid = $DB->get_field('user_info_category', 'id', array('name' => $categoryname));
-        $lastorder = $DB->get_field('user_info_field', 'MAX(sortorder)', array('categoryid' => $academicinfocategoryid));
+        if ($isent) {
+            $categoryname = ent_installer_string('academicinfocategoryname');
+            $academicinfocategoryid = $DB->get_field('user_info_category', 'id', array('name' => $categoryname));
+            $lastorder = $DB->get_field('user_info_field', 'MAX(sortorder)', array('categoryid' => $academicinfocategoryid));
 
-        // Adding primary assignation.
-        // Primary assignation should be marked if the Moodle node
-        // matches the registered primary facility of the user in ldap attributes.
-        $userfield = new StdClass;
-        $userfield->name = ent_installer_string('isprimaryassignation');
-        $userfield->shortname = 'isprimaryassignation';
-        $userfield->datatype = 'checkbox';
-        $userfield->description = ent_installer_string('isprimaryassignationdesc');
-        $userfield->descriptionformat = FORMAT_MOODLE;
-        $userfield->categoryid = $academicinfocategoryid;
-        $userfield->sortorder = $lastorder + 1;
-        $userfield->required = 0;
-        $userfield->locked = 1;
-        $userfield->visible = 0;
-        $userfield->forceunique = 0;
-        $userfield->signup = 0;
-        if (!$DB->record_exists('user_info_field', array('shortname' => 'isprimaryassignation'))) {
-            $DB->insert_record('user_info_field', $userfield);
+            // Adding primary assignation.
+            // Primary assignation should be marked if the Moodle node
+            // matches the registered primary facility of the user in ldap attributes.
+            $userfield = new StdClass;
+            $userfield->name = ent_installer_string('isprimaryassignation');
+            $userfield->shortname = 'isprimaryassignation';
+            $userfield->datatype = 'checkbox';
+            $userfield->description = ent_installer_string('isprimaryassignation_desc');
+            $userfield->descriptionformat = FORMAT_MOODLE;
+            $userfield->categoryid = $academicinfocategoryid;
+            $userfield->sortorder = $lastorder + 1;
+            $userfield->required = 0;
+            $userfield->locked = 1;
+            $userfield->visible = 0;
+            $userfield->forceunique = 0;
+            $userfield->signup = 0;
+            if (!$DB->record_exists('user_info_field', array('shortname' => 'isprimaryassignation'))) {
+                $DB->insert_record('user_info_field', $userfield);
+            }
         }
 
         upgrade_plugin_savepoint(true, 2016050200, 'local', 'ent_installer');
@@ -86,33 +90,70 @@ function xmldb_local_ent_installer_upgrade($oldversion) {
 
     if ($oldversion < 2016090402) {
 
-        $categoryname = ent_installer_string('academicinfocategoryname');
-        $academicinfocategoryid = $DB->get_field('user_info_category', 'id', array('name' => $categoryname));
-        $lastorder = $DB->get_field('user_info_field', 'MAX(sortorder)', array('categoryid' => $academicinfocategoryid));
+        if ($isent) {
 
-        // Adding primary assignation.
-        // Primary assignation should be marked if the Moodle node
-        // matches the registered primary facility of the user in ldap attributes.
-        $userfield = new StdClass;
-        $userfield->name = ent_installer_string('personaltitle');
-        $userfield->shortname = 'personaltitle';
-        $userfield->datatype = 'text';
-        $userfield->description = ent_installer_string('personaltitledesc');
-        $userfield->descriptionformat = FORMAT_MOODLE;
-        $userfield->categoryid = $academicinfocategoryid;
-        $userfield->sortorder = $lastorder + 1;
-        $userfield->required = 0;
-        $userfield->locked = 1;
-        $userfield->visible = 0;
-        $userfield->forceunique = 0;
-        $userfield->signup = 0;
-        $userfield->param1 = 10;
-        $userfield->param2 = 10;
-        if (!$DB->record_exists('user_info_field', array('shortname' => 'personaltitle'))) {
-            $DB->insert_record('user_info_field', $userfield);
+            $categoryname = ent_installer_string('academicinfocategoryname');
+            $academicinfocategoryid = $DB->get_field('user_info_category', 'id', array('name' => $categoryname));
+            $lastorder = $DB->get_field('user_info_field', 'MAX(sortorder)', array('categoryid' => $academicinfocategoryid));
+
+            // Adding primary assignation.
+            // Primary assignation should be marked if the Moodle node.
+            // matches the registered primary facility of the user in ldap attributes.
+            $userfield = new StdClass;
+            $userfield->name = ent_installer_string('personaltitle');
+            $userfield->shortname = 'personaltitle';
+            $userfield->datatype = 'text';
+            $userfield->description = ent_installer_string('personaltitle_desc');
+            $userfield->descriptionformat = FORMAT_MOODLE;
+            $userfield->categoryid = $academicinfocategoryid;
+            $userfield->sortorder = $lastorder + 1;
+            $userfield->required = 0;
+            $userfield->locked = 1;
+            $userfield->visible = 0;
+            $userfield->forceunique = 0;
+            $userfield->signup = 0;
+            $userfield->param1 = 10;
+            $userfield->param2 = 10;
+            if (!$DB->record_exists('user_info_field', array('shortname' => 'personaltitle'))) {
+                $DB->insert_record('user_info_field', $userfield);
+            }
         }
 
         upgrade_plugin_savepoint(true, 2016090402, 'local', 'ent_installer');
+    }
+
+    if ($oldversion < 2017062100) {
+
+        if ($isent) {
+
+            $categoryname = ent_installer_string('academicinfocategoryname');
+            $academicinfocategoryid = $DB->get_field('user_info_category', 'id', array('name' => $categoryname));
+            $lastorder = $DB->get_field('user_info_field', 'MAX(sortorder)', array('categoryid' => $academicinfocategoryid));
+
+            // Adding primary assignation.
+            // Primary assignation should be marked if the Moodle node.
+            // matches the registered primary facility of the user in ldap attributes.
+            $userfield = new StdClass;
+            $userfield->name = ent_installer_string('fullage');
+            $userfield->shortname = 'fullage';
+            $userfield->datatype = 'checkbox';
+            $userfield->description = ent_installer_string('fullage_desc');
+            $userfield->descriptionformat = FORMAT_MOODLE;
+            $userfield->categoryid = $academicinfocategoryid;
+            $userfield->sortorder = $lastorder + 1;
+            $userfield->required = 0;
+            $userfield->locked = 1;
+            $userfield->visible = 0;
+            $userfield->forceunique = 0;
+            $userfield->signup = 0;
+            $userfield->param1 = 10;
+            $userfield->param2 = 10;
+            if (!$DB->record_exists('user_info_field', array('shortname' => 'fullage'))) {
+                $DB->insert_record('user_info_field', $userfield);
+            }
+        }
+
+        upgrade_plugin_savepoint(true, 2017062100, 'local', 'ent_installer');
     }
 
     return true;

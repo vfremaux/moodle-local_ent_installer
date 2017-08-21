@@ -16,8 +16,6 @@
 
 define('CLI_SCRIPT', true);
 
-define('HOST_INTERLEAVE', 1);
-
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
 
@@ -30,12 +28,12 @@ list($options, $unrecognized) = cli_get_params(
     array(
         'help'             => false,
         'logroot'          => false,
-        'verbose'          => false,
+        'fullstop'          => false,
     ),
     array(
         'h' => 'help',
         'l' => 'logroot',
-        'v' => 'verbose',
+        'f' => 'fullstop',
     )
 );
 
@@ -46,14 +44,16 @@ if ($unrecognized) {
 
 if ($options['help']) {
     $help = "
-Command line ENT Sync worker.
+Command line ENT Global categories initialisation.
+
+Creates initial categories based on 'initialcategories' settings.
 
     Options:
-    -h, --help          Print out this help
-    -l, --logroot       Root directory for logs.
-    -v, --verbose       More output.
+    -h, --help              Print out this help
+    -l, --logroot           Root directory for logs.
+    -s, --fullstop          Stops on fist error.
 
-    "; // TODO: localize - to be translated later when everything is finished.
+"; // TODO: localize - to be translated later when everything is finished.
 
     echo $help;
     die;
@@ -65,28 +65,27 @@ if (!empty($options['logroot'])) {
     $logroot = $CFG->dataroot;
 }
 
-$verbose = '';
-if (!empty($options['verbose'])) {
-    echo "checking options\n";
-    $verbose = '--verbose';
-}
-
 $allhosts = $DB->get_records('local_vmoodle', array('enabled' => 1));
 
-// Start spreading workers, and pass the list of vhost ids. Launch workers in background.
 // Linux only implementation.
 
-foreach ($allhosts as $h) {
-    $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/fix_teacher_categories.php --host={$h->vhostname} ";
-    $workercmd .= "--logfile={$logroot}/ent_fix_categories_log_{$h->id}.log {$verbose}";
-    mtrace("Executing $workercmd\n######################################################\n");
+echo "Starting creating/checking site categories....\n";
 
+$i = 1;
+foreach ($allhosts as $h) {
+    $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/init_categories.php --host=\"{$h->vhostname}\" ";
+
+    mtrace("Executing $workercmd\n######################################################\n");
     $output = array();
     exec($workercmd, $output, $return);
-
+    echo implode("\n", $output);
     if ($return) {
-        die("Worker ended with error");
+        if (!empty($options['fullstop'])) {
+            die("Worker ended with error");
+        } else {
+            mtrace("Worker ended with error");
+        }
     }
-
-    sleep(HOST_INTERLEAVE);
 }
+
+echo "All done.";

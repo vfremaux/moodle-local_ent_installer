@@ -8,7 +8,7 @@
 //
 // Moodle is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
@@ -21,8 +21,9 @@ define('JOB_INTERLEAVE', 2);
 
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
+require_once($CFG->dirroot.'/local/vmoodle/lib.php');
 
-// Ensure options are blanck;
+// Ensure options are blanck.
 unset($options);
 
 // Now get cli options.
@@ -38,6 +39,7 @@ list($options, $unrecognized) = cli_get_params(
         'empty'            => false,
         'role'             => false,
         'verbose'          => false,
+        'horodate'         => false,
         'notify'           => false,
         'hardstop'         => false,
     ),
@@ -51,6 +53,7 @@ list($options, $unrecognized) = cli_get_params(
         'f' => 'force',
         'r' => 'role',
         'v' => 'verbose',
+        'H' => 'horodate',
         'N' => 'notify',
         'S' => 'hardstop',
     )
@@ -63,7 +66,7 @@ if ($unrecognized) {
 
 if ($options['help']) {
     $help = "
-    Command line ENT Sync worker.
+    VMoodle based Command line ENT Sync worker.
 
     Options:
     -h, --help          Print out this help
@@ -75,6 +78,7 @@ if ($options['help']) {
     -e, --empty         Empty user structures if no more users in it.
     -r, --role          Role to process if not empty : (eleve,enseignant,administration).
     -v, --verbose       More output.
+    -H, --horodate      Horodate log files.
     -N, --notify        Notify on failure.
     -S, --hardstop      Stop on first failure.
 
@@ -89,9 +93,9 @@ if ($options['workers'] === false) {
 }
 
 if (!empty($options['logroot'])) {
-    $logroot = $options['logroot'];
+    $logroot = '--logroot='.$options['logroot'];
 } else {
-    $logroot = $CFG->dataroot;
+    $logroot = '--logroot='.$CFG->dataroot;
 }
 
 $force = '';
@@ -105,13 +109,18 @@ if (!empty($options['empty'])) {
 }
 
 $notify = '';
-if (!notify($options['notify'])) {
+if (!empty($options['notify'])) {
     $notify = '--notify';
 }
 
 $hardstop = '';
-if (!hardstop($options['hardstop'])) {
+if (!empty($options['hardstop'])) {
     $hardstop = '--hardstop';
+}
+
+$horodate = '';
+if (!empty($options['horodate'])) {
+    $horodate = '--horodate';
 }
 
 $role = '';
@@ -125,7 +134,21 @@ if (!empty($options['verbose'])) {
     $verbose = '--verbose';
 }
 
-$allhosts = $DB->get_records('local_vmoodle', array('enabled' => 1));
+$config = get_config('local_vmoodle');
+
+$clusters = 1;
+if (!empty($config->clusters)) {
+    $clusters = $config->clusters;
+}
+
+$clusterix = 1;
+if (!empty($config->clusterix)) {
+    $clusterix = $config->clusterix;
+}
+
+if (!$allhosts = vmoodle_get_vmoodleset($clusters, $clusterix)) {
+    die("Nothing to do. No Vhosts");
+}
 
 // Make worker lists
 
@@ -152,7 +175,8 @@ foreach ($joblist as $jl) {
     $jobids = array();
     if (!empty($jl)) {
         $hids = implode(',', $jl);
-        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_hosts_worker.php --nodes=\"$hids\" --logfile={$logroot}/ent_sync_log_{$i}.log {$force} {$role} {$empty} {$verbose} {$fulldelete} {$notify} {$hardstop}";
+        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_hosts_worker.php --nodes=\"$hids\" ";
+        $workercmd .= "{$logroot} {$horodate} {$force} {$role} {$empty} {$verbose} {$fulldelete} {$notify} {$hardstop}";
         if ($options['distributed']) {
             $workercmd .= ' &';
         }

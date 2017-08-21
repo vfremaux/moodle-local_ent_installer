@@ -29,7 +29,8 @@ list($options, $unrecognized) = cli_get_params(
         'empty'             => false,
         'force'             => false,
         'verbose'           => false,
-        'logfile'           => false,
+        'logroot'           => false,
+        'horodate'            => false,
         'notify'            => false,
         'hardstop'          => false,
     ),
@@ -41,6 +42,7 @@ list($options, $unrecognized) = cli_get_params(
         'm' => 'logmode',
         'v' => 'verbose',
         'f' => 'force',
+        'H' => 'horodate',
         'N' => 'notify',
         'S' => 'hardstop',
     )
@@ -63,6 +65,7 @@ if ($options['help'] || empty($options['nodes'])) {
     -m, --logmode       'append' or 'overwrite'
     -f, --force         Force updating accounts even if not modified in user sourse.
     -v, --verbose       More output.
+    -H, --horodate      If set horodates log files.
     -N, --notify        Sends a mail on failure.
     -S, --hardstop      Stops on first error.
 
@@ -74,10 +77,6 @@ if ($options['help'] || empty($options['nodes'])) {
 
 if (empty($options['logmode'])) {
     $options['logmode'] = 'w';
-}
-
-if (!empty($options['logfile'])) {
-    $LOG = fopen($options['logfile'], $options['logmode']);
 }
 
 $force = '';
@@ -92,9 +91,6 @@ if (!empty($options['verbose'])) {
 
 // Fire sequential synchronisation.
 mtrace("Starting worker for nodes ".$options['nodes']);
-if (isset($LOG)) {
-    fputs($LOG, "Starting worker for nodes {$options['nodes']}\n");
-};
 
 $empty = '';
 if (!empty($options['empty'])) {
@@ -103,6 +99,20 @@ if (!empty($options['empty'])) {
 
 $nodes = explode(',', $options['nodes']);
 foreach ($nodes as $nodeid) {
+
+    if (!empty($options['logroot'])) {
+        $logfile = $options['logroot'].'/ent_sync_'.$host->shortname;
+        if (!empty($options['horodate'])) {
+            $logfile .= '_'.$runtime;
+        }
+        $logfile .= '.log';
+        $LOG = fopen($logfile, $options['logmode']);
+    }
+
+    if (isset($LOG)) {
+        fputs($LOG, "Starting worker for nodes {$options['nodes']}\n");
+    };
+
     mtrace("\nStarting process for node $nodeid\n");
     $host = $DB->get_record('local_vmoodle', array('id' => $nodeid));
     $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts.php --host={$host->vhostname} {$force} {$empty}";
@@ -119,14 +129,16 @@ foreach ($nodes as $nodeid) {
             fputs($LOG, 'Process failure. No output of user feeder.');
         }
         if (!empty($options['hardstop'])) {
+            fclose($LOG);
             die ("Worker failed");
         } else {
             echo "Cohort Worker execution error on {$host->vhostname}... Continuing anyway\n";
         }
     }
-    sleep(ENT_INSTALLER_SYNC_INTERHOST);
-}
+    fclose($LOG);
 
-fclose($LOG);
+    sleep(ENT_INSTALLER_SYNC_INTERHOST);
+
+}
 
 return 0;

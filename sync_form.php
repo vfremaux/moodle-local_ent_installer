@@ -32,19 +32,43 @@ class SyncUsersForm extends moodleform {
 
     public function definition() {
 
+        $config = get_config('local_ent_installer');
+
         $mform = $this->_form;
 
         $mform->addElement('html', '<h3>'.get_string('entities', 'local_ent_installer').'</h3>');
 
-        $mform->addElement('checkbox', 'users', get_string('users', 'local_ent_installer'));
+        if (!empty($config->sync_users_enable)) {
+            $mform->addElement('checkbox', 'users', get_string('users', 'local_ent_installer'));
+        }
 
-        $mform->addElement('checkbox', 'cohorts', get_string('cohorts', 'local_ent_installer'));
+        if (!empty($config->sync_cohorts_enable)) {
+            $mform->addElement('checkbox', 'cohorts', get_string('cohorts', 'local_ent_installer'));
+        }
 
-        $mform->addElement('checkbox', 'coursegroups', get_string('coursegroups', 'local_ent_installer'));
+        if (!empty($config->sync_groups_enable)) {
+            $mform->addElement('checkbox', 'groups', get_string('coursegroups', 'local_ent_installer'));
+
+            $mform->addElement('checkbox', 'emptygroups', get_string('emptygroups', 'local_ent_installer'), get_string('clear', 'local_ent_installer'));
+        }
+
+        if (!empty($config->sync_roleassigns_enable)) {
+            $mform->addElement('checkbox', 'roleassigns', get_string('roleassigns', 'local_ent_installer'));
+
+            $enrolplugins = enrol_get_plugins(true);
+            $options = array();
+            foreach ($enrolplugins as $key => $epl) {
+                $options[$key] = $epl->get_instance_name(null);
+            }
+            $mform->addElement('select', 'enrol', get_string('enrolmethod', 'local_ent_installer'), $options);
+            $mform->setDefault('enrol', 'manual');
+        }
 
         $mform->addElement('html', '<h3>'.get_string('options', 'local_ent_installer').'</h3>');
 
         $mform->addElement('checkbox', 'force', get_string('force', 'local_ent_installer'));
+
+        $mform->addElement('checkbox', 'updateonly', get_string('updateonly', 'local_ent_installer'));
 
         $mform->addElement('checkbox', 'simulate', get_string('simulate', 'local_ent_installer'));
 

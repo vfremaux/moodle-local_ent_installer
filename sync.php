@@ -79,6 +79,9 @@ if ($data = $mform->get_data()) {
         $options['simulate'] = @$data->simulate;
         $options['verbose'] = @$data->verbose;
         $options['disableautocohortscheck'] = @$data->disableautocohortscheck;
+        $options['empty'] = @$data->clearemptygroups;
+        $options['enrol'] = @$data->enrol;
+        $options['updateonly'] = @$data->updateonly;
 
         if (!empty(@$data->users)) {
             echo '<div class="console">';
@@ -91,6 +94,20 @@ if ($data = $mform->get_data()) {
             echo '<div class="console">';
             echo '<pre>';
             local_ent_installer_sync_cohorts($ldapauth, $options);
+            echo '</pre>';
+            echo '</div>';
+        }
+        if (!empty(@$data->groups)) {
+            echo '<div class="console">';
+            echo '<pre>';
+            local_ent_installer_sync_groups($ldapauth, $options);
+            echo '</pre>';
+            echo '</div>';
+        }
+        if (!empty(@$data->roleassigns)) {
+            echo '<div class="console">';
+            echo '<pre>';
+            local_ent_installer_sync_roleassigns($ldapauth, $options);
             echo '</pre>';
             echo '</div>';
         }

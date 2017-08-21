@@ -64,7 +64,7 @@ $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 $key = 'local_ent_installer/group_id_pattern';
 $label = get_string('configgroupidpattern', 'local_ent_installer');
 $desc = get_string('configgroupidpattern_desc', 'local_ent_installer');
-$default = '';
+$default = '%GID%';
 $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
 $key = 'local_ent_installer/group_membership_attribute';
@@ -114,6 +114,27 @@ $label = get_string('configgroupidnumberfilter', 'local_ent_installer');
 $desc = get_string('configgroupidnumberfilter_desc', 'local_ent_installer');
 $default = '';
 $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
+$key = 'local_ent_installer/group_course_attribute';
+$label = get_string('configgroupcourseattribute', 'local_ent_installer');
+$desc = get_string('configgroupcourseattribute_desc', 'local_ent_installer');
+$default = '';
+$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
+$key = 'local_ent_installer/group_course_filter';
+$label = get_string('configgroupcoursefilter', 'local_ent_installer');
+$desc = get_string('configgroupcoursefilter_desc', 'local_ent_installer');
+$default = '';
+$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
+$key = 'local_ent_installer/group_course_identifier';
+$label = get_string('configgroupcourseidentifier', 'local_ent_installer');
+$desc = get_string('configgroupcourseidentifier_desc', 'local_ent_installer');
+$default = 'shortname';
+$options = array('shortname' => get_string('shortname'),
+                 'id' => get_string('id', 'local_ent_installer'),
+                 'idnumber' => get_string('idnumber'));
+$settings->add(new admin_setting_configselect($key, $label, $desc, $default, $options));
 
 $key = 'local_ent_installer/group_description_attribute';
 $label = get_string('configgroupdescriptionattribute', 'local_ent_installer');

@@ -77,12 +77,12 @@ $allhosts = $DB->get_records('local_vmoodle', array('enabled' => 1));
 // Linux only implementation.
 
 foreach ($allhosts as $h) {
-    $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/fix_teacher_categories.php --host={$h->vhostname} ";
-    $workercmd .= "--logfile={$logroot}/ent_fix_categories_log_{$h->id}.log {$verbose}";
+    $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/fix_old_cohorts.php --host={$h->vhostname} {$verbose}";
     mtrace("Executing $workercmd\n######################################################\n");
 
     $output = array();
     exec($workercmd, $output, $return);
+    echo implode("\n", $output);
 
     if ($return) {
         die("Worker ended with error");

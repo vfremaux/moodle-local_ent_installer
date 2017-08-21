@@ -22,7 +22,33 @@
 
 defined('MOODLE_INTERNAL') || die;
 
+if (is_dir($CFG->dirroot.'/local/adminsettings')) {
+    require_once($CFG->dirroot.'/local/adminsettings/lib.php');
+    list($hasconfig, $hassiteconfig, $capability) = local_adminsettings_access();
+} else {
+    // Standard Moodle code
+    $capability = 'moodle/site:config';
+    $hasconfig = $hassiteconfig = has_capability($capability, context_system::instance());
+}
+
 require_once $CFG->dirroot.'/local/ent_installer/adminlib.php';
+
+if ($hasconfig && is_dir($CFG->dirroot.'/admin/tool/sync')) {
+
+    // Add a light weight resync service access to site managers.
+
+    $settings = new admin_settingpage('local_ent_installer_light', get_string('entupdate', 'local_ent_installer'));
+
+    $settingurl = new moodle_url('/local/ent_installer/synctimereport.php');
+    $settings->add(new admin_setting_heading('syncbench', get_string('syncbench', 'local_ent_installer'),
+                   get_string('syncbenchreport_desc', 'local_ent_installer', $settingurl->out())));
+
+    $settingurl = new moodle_url('/local/ent_installer/sync.php');
+    $settings->add(new admin_setting_heading('syncusers', get_string('syncusers', 'local_ent_installer'),
+                   get_string('syncusers_desc', 'local_ent_installer', $settingurl->out())));
+
+    $ADMIN->add('automation', $settings);
+}
 
 if ($hassiteconfig) {
     // Needs this condition or there is error on login page.
@@ -87,6 +113,12 @@ if ($hassiteconfig) {
     $desc = get_string('configlastsyncdate_desc', 'local_ent_installer');
     $default = '';
     $settings->add(new admin_setting_configdatetime($key, $label, $desc, $default));
+
+    $key = 'local_ent_installer/record_date_fieldname';
+    $label = get_string('configrecorddatefieldname', 'local_ent_installer');
+    $desc = get_string('configrecorddatefieldname_desc', 'local_ent_installer');
+    $default = 'modifyTimestamp';
+    $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
     $authplugins = get_enabled_auth_plugins(true);
     $authoptions = array();
@@ -176,11 +208,17 @@ if ($hassiteconfig) {
     $default = '';
     $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
 
+    $key = 'local_ent_installer/enrol_deans';
+    $label = get_string('configenroldeans', 'local_ent_installer');
+    $desc = get_string('configenroldeans_desc', 'local_ent_installer');
+    $default = '';
+    $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
+
     /* **************************** Entities synchronisation **************************** */
 
-    include($CFG->dirroot.'/local/ent_installer/settings/user_settings.php');
+    include($CFG->dirroot.'/local/ent_installer/settings/users_settings.php');
 
-    include($CFG->dirroot.'/local/ent_installer/settings/cohort_settings.php');
+    include($CFG->dirroot.'/local/ent_installer/settings/cohorts_settings.php');
 
     include($CFG->dirroot.'/local/ent_installer/settings/roleassigns_settings.php');
 
@@ -226,11 +264,21 @@ if ($hassiteconfig) {
     $default = '(&(objectClass=ENTEtablissement)(ENTDisplayName=%SEARCH%))';
     $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
-    $key = 'local_ent_installer_searchid';
+    $key = 'local_ent_installer_getid';
     $label = get_string('configgetid', 'local_ent_installer');
     $getidstr = get_string('configgetinstitutionidservice', 'local_ent_installer');
     $html = '<a href="'.$CFG->wwwroot.'/local/ent_installer/getid.php">'.$getidstr.'</a>';
     $settings->add(new admin_setting_heading($key, $label, $html));
+
+    $installcatsstr = get_string('configinstallcategories', 'local_ent_installer');
+    $html = '<a href="'.$CFG->wwwroot.'/local/ent_installer/installcats.php">'.$installcatsstr.'</a>';
+
+    $settings->add(new admin_setting_heading('head6', get_string('sitecategories', 'local_ent_installer'), $html));
+
+    $key = 'local_ent_installer/initialcategories';
+    $label = get_string('configinitialcategories', 'local_ent_installer');
+    $desc = get_string('configinitialcategories_desc', 'local_ent_installer');
+    $settings->add(new admin_setting_configtextarea($key, $label, $desc, ''));
 
     $ADMIN->add('localplugins', $settings);
 }
