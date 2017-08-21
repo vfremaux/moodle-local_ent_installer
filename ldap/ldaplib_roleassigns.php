@@ -36,8 +36,8 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     $config = get_config('local_ent_installer');
 
     $enrolplugin = null;
-    if (!empty($options['enrol'])) {
-        $enrolplugin = enrol_get_plugin($options['enrol']);
+    if (!empty($config->roleassign_enrol_method)) {
+        $enrolplugin = enrol_get_plugin($config->roleassign_enrol_method);
     }
 
     mtrace('');

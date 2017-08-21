@@ -263,20 +263,22 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
 
     $updated = $DB->get_records_sql($sql, $params);
 
-    mtrace("\n>> ".get_string('deletinggroups', 'local_ent_installer'));
-    if ($deleted) {
-        foreach ($deleted as $dl) {
-            if (empty($options['simulate'])) {
-                if ($members = $DB->get_records('groups_members', array('groupid' => $dl->gid))) {
-                    foreach ($members as $m) {
-                        // This will trigger cascade events to get everything clean.
-                        \group_remove_member($dl->gid, $m->userid);
+    if (empty($options['updateonly'])) {
+        mtrace("\n>> ".get_string('deletinggroups', 'local_ent_installer'));
+        if ($deleted) {
+            foreach ($deleted as $dl) {
+                if (empty($options['simulate'])) {
+                    if ($members = $DB->get_records('groups_members', array('groupid' => $dl->gid))) {
+                        foreach ($members as $m) {
+                            // This will trigger cascade events to get everything clean.
+                            \group_remove_member($dl->gid, $m->userid);
+                        }
                     }
+                    $DB->delete_records('groups', array('id' => $dl->gid));
+                    mtrace(get_string('groupdeleted', 'local_ent_installer', $dl));
+                } else {
+                    mtrace('[SIMULATION] '.get_string('groupdeleted', 'local_ent_installer', $dl));
                 }
-                $DB->delete_records('groups', array('id' => $dl->gid));
-                mtrace(get_string('groupdeleted', 'local_ent_installer', $dl));
-            } else {
-                mtrace('[SIMULATION] '.get_string('groupdeleted', 'local_ent_installer', $dl));
             }
         }
     }
@@ -366,54 +368,56 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
         }
     }
 
-    mtrace("\n>> ".get_string('creatinggroups', 'local_ent_installer'));
-    if ($created) {
-        foreach ($created as $cr) {
+    if (empty($options['updateonly'])) {
+        mtrace("\n>> ".get_string('creatinggroups', 'local_ent_installer'));
+        if ($created) {
+            foreach ($created as $cr) {
 
-            $course = $DB->get_record('course', array('id' => $cr->course));
+                $course = $DB->get_record('course', array('id' => $cr->course));
 
-            // Build an external pattern
-            $groupldapidentifier = $config->group_id_pattern;
-            $groupldapidentifier = str_replace('%CID%', $cr->course, $groupldapidentifier);
-            $groupldapidentifier = str_replace('%CSHORTNAME%', $course->shortname, $groupldapidentifier);
-            $groupldapidentifier = str_replace('%CIDNUMBER%', $course->idnumber, $groupldapidentifier);
-            $groupldapidentifier = str_replace('%GID%', $cr->idnumber, $groupldapidentifier);
+                // Build an external pattern
+                $groupldapidentifier = $config->group_id_pattern;
+                $groupldapidentifier = str_replace('%CID%', $cr->course, $groupldapidentifier);
+                $groupldapidentifier = str_replace('%CSHORTNAME%', $course->shortname, $groupldapidentifier);
+                $groupldapidentifier = str_replace('%CIDNUMBER%', $course->idnumber, $groupldapidentifier);
+                $groupldapidentifier = str_replace('%GID%', $cr->idnumber, $groupldapidentifier);
 
-            $groupldapidentifier = str_replace('%GNAME%', $cr->groupname, $groupldapidentifier);
-            $groupldapidentifier = str_replace('%ID%', $config->institution_id, $groupldapidentifier);
+                $groupldapidentifier = str_replace('%GNAME%', $cr->groupname, $groupldapidentifier);
+                $groupldapidentifier = str_replace('%ID%', $config->institution_id, $groupldapidentifier);
 
-            $groupinfo = local_ent_installer_get_groupinfo_asobj($ldapauth, $groupldapidentifier, $options);
+                $groupinfo = local_ent_installer_get_groupinfo_asobj($ldapauth, $groupldapidentifier, $options);
 
-            if (!empty($config->group_auto_name_prefix)) {
-                $gname = $config->group_auto_name_prefix.$cr->groupname;
-            }
+                if (!empty($config->group_auto_name_prefix)) {
+                    $gname = $config->group_auto_name_prefix.$cr->groupname;
+                }
 
-            $group = new StdClass;
-            $group->name = $gname;
-            $group->courseid = $cr->course;
-            $group->description = $groupinfo->description;
-            $group->idnumber = $config->group_auto_name_prefix.$cr->idnumber;
-            $group->component = 'local_ent_installer';
-            $group->timecreated = time();
-            $group->timemodified = time();
-            if (empty($options['simulate'])) {
-                $group->id = $DB->insert_record('group', $group);
-                mtrace(get_string('groupcreated', 'local_ent_installer', $group));
-            } else {
-                mtrace('[SIMULATION] '.get_string('groupcreated', 'local_ent_installer', $group));
-            }
+                $group = new StdClass;
+                $group->name = $gname;
+                $group->courseid = $cr->course;
+                $group->description = $groupinfo->description;
+                $group->idnumber = $config->group_auto_name_prefix.$cr->idnumber;
+                $group->component = 'local_ent_installer';
+                $group->timecreated = time();
+                $group->timemodified = time();
+                if (empty($options['simulate'])) {
+                    $group->id = $DB->insert_record('group', $group);
+                    mtrace(get_string('groupcreated', 'local_ent_installer', $group));
+                } else {
+                    mtrace('[SIMULATION] '.get_string('groupcreated', 'local_ent_installer', $group));
+                }
 
-            if (!empty($groupinfo->members)) {
-                foreach ($groupinfo->members as $m) {
-                    $e = new StdClass;
-                    $e->username = $m->username;
-                    $e->idnumber = $group->idnumber;
-                    $e->course = $cr->course;
-                    if (empty($options['simulate'])) {
-                        \group_add_member($group->id, $m->userid);
-                        mtrace(get_string('groupmemberadded', 'local_ent_installer', $e));
-                    } else {
-                        mtrace('[SIMULATION] '.get_string('groupmemberadded', 'local_ent_installer', $e));
+                if (!empty($groupinfo->members)) {
+                    foreach ($groupinfo->members as $m) {
+                        $e = new StdClass;
+                        $e->username = $m->username;
+                        $e->idnumber = $group->idnumber;
+                        $e->course = $cr->course;
+                        if (empty($options['simulate'])) {
+                            \group_add_member($group->id, $m->userid);
+                            mtrace(get_string('groupmemberadded', 'local_ent_installer', $e));
+                        } else {
+                            mtrace('[SIMULATION] '.get_string('groupmemberadded', 'local_ent_installer', $e));
+                        }
                     }
                 }
             }
