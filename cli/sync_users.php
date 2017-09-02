@@ -90,7 +90,7 @@ if ($options['help']) {
         -h, --help          Print out this help
         -s, --simulate      Get all data for simulation but will NOT process any writing in database.
         -f, --force         Force updating all data.
-        -r, --role          Restricts sync to a specific role.
+        -r, --role          Restricts sync to a specific ENT profile.
         -D, --fulldelete    Forces full deletion of user datas for deleted users.
         -H, --host          Set the host (physical or virtual) to operate on
 

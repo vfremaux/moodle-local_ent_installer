@@ -64,7 +64,10 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     $debughardlimit = '';
     if ($CFG->debug == DEBUG_DEVELOPER) {
         $debughardlimit = ' LIMIT 300 ';
-        mtrace('RUNNING WITH HARD LIMIT');
+        echo '<span style="font-size:2.5em">';
+        mtrace('RUNNING WITH HARD LIMIT OF 300 USERS');
+        echo '</span>';
+        mtrace('Turn off the developper mode to process all records.');
     }
 
     core_php_time_limit::raise(120);
@@ -139,6 +142,27 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     list($institutionidlist, $institutionalias) = local_ent_installer_strip_alias($config->institution_id);
     $institutionids = explode(',', $institutionidlist);
+
+    // Generic.
+
+    /*
+     * Implementation notes :
+     * - Atrium : No use
+     * - Toutatice : Use generic for invited people not assigned to the internal pedagogic setup
+     */
+
+    if (empty($options['role']) || preg_match('/generic/', $options['role'])) {
+        if (!empty($config->generic_usertype_filter)) {
+            $filterdef = new StdClass();
+            foreach ($institutionids as $iid) {
+                $institutionfilter = $config->generic_institution_filter;
+                $filterdef->institutions[] = str_replace('%ID%', $iid, $institutionfilter);
+            }
+            $filterdef->usertype = $config->generic_usertype_filter;
+            $filterdef->userfield = 'generic';
+            $filters[] = $filterdef;
+        }
+    }
 
     // Students.
 
@@ -235,6 +259,11 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     }
 
     $ldap_pagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
+    if ($ldap_pagedresults) {
+        mtrace("Paging results...\n");
+    } else {
+        mtrace("Paging not supported...\n");
+    }
     $ldapcookie = '';
     foreach ($filters as $filterdef) {
 
@@ -872,8 +901,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         // Special case.
                         local_ent_installer_update_info_data($id, $USERFIELDS['cdt'], 1);
                         $user->usertype = 'cdt';
-                    } else if ($user->usertype != 'siteadmin') {
-                        // Other user types unless site admins.
+                    } else if ($user->usertype != 'siteadmin' && $user->usertype != 'generic') {
+                        // Other user types unless site admins nor generic.
                         local_ent_installer_update_info_data($id, $USERFIELDS[$user->usertype], 1);
                     }
 
