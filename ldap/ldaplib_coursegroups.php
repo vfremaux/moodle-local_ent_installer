@@ -126,11 +126,11 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                 }
                 if ($ldapauth->config->search_sub) {
                     // Use ldap_search to find first user from subtree.
-                    mtrace("ldapsearch $context, $filter for ".$config->group_idnumber_attribute);
+                    mtrace("ldapsearch $context, $filter for attributes ".implode(', ',$grouprecordattribs));
                     $ldap_result = ldap_search($ldapconnection, $context, $filter, $grouprecordattribs);
                 } else {
                     // Search only in this context.
-                    mtrace("ldaplist $context, $filter for ".$config->group_idnumber_attribute);
+                    mtrace("ldaplist $context, $filter for attributes ".implode(', ',$grouprecordattribs));
                     $ldap_result = ldap_list($ldapconnection, $context, $filter, $grouprecordattribs);
                 }
                 if (!$ldap_result) {
@@ -273,7 +273,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
 
     $updated = $DB->get_records_sql($sql, $params);
 
-    if (empty($options['updateonly'])) {
+    if (empty($options['updateonly']) && empty($config->no_delete)) {
         mtrace("\n>> ".get_string('deletinggroups', 'local_ent_installer'));
         if ($deleted) {
             foreach ($deleted as $dl) {
@@ -292,6 +292,9 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
             }
         }
     }
+    if (!empty($config->no_delete)) {
+        mtrace("Group deletion disabled by global configuration\n");
+    }
 
     mtrace("\n>> ".get_string('updatinggroups', 'local_ent_installer'));
     if ($updated) {
@@ -305,6 +308,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
             $groupldapidentifier = $config->group_id_pattern;
             $groupldapidentifier = str_replace('%CID%', $up->course, $groupldapidentifier);
             $groupldapidentifier = str_replace('%GID%', $up->gid, $groupldapidentifier);
+            $groupldapidentifier = str_replace('%GIDNUMBER%', $up->idnumber, $groupldapidentifier);
             if (!empty($config->group_auto_name_prefix)) {
                 $gname = str_replace($config->group_auto_name_prefix, '', $up->name); // Unprefix the group name.
             }
@@ -317,7 +321,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
             }
 
             $oldrec = $DB->get_record('groups', array('id' => $up->gid));
-            $oldrec->name = @$config->group_auto_name_prefix.$groupinfo->name;
+            $oldrec->name = @$config->group_auto_name_prefix.$up->groupname;
             $oldrec->description = $groupinfo->description;
             $oldrec->descriptionformat = FORMAT_HTML;
             $oldrec->timecreated = time();
@@ -331,7 +335,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
 
             if (!empty($groupinfo->members)) {
 
-                if ($oldmembers = $DB->get_records_menu('group_members', array('groupid' => $oldrec->id), 'userid,userid')) {
+                if ($oldmembers = $DB->get_records_menu('groups_members', array('groupid' => $oldrec->id), 'userid,userid')) {
                     $oldmemberids = array_keys($oldmembers);
                 } else {
                     $oldmemberids = array();
@@ -344,7 +348,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                         $e->idnumber = $oldrec->idnumber;
                         $e->course = $oldrec->courseid;
                         if (empty($options['simulate'])) {
-                            \groups_add_member($group->id, $m->userid);
+                            \groups_add_member($up->gid, $m->id);
                             mtrace(get_string('groupmemberadded', 'local_ent_installer', $e));
                         } else {
                             mtrace('[SIMULATION] '.get_string('groupmemberadded', 'local_ent_installer', $e));
@@ -367,7 +371,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                         $e->course = $oldrec->courseid;
                         if (empty($options['simulate'])) {
                             // This will trigger cascade events to get everything clean.
-                            \groups_remove_member($dl->cid, $userid);
+                            \groups_remove_member($up->gid, $userid);
                             mtrace(get_string('groupmemberremoved', 'local_ent_installer', $e));
                         } else {
                             mtrace('[SIMULATION] '.get_string('groupmemberremoved', 'local_ent_installer', $e));

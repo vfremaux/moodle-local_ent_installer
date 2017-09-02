@@ -40,7 +40,11 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
         $enrolplugin = enrol_get_plugin($config->roleassign_enrol_method);
     }
 
-    mtrace('');
+     if (!empty($enrolplugin)) {
+        mtrace("Enrol plugin : $config->roleassign_enrol_method");
+    } else {
+        mtrace("No enrol plugin in config. Only assign roles\n");
+    }
     if (empty($config->sync_enable)) {
         mtrace(get_string('syncdisabled', 'local_ent_installer'));
         return;
@@ -305,7 +309,8 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
             ra.userid,
             u.username as userinfo,
             r.shortname as roleinfo,
-            CONCAT(ctx.contextlevel,'_',ctx.instanceid) as contextinfo
+            CONCAT(ctx.contextlevel,'_',ctx.instanceid) as contextinfo,
+            ctx.contextlevel
         FROM
             {role_assignments} ra
         LEFT JOIN
@@ -389,6 +394,15 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                 mtrace(get_string('roleunassigned', 'local_ent_installer', $dl));
 
                 if ($ctx->contextlevel == CONTEXT_COURSE && $enrolplugin) {
+
+                    $params = array('enrol' => $config->roleassign_enrol_method, 'courseid' => $ctx->instanceid, 'status' => ENROL_INSTANCE_ENABLED);
+                    if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
+                        mtrace("No enrol instance found in course for this enrol method\n");
+                        continue;
+                    } else {
+                        $enrol = reset($enrols);
+                    }
+
                     // We only manage in course.
                     // Unenrol the required plugin.
                     $enrolplugin->unenrol_user($enrol, $dl->userid);
@@ -397,7 +411,8 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
             } else {
                 mtrace('[SIMULATION] '.get_string('roleunassigned', 'local_ent_installer', $dl));
                 if ($enrolplugin && $ctx->contextlevel == CONTEXT_COURSE) {
-                    mtrace('[SIMULATION] '.get_string('unenrolled', 'local_ent_installer', $options['enrol']));
+                    // Context level comes from context table.
+                    mtrace('[SIMULATION] '.get_string('unenrolled', 'local_ent_installer', $enrol->enrol.' '.$enrol->id));
                 }
             }
         }
@@ -412,15 +427,28 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
         foreach ($created as $cr) {
             if (empty($options['simulate'])) {
                 // Ensures we capture the assignment in the component scope.
+                $ctx = $DB->get_record('context', array('id' => $cr->contextid));
                 role_unassign($cr->roleid, $cr->userid, $cr->contextid);
                 role_assign($cr->roleid, $cr->userid, $cr->contextid, 'local_ent_installer');
                 mtrace(get_string('roleassigned', 'local_ent_installer', $cr));
+                if ($options['verbose']) {
+                    print_object($cr);
+                }
+                if (($cr->contextlevel == 'course') && $enrolplugin) {
+                    // Context level comes from temp table.
 
-                if ($cr->contextlevel == CONTEXT_COURSE && $enrolplugin) {
+                    $params = array('enrol' => $config->roleassign_enrol_method, 'courseid' => $ctx->instanceid, 'status' => ENROL_INSTANCE_ENABLED);
+                    if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
+                        mtrace("No enrol instance found in course for this enrol method\n");
+                        continue;
+                    } else {
+                        $enrol = reset($enrols);
+                    }
+
                     // We only manage in course.
                     // Enrol with specified plugin.
-                    $enrolplugin->enrol_user($enrol, $dl->userid);
-                    mtrace(get_string('enrolled', 'local_ent_installer', $options['enrol']));
+                    $enrolplugin->enrol_user($enrol, $cr->userid);
+                    mtrace(get_string('enrolled', 'local_ent_installer', $enrol->enrol.' '.$enrol->id));
                 }
             } else {
                 mtrace('[SIMULATION] '.get_string('roleassigned', 'local_ent_installer', $cr));

@@ -15,6 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 $string['ent_installer:sync'] = 'Peut synchroniser manuellement les comptes utilisateur.';
+$string['ent_installer:systemassign'] = 'ëut assigner des rôles dans le contexte système.';
 
 $string['automatedcohortmembers'] = 'Membres de la cohorte automatique';
 $string['backtosettings'] = 'Retour aux réglages';
@@ -171,6 +172,10 @@ $string['unenrolled'] = 'Désinscrit de la méthode {$a}';
 $string['updateonly'] = 'Uniquement raffraichir les enregistrements existants. Ne pas en créer de nouveaux.';
 
 $string['personfilters'] = 'Filtres LDAP pour les comptes utilisateur';
+$string['configgenericusertypefilter'] = 'Discriminant des utilisateurs génériques';
+$string['configgenericusertypefilter_desc'] = '';
+$string['configgenericinstitutionfilter'] = 'Sélecteur d\'établissement des génériques';
+$string['configgenericinstitutionfilter_desc'] = '';
 $string['configstudentusertypefilter'] = 'Discriminant des élèves';
 $string['configstudentusertypefilter_desc'] = '';
 $string['configstudentinstitutionfilter'] = 'Sélecteur d\'établissement des élèves';
@@ -358,13 +363,15 @@ $string['configgroupmembershipfilter'] = 'Filtre d\'appartenance au groupe';
 $string['configgroupmembershipfilter_desc'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier sous-motif disponible';
 $string['configgroupuseridentifier'] = 'Identifiant interne d\'appartenance au groupe';
 $string['configgroupuseridentifier_desc'] = 'L\'identifiant utilisateur moodle de référence pour l\'attribution des groupes';
+$string['configgroupsprotectformdeletion'] = 'Protection';
+$string['configgroupsprotectformdeletion_desc'] = 'Si elle est activée, les groupes ne peuvent pas être supprimés par la synchronisation';
 
 $string['deletinggroups'] = 'Suppression des groupes';
 $string['creatinggroups'] = 'Création des nouvelles groupes';
 $string['updatinggroups'] = 'Mise à jour des groupes';
 $string['groupdeleted'] = 'Groupe {$a->name} supprimée dans le cours {$a->course}';
 $string['groupcreated'] = 'Groupe {$a->name} créée dans le cours {$a->courseid}';
-$string['groupupdated'] = 'Groupe {$a->name} mise à jour dans le cours {$a->course}';
+$string['groupupdated'] = 'Groupe {$a->name} mise à jour dans le cours {$a->courseid}';
 $string['groupmemberadded'] = 'Membre {$a->username} ajouté au groupe {$a->idnumber} dans le cours {$a->course}';
 $string['groupmemberremoved'] = 'Membre {$a->username} supprimé du groupe {$a->idnumber} dans le cours {$a->course}';
 $string['disableautogroupscheck'] = 'Désactiver le verrou de groupes automatiques';

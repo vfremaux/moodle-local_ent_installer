@@ -15,6 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 $string['ent_installer:sync'] = 'Can sync manually the users.';
+$string['ent_installer:systemassign'] = 'Can assign system context roles.';
 
 $string['automatedcohortmembers'] = 'Automated cohort members';
 $string['backtosettings'] = 'Back to settings';
@@ -175,6 +176,10 @@ $string['unenrolled'] = 'Unenrolled from method {$a}';
 $string['updateonly'] = 'Only update existing records. Do not create any more.';
 
 $string['personfilters'] = 'LDAP Filters for user profiles';
+$string['configgenericusertypefilter'] = 'Generic user discriminator';
+$string['configgenericusertypefilter_desc'] = '';
+$string['configgenericinstitutionfilter'] = 'Generic institution discriminator';
+$string['configgenericinstitutionfilter_desc'] = '';
 $string['configstudentusertypefilter'] = 'Student user discriminator';
 $string['configstudentusertypefilter_desc'] = '';
 $string['configstudentinstitutionfilter'] = 'Student institution discriminator';
@@ -364,13 +369,15 @@ $string['configgroupmembershipfilter'] = 'Filter for membership';
 $string['configgroupmembershipfilter_desc'] = 'A regex that applies to value and catches the first available subpattern';
 $string['configgroupuseridentifier'] = 'Internal group user identifier';
 $string['configgroupuseridentifier_desc'] = '';
+$string['configgroupsprotectformdeletion'] = 'Delete protection';
+$string['configgroupsprotectformdeletion_desc'] = 'If enabled, no groups can be deleted using the groups synchronisation';
 
 $string['deletinggroups'] = 'Deleting old groups';
 $string['creatinggroups'] = 'Creating new groups';
 $string['updatinggroups'] = 'Updating existing groups';
 $string['groupdeleted'] = 'Group {$a->name} deleted in course {$a->course}';
 $string['groupcreated'] = 'Group {$a->name} created in course {$a->courseid}';
-$string['groupupdated'] = 'Group {$a->name} updated in course {$a->course}';
+$string['groupupdated'] = 'Group {$a->name} updated in course {$a->courseid}';
 $string['groupmemberadded'] = 'Group member {$a->username} added to group {$a->idnumber} in course {$a->course}';
 $string['groupmemberremoved'] = 'Group member {$a->username} removed from group {$a->idnumber} in course {$a->course}';
 $string['disableautogroupscheck'] = 'Disable auto group check';
