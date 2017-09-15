@@ -62,7 +62,13 @@ echo $OUTPUT->heading($syncstr);
 
 if ($data = $mform->get_data()) {
 
-    if (!empty($data->teachercatreorder)) {
+    if (!empty($data->teachercourserelocate)) {
+        echo '<div class="console">';
+        echo '<pre>';
+        local_ent_installer_relocate_courses();
+        echo '</pre>';
+        echo '</div>';
+    } else if (!empty($data->teachercatreorder)) {
         local_ent_installer_fix_teacher_categories();
         echo '<div class="console">';
         echo '<pre>';

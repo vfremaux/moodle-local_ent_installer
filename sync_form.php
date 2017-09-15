@@ -78,6 +78,9 @@ class SyncUsersForm extends moodleform {
 
         $mform->addElement('submit', 'teachercatreorder', get_string('teachercatreorder', 'local_ent_installer'));
 
+        $mform->addElement('submit', 'teachercourserelocate', get_string('relocateteachercourses', 'local_ent_installer'));
+        $mform->addHelpButton('relocateteachercourses', 'relocateteachercourses', 'local_ent_installer');
+
         $this->add_action_buttons(true, get_string('runsync', 'local_ent_installer'));
     }
 }

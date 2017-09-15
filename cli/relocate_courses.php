@@ -31,16 +31,23 @@ require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php');
 
 require_once($CFG->dirroot.'/lib/clilib.php'); // Cli only functions.
 
-list($options, $unrecognized) = cli_get_params(array('help' => false,
-                                                     'simulate' => false,
-                                                     'host' => true),
-                                               array('h' => 'help',
-                                                     's' => 'simulate',
-                                                     'H' => 'host'));
+list($options, $unrecognized) = cli_get_params(
+    array('help' => false,
+          'simulate' => false,
+          'host' => false,
+          'debug' => false,
+    ),
+    array('h' => 'help',
+          's' => 'simulate',
+          'H' => 'host',
+          'd' => 'debug',
+    )
+);
 
 if ($unrecognized) {
     $unrecognized = implode("\n", $unrecognized);
-    cli_error("Not recognized option ".$unrecognized);
+    echo "Not recognized option ".$unrecognized."\n";
+    exit(1);
 }
 
 if ($options['help']) {
@@ -48,9 +55,10 @@ if ($options['help']) {
 Batch relocate all courses when a owner teacher is identified.
 
 Options:
--h, --help            Print out this help
--s, --simulate        Do not write anything to DB.
--H, --host            the virtual host you are working for
+    -h, --help            Print out this help.
+    -s, --simulate        Do not write anything to DB.
+    -H, --host            The virtual host you are working for.
+    -d, --debug           Turn on the debug mode.
 
 Example:
 \$sudo -u www-data /usr/bin/php local/vmoodle/cli/relocate_courses.php
@@ -66,14 +74,16 @@ if (!empty($options['host'])) {
     define('CLI_VMOODLE_OVERRIDE', $options['host']);
 }
 
-$CFG->debug = E_ALL;
-
 // Replay full config whenever. If vmoodle switch is armed, will switch now config.
 
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 echo('Config check : playing for '.$CFG->wwwroot."\n");
 require_once($CFG->libdir.'/adminlib.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
+
+if (!empty($options['debug'])) {
+    $CFG->debug = E_ALL;
+}
 
 mtrace('Starting examinating courses...');
 
@@ -88,4 +98,5 @@ cache_helper::invalidate_by_definition('core', 'coursecat');
 cache_helper::invalidate_by_definition('core', 'coursecatrecords');
 
 mtrace('Done.');
+
 exit(0);

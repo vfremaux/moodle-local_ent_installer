@@ -66,6 +66,7 @@ list($options, $unrecognized) = cli_get_params(
         'empty'             => false,
         'host'              => false,
         'force'             => false,
+        'debug'             => false,
     ),
     array(
         'h' => 'help',
@@ -73,7 +74,8 @@ list($options, $unrecognized) = cli_get_params(
         'e' => 'empty',
         'v' => 'verbose',
         's' => 'simulate',
-        'H' => 'host'
+        'H' => 'host',
+        'd' => 'debug',
     )
 );
 
@@ -86,15 +88,16 @@ if ($options['help']) {
     $help = "
 Command line ENT Course groups Synchronizer.
 
-    Options:
+Options:
      v, --verbose               Provides lot of output
     -h, --help          Print out this help
     -s, --simulate      Get all data for simulation but will NOT process any writing in database.
     -f, --force         Force updating all data.
     -e, --empty         Clean empty groups if no user left.
     -H, --host          Set the host (physical or virtual) to operate on
+    -d, --dbug          Turn on debug mode.
 
-    "; // TODO: localize - to be translated later when everything is finished.
+"; // TODO: localize - to be translated later when everything is finished.
 
     echo $help;
     die;
@@ -113,10 +116,8 @@ echo('Config check : playing for '.$CFG->wwwroot);
 require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // Ensure we have coursecat class.
 
 // Ensure errors are well explained.
-$CFG->debug = DEBUG_DEVELOPER;
-
-if (empty($CFG->version)) {
-    cli_error(get_string('missingconfigversion', 'debug'));
+if (!empty($options['debug'])) {
+    $CFG->debug = E_ALL;
 }
 
 // Fakes an admin identity for all the process.
@@ -131,4 +132,5 @@ $logmuter = new \ent_installer\logmuter();
 $logmuter->activate();
 local_ent_installer_sync_groups($ldapauth, $options);
 $logmuter->deactivate();
-return 0;
+
+exit(0);

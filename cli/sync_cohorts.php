@@ -53,9 +53,6 @@ global $CLI_VMOODLE_PRECHECK;
 $CLI_VMOODLE_PRECHECK = true; // force first config to be minimal
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions
-require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php'); // Ldap primitives.
-require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_cohorts.php'); // Ldap primitives.
-require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // general primitives.
 
 // Now get cli options.
 list($options, $unrecognized) = cli_get_params(
@@ -66,6 +63,7 @@ list($options, $unrecognized) = cli_get_params(
         'empty'             => false,
         'host'              => false,
         'force'             => false,
+        'debug'             => false,
     ),
     array(
         'h' => 'help',
@@ -73,13 +71,15 @@ list($options, $unrecognized) = cli_get_params(
         'v' => 'verbose',
         'e' => 'empty',
         's' => 'simulate',
-        'H' => 'host'
+        'H' => 'host',
+        'd' => 'debug',
     )
 );
 
 if ($unrecognized) {
     $unrecognized = implode("\n  ", $unrecognized);
-    cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
+    echo "$unrecognized is not a recognized option \n";
+    exit(1);
 }
 
 if ($options['help']) {
@@ -93,6 +93,7 @@ if ($options['help']) {
     -f, --force         Force updating all data.
     -e, --empty         Clean out empty cohorts after members deletion.
     -H, --host          Set the host (physical or virtual) to operate on
+    -d, --debug         Turns debug on.
 
     "; // TODO: localize - to be translated later when everything is finished
 
@@ -111,15 +112,13 @@ if (!empty($options['host'])) {
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 echo('Config check : playing for '.$CFG->wwwroot);
 require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // ensure we have coursecat class.
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php'); // Ldap primitives.
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_cohorts.php'); // Ldap primitives.
+require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // general primitives.
 
-// Ensure errors are well explained.
-$CFG->debug = DEBUG_DEVELOPER;
-
-if (empty($CFG->version)) {
-    cli_error(get_string('missingconfigversion', 'debug'));
+if (!empty($options['debug'])) {
+    $CFG->debug = E_ALL;
 }
-
-// require_once($CFG->dirroot.'/course/lib.php');
 
 // Fakes an admin identity for all the process.
 global $USER;
@@ -133,4 +132,5 @@ $logmuter = new \ent_installer\logmuter();
 $logmuter->activate();
 local_ent_installer_sync_cohorts($ldapauth, $options);
 $logmuter->deactivate();
-return 0;
+
+exit(0);

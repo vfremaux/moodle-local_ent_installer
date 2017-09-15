@@ -16,11 +16,13 @@
 
 define('CLI_SCRIPT', true);
 
-define('ENT_INSTALLER_SYNC_MAX_WORKERS', 2);
+define('ENT_INSTALLER_SYNC_MAX_WORKERS', 4);
 define('JOB_INTERLEAVE', 2);
 
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
+
+raise_memory_limit(MEMORY_HUGE);
 
 // Ensure options are blanck.
 unset($options);
@@ -37,18 +39,20 @@ list($options, $unrecognized) = cli_get_params(
         'force'            => false,
         'verbose'          => false,
         'notify'           => false,
-        'hardstop'         => false,
+        'debug'            => false,
+        'fullstop'         => false,
     ),
     array(
         'h' => 'help',
         'w' => 'workers',
-        'd' => 'distributed',
+        'D' => 'distributed',
         'L' => 'level',
         'l' => 'logroot',
         'f' => 'force',
         'v' => 'verbose',
         'N' => 'notify',
-        'S' => 'hardstop',
+        'd' => 'debug',
+        'S' => 'fullstop',
     )
 );
 
@@ -64,13 +68,14 @@ Command line ENT Sync worker.
     Options:
     -h, --help          Print out this help
     -w, --workers       Number of workers.
-    -d, --distributed   Distributed operations.
+    -D, --distributed   Distributed operations.
     -l, --logroot       Root directory for logs.
     -L, --level         the contexct level to synchronize.
     -f, --force         Force updating accounts even if not modified in user sourse.
     -v, --verbose       More output.
-    -N, --notify        Sends email on failure
-    -S, --hardstop      Stops on first failure
+    -N, --notify        Sends email on failure.
+    -d, --debug         Turn on debug on.
+    -S, --fullstop      Stops on first failure.
 
     "; // TODO: localize - to be translated later when everything is finished.
 
@@ -82,6 +87,11 @@ if ($options['workers'] === false) {
     $options['workers'] = ENT_INSTALLER_SYNC_MAX_WORKERS;
 }
 
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = ' --debug ';
+}
+
 if (!empty($options['logroot'])) {
     $logroot = $options['logroot'];
 } else {
@@ -90,23 +100,23 @@ if (!empty($options['logroot'])) {
 
 $force = '';
 if (!empty($options['force'])) {
-    $force = '--force';
+    $force = ' --force ';
 }
 
 $notify = '';
 if (!empty($options['notify'])) {
-    $notify = '--notify';
+    $notify = ' --notify ';
 }
 
-$hardstop = '';
-if (!empty($options['hardstop'])) {
-    $hardstop = '--hardstop';
+$fullstop = '';
+if (!empty($options['fullstop'])) {
+    $fullstop = ' --fullstop ';
 }
 
 $verbose = '';
 if (!empty($options['verbose'])) {
     echo "checking options\n";
-    $verbose = '--verbose';
+    $verbose = ' --verbose ';
 }
 
 $allhosts = $DB->get_records('local_vmoodle', array('enabled' => 1));
@@ -136,8 +146,8 @@ foreach ($joblist as $jl) {
     $jobids = array();
     if (!empty($jl)) {
         $hids = implode(',', $jl);
-        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_roleassigns_worker.php --nodes=\"$hids\" ";
-        $workercmd .= "--logfile={$logroot}/ent_sync_cohorts_log_{$i}.log {$force} {$verbose} {$level} {$notify} {$hardstop}";
+        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_roleassigns_worker.php {$debug} --nodes=\"$hids\" ";
+        $workercmd .= "--logfile={$logroot}/ent_sync_cohorts_log_{$i}.log {$force} {$verbose} {$level} {$notify} {$fullstop}";
         if ($options['distributed']) {
             $workercmd .= ' &';
         }
@@ -145,10 +155,16 @@ foreach ($joblist as $jl) {
         $output = array();
         exec($workercmd, $output, $return);
         if ($return) {
-            die("Worker ended with error");
+            if (!empty($options['fullstop'])) {
+                echo implode("\n", $output)."\n";
+                die("Worker ended with error");
+            }
+            echo "Worker ended with error:\n";
+            echo implode("\n", $output)."\n";
+            echo "Pursuing anyway.\n";
         }
-        if (!$options['distributed']) {
-            mtrace(implode("\n", $output));
+        if (empty($options['distributed']) && !empty($options['verbose'])) {
+            echo implode("\n", $output)."\n";
         }
         $i++;
         sleep(JOB_INTERLEAVE);

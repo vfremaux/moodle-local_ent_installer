@@ -65,7 +65,7 @@ function local_ent_installer_generate_email($user) {
 
 /**
  * If an input data has the term 'alias' in the textual value, then
- * extracts the aloas and returns both parts separated.
+ * extracts the alias and returns both parts separated.
  * @param string $data the input data
  */
 function local_ent_installer_strip_alias($data) {
@@ -218,8 +218,15 @@ function local_ent_installer_relocate_course($courseid, $simulate = false) {
      */
     $hardconfigguessfirstteacher = false;
 
-    $context = context_course::instance($courseid);
+    if ($courseid == SITEID) {
+        // DO NOT relocate the site course !
+        return;
+    }
 
+    $context = context_course::instance($courseid);
+    if (empty($context) || empty($context->path)) {
+        return;
+    }
     // Need get this to ensure we are getting only the course context.
     $editorroles = get_roles_with_caps_in_context($context, array('moodle/course:manageactivities'));
     $ras = array();
@@ -328,12 +335,19 @@ function local_ent_installer_relocate_course($courseid, $simulate = false) {
 function local_ent_installer_relocate_courses($simulate = false) {
     global $DB;
 
+    $config = get_config('local_ent_installer');
+    $protectedcats = explode(',', $config->protect_categories_from_relocate);
+
     $courses = $DB->get_records('course', array(), 'shortname', 'id, shortname, fullname');
 
     if ($courses) {
         foreach ($courses as $c) {
-            mtrace("Relocating course {$c->shortname} {$c->fullname}...");
-            $result = local_ent_installer_relocate_course($c->id, $simulate);
+            if (!in_array($c->category, $protectedcats)) {
+                mtrace(get_string('relocatingcourse', 'local_ent_installer', "{$c->shortname} {$c->fullname}"));
+                $result = local_ent_installer_relocate_course($c->id, $simulate);
+            } else {
+                mtrace(get_string('relocatingcourseignored', 'local_ent_installer', "{$c->shortname} {$c->fullname}"));
+            }
         }
     }
 }

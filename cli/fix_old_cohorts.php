@@ -34,11 +34,13 @@ list($options, $unrecognized) = cli_get_params(
         'verbose'           => false,
         'help'              => false,
         'host'              => false,
+        'debug'             => false,
     ),
     array(
         'h' => 'help',
         'v' => 'verbose',
-        'H' => 'host'
+        'H' => 'host',
+        'd' => 'host',
     )
 );
 
@@ -48,15 +50,15 @@ if ($unrecognized) {
 }
 
 if ($options['help']) {
-    $help =
-        "Command line ENT User Synchronizer.
-        
-        Options:
-        --verbose               Provides lot of output
-        -h, --help          Print out this help
-        -H, --host          Set the host (physical or virtual) to operate on
+    $help = "
+Command line ENT User Synchronizer.
 
-        "; //TODO: localize - to be translated later when everything is finished
+Options:
+    --verbose               Provides lot of output
+    -h, --help          Print out this help
+    -H, --host          Set the host (physical or virtual) to operate on
+
+"; // TODO: localize - to be translated later when everything is finished.
 
     echo $help;
     die;
@@ -72,8 +74,12 @@ if (!empty($options['host'])) {
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 echo('Config check : playing for '.$CFG->wwwroot);
 
+if (!empty($options['debug'])) {
+    $CFG->Wdebug = E_ALL;
+}
+
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 local_ent_installer_fix_unprefixed_cohorts();
 
-return 0;
+exit(0);
