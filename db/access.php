@@ -32,4 +32,11 @@ $capabilities = array(
         )
     ),
 
+    'local/ent_installer:systemassign' => array(
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => array(
+        )
+    ),
+
 );

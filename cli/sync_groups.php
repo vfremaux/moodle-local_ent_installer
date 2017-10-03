@@ -63,17 +63,21 @@ list($options, $unrecognized) = cli_get_params(
         'verbose'           => false,
         'help'              => false,
         'simulate'          => false,
-        'empty'             => false,
+        'clearempty'        => false,
+        'skipmembership'    => false,
         'host'              => false,
         'force'             => false,
+        'debug'             => false,
     ),
     array(
         'h' => 'help',
         'f' => 'force',
-        'e' => 'empty',
+        'e' => 'clearempty',
         'v' => 'verbose',
+        'k' => 'skipmembership',
         's' => 'simulate',
-        'H' => 'host'
+        'H' => 'host',
+        'd' => 'debug',
     )
 );
 
@@ -86,15 +90,17 @@ if ($options['help']) {
     $help = "
 Command line ENT Course groups Synchronizer.
 
-    Options:
-     v, --verbose               Provides lot of output
-    -h, --help          Print out this help
-    -s, --simulate      Get all data for simulation but will NOT process any writing in database.
-    -f, --force         Force updating all data.
-    -e, --empty         Clean empty groups if no user left.
-    -H, --host          Set the host (physical or virtual) to operate on
+Options:
+     v, --verbose           Provides lot of output.
+    -h, --help              Print out this help.
+    -s, --simulate          Get all data for simulation but will NOT process any writing in database.
+    -f, --force             Force updating all data.
+    -e, --clearempty             Clean empty groups if no user left.
+    -k, --skipmembership    Skip membership.
+    -H, --host              Set the host (physical or virtual) to operate on.
+    -d, --debug             Turn on debug mode.
 
-    "; // TODO: localize - to be translated later when everything is finished.
+"; // TODO: localize - to be translated later when everything is finished.
 
     echo $help;
     die;
@@ -106,17 +112,16 @@ if (!empty($options['host'])) {
     define('CLI_VMOODLE_OVERRIDE', $options['host']);
 }
 
-// Replay full config whenever. If vmoodle switch is armed, will switch now config.
-
-require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+// Replay full config whenever (only when vmoodle). If vmoodle switch is armed, will switch now config.
+if (defined('VMOODLE_BOOT')) {
+    require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+}
 echo('Config check : playing for '.$CFG->wwwroot);
 require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // Ensure we have coursecat class.
 
 // Ensure errors are well explained.
-$CFG->debug = DEBUG_DEVELOPER;
-
-if (empty($CFG->version)) {
-    cli_error(get_string('missingconfigversion', 'debug'));
+if (!empty($options['debug'])) {
+    $CFG->debug = E_ALL;
 }
 
 // Fakes an admin identity for all the process.
@@ -131,4 +136,5 @@ $logmuter = new \ent_installer\logmuter();
 $logmuter->activate();
 local_ent_installer_sync_groups($ldapauth, $options);
 $logmuter->deactivate();
-return 0;
+
+exit(0);

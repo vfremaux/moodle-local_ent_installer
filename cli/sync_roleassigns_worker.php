@@ -29,44 +29,52 @@ list($options, $unrecognized) = cli_get_params(
         'force'             => false,
         'level'             => false,
         'verbose'           => false,
-        'logfile'           => false,
+        'logroot'           => false,
+        'logmode'           => false,
+        'horodate'           => false,
         'notify'            => false,
-        'hardstop'          => false,
+        'fullstop'          => false,
+        'debug'             => false,
     ),
     array(
         'h' => 'help',
         'n' => 'nodes',
-        'l' => 'logfile',
+        'l' => 'logroot',
         'L' => 'level',
         'm' => 'logmode',
+        'H' => 'horodate',
         'v' => 'verbose',
         'r' => 'role',
         'N' => 'notify',
-        'S' => 'hardstop',
+        's' => 'fullstop',
+        'd' => 'debug',
     )
 );
 
 if ($unrecognized) {
     $unrecognized = implode("\n  ", $unrecognized);
-    cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
+    echo "$unrecognized is not a recognized option\n";
+    exit(1);
 }
 
 if ($options['help'] || empty($options['nodes'])) {
-    $help =
-        "Command line ENT Sync worker for cohorts.
+    $help = "
+Command line ENT Sync worker for cohorts.
 
-        Options:
-        -h, --help          Print out this help
-        -n, --nodes         Node ids to work with.
-        -l, --logfile       the log file to use. No log if not defined
-        -L, --level         the context level to synchronize (system, coursecat, course, etc...)
-        -m, --logmode       'append' or 'overwrite'
-        -f, --force         Force updating accounts even if not modified in user sourse.
-        -v, --verbose       More output.
-        -N, --notify        More output.
-        -S, --hardstop      More output.
+Options:
+    -h, --help          Print out this help
+    -n, --nodes         Node ids to work with.
+    -l, --logroot       The system root to log in.
+    -L, --level         The context level to synchronize (system, coursecat, course, etc...)
+    -m, --logmode       'append' or 'overwrite'
+    -H, --horodate      Append timestamp to the log file name.
+    -f, --force         Force updating accounts even if not modified in user sourse.
+    -v, --verbose       More output.
+    -N, --notify        Notify on error.
+    -s, --fullstop      Stops on first error.
+    -d, --debug         Turn on debug mode in workers.
 
-        "; //TODO: localize - to be translated later when everything is finished
+"; //TODO: localize - to be translated later when everything is finished
 
     echo $help;
     die;
@@ -76,8 +84,9 @@ if (empty($options['logmode'])) {
     $options['logmode'] = 'w';
 }
 
-if (!empty($options['logfile'])) {
-    $LOG = fopen($options['logfile'], $options['logmode']);
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = ' --debug ';
 }
 
 $force = '';
@@ -103,9 +112,20 @@ if (!empty($options['level'])) {
 
 $nodes = explode(',', $options['nodes']);
 foreach ($nodes as $nodeid) {
-    mtrace("\nStarting process for node $nodeid\n");
+    mtrace("\nStarting rolassign process for node $nodeid\n");
+
+    if (!empty($options['logroot'])) {
+        $logfile = $options['logroot'].'/ent_sync_roles_'.$host->shortname;
+        if (!empty($options['horodate'])) {
+            $logfile .= '_'.$runtime;
+        }
+        $logfile .= '.log';
+        $LOG = fopen($logfile, $options['logmode']);
+    }
+
     $host = $DB->get_record('local_vmoodle', array('id' => $nodeid));
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_roleassigns.php --host={$host->vhostname} {$force} {$level}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_roleassigns.php {$debug} --host={$host->vhostname} ";
+    $cmd .= " {$force} {$level}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -118,15 +138,21 @@ foreach ($nodes as $nodeid) {
         if (isset($LOG)) {
             fputs($LOG, 'Process failure. No output of user feeder.');
         }
-        if (!empty($options['hardstop'])) {
-            die ("Worker failed");
-        } else {
-            echo "Role assign Worker execution error on {$host->vhostname}... Continuing anyway\n";
+        if (!empty($options['fullstop'])) {
+            echo implode("\n", $output)."\n";
+            die ("Worker failed\n");
         }
+        echo "Role assign Worker execution error on {$host->vhostname}\n";
+        echo implode("\n", $output)."\n";
+        echo "Pursuing anyway\n";
     }
+    if (!empty($options['verbose'])) {
+        echo implode("\n", $output)."\n";
+    }
+
+    fclose($LOG);
+
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
 }
-
-fclose($LOG);
 
 return 0;

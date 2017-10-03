@@ -26,12 +26,14 @@ list($options, $unrecognized) = cli_get_params(
     array(
         'help'              => false,
         'nodes'             => false,
-        'empty'        => false,
+        'empty'             => false,
+        'logmode'           => false,
         'force'             => false,
+        'role'              => false,
         'verbose'           => false,
         'logfile'           => false,
         'notify'            => false,
-        'hardstop'          => false,
+        'fullstop'          => false,
     ),
     array(
         'h' => 'help',
@@ -43,7 +45,8 @@ list($options, $unrecognized) = cli_get_params(
         'f' => 'force',
         'r' => 'role',
         'N' => 'notify',
-        'S' => 'hardstop',
+        'S' => 'fullstop',
+        'd' => 'debug',
     )
 );
 
@@ -65,12 +68,18 @@ if ($options['help'] || empty($options['nodes'])) {
     -f, --force         Force updating accounts even if not modified in user sourse.
     -v, --verbose       More output.
     -N  --notify        Sends a mail when a task fails
-    -S  --hardstop      Stops on first failure.
+    -s  --fullstop      Stops on first failure.
+    -d  --debug         Turn on debug mode.
 
 "; // TODO: localize - to be translated later when everything is finished.
 
     echo $help;
     die;
+}
+
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = ' --debug ';
 }
 
 if (empty($options['logmode'])) {
@@ -111,7 +120,8 @@ $nodes = explode(',', $options['nodes']);
 foreach ($nodes as $nodeid) {
     mtrace("\nStarting process for node $nodeid\n");
     $host = $DB->get_record('local_vmoodle', array('id' => $nodeid));
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts.php --host={$host->vhostname} {$force} {$role} {$empty}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts.php {$debug} --host={$host->vhostname} ";
+    $cmd .= " {$force} {$role} {$empty}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -124,11 +134,17 @@ foreach ($nodes as $nodeid) {
         if (isset($LOG)) {
             fputs($LOG, 'Process failure. No output of user feeder.');
         }
-        if (!empty($options['hardstop'])) {
+        if (!empty($options['fullstop'])) {
+            echo implode("\n", $output)."\n";
             die ("Worker failed");
-        } else {
-            echo "Course group Worker execution error on {$host->vhostname}... Continuing anyway\n";
         }
+        echo "Course group Worker execution error on {$host->vhostname}:\n";
+        echo implode("\n", $output)."\n";
+        echo "Pursuing anyway\n";
+    }
+
+    if (!empty($optons['verbose'])) {
+        echo implode("\n", $output)."\n";
     }
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
 }
