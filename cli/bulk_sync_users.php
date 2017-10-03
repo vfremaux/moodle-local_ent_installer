@@ -23,6 +23,8 @@ require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global m
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions
 require_once($CFG->dirroot.'/local/vmoodle/lib.php');
 
+raise_memory_limit(MEMORY_HUGE);
+
 // Ensure options are blanck;
 unset($options);
 
@@ -39,19 +41,21 @@ list($options, $unrecognized) = cli_get_params(
         'role'             => false,
         'verbose'          => false,
         'notify'           => false,
-        'hardstop'         => false,
+        'debug'            => false,
+        'fullstop'         => false,
     ),
     array(
         'h' => 'help',
         'w' => 'workers',
         'd' => 'distributed',
-        'D' => 'fulldelete',
+        'x' => 'fulldelete',
         'l' => 'logroot',
         'f' => 'force',
         'r' => 'role',
         'v' => 'verbose',
         'n' => 'notify',
-        'S' => 'hardstop',
+        'd' => 'debug',
+        's' => 'fullstop',
     )
 );
 
@@ -69,12 +73,13 @@ if ($options['help']) {
         -w, --workers       Number of workers.
         -d, --distributed   Distributed operations.
         -l, --logroot       Root directory for logs.
-        -D, --fulldelete    Propagates a full delete option to all workers.
+        -x, --fulldelete    Propagates a full delete option to all workers.
         -f, --force         Force updating accounts even if not modified in user sourse.
         -r, --role          Role to process if not empty : (eleve,enseignant,administration).
         -v, --verbose       More output.
         -n, --notify        If present will send a mail when a sync host fails.
-        -S, --hardstop      If present, will stop on first errored worker result.
+        -d, --debug         Turn on debug in workers.
+        -s, --fullstop      Stops on first error.
 
         "; // TODO: localize - to be translated later when everything is finished.
 
@@ -92,19 +97,24 @@ if (!empty($options['logroot'])) {
     $logroot = $CFG->dataroot;
 }
 
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = ' --debug ';
+}
+
 $force = '';
 if (!empty($options['force'])) {
-    $force = '--force';
+    $force = ' --force ';
 }
 
 $notify = '';
 if (!empty($options['notify'])) {
-    $notify = '--notify';
+    $notify = ' --notify ';
 }
 
-$hardstop = '';
-if (!empty($options['hardstop'])) {
-    $hardstop = '--hardstop';
+$fullstop = '';
+if (!empty($options['fullstop'])) {
+    $fullstop = ' --fullstop ';
 }
 
 $role = '';
@@ -115,7 +125,7 @@ if (!empty($options['role']) && in_array($options['role'], array('eleve', 'ensei
 $verbose = '';
 if (!empty($options['verbose'])) {
     echo "checking options\n";
-    $verbose = '--verbose';
+    $verbose = ' --verbose ';
 }
 
 $config = get_config('local_vmoodle');
@@ -130,8 +140,9 @@ if (!empty($config->clusterix)) {
     $clusterix = $config->clusterix;
 }
 
-if (!$allhosts = vmoodle_get_vmoodleset($clusters, $clusterix) {
+if (!$allhosts = vmoodle_get_vmoodleset($clusters, $clusterix)) {
     die("Nothing to do. No Vhosts");
+    exit(1);
 }
 
 // Make worker lists.
@@ -159,7 +170,14 @@ foreach ($joblist as $jl) {
     $jobids = array();
     if (!empty($jl)) {
         $hids = implode(',', $jl);
-        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users_worker.php --nodes=\"$hids\" --logfile={$logroot}/ent_sync_log_{$i}.log {$force} {$role} {$verbose} {$fulldelete} {$notify} {$hardstop}";
+
+        $logfile = '';
+        if (!empty($options['logroot'])) {
+            $logfile = " --logfile={$options['logroot']}/ent_sync_log_{$i}.log ";
+        }
+
+        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users_worker.php {$debug} --nodes=\"$hids\" {$logfile} ";
+        $workercmd .= " {$force} {$role} {$verbose} {$fulldelete} {$notify} {$fullstop}";
         if ($options['distributed']) {
             $workercmd .= ' &';
         }
@@ -167,14 +185,17 @@ foreach ($joblist as $jl) {
         $output = array();
         exec($workercmd, $output, $return);
         if ($return) {
-            if (!empty($hardstop)) {
+            if (!empty($fullstop)) {
+                echo implode("\n", $output)."\n";
                 die("Worker ended with error");
             } else {
-                echo "Worker error on worker $hids, but continuing...\n";
+                echo "Worker error on worker $hids:\n";
+                echo implode("\n", $output)."\n";
+                echo "Pursuing anyway\n";
             }
         }
-        if (!$options['distributed']) {
-            mtrace(implode("\n", $output));
+        if (!$options['distributed'] && !empty($options['verbose'])) {
+            echo implode("\n", $output)."\n";
         }
         $i++;
         sleep(JOB_INTERLEAVE);
