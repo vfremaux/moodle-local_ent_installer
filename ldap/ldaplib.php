@@ -70,7 +70,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
         mtrace('Turn off the developper mode to process all records.');
     }
 
-    core_php_time_limit::raise(120);
+    core_php_time_limit::raise(600);
 
     $isent = is_dir($CFG->dirroot.'/local/ent_access_point');
 
@@ -105,7 +105,16 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     mtrace(get_string('lastrun', 'local_ent_installer', userdate(@$config->last_sync_date_user)));
     mtrace("\n>> ".get_string('connectingldap', 'auth_ldap'));
+
     $ldapconnection = $ldapauth->ldap_connect();
+    // Ensure an explicit limit, or some defaults may  cut some results.
+    if ($CFG->debug == DEBUG_DEVELOPER) {
+        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 300);
+    } else {
+        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 100000);
+    }
+    ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
+    mtrace("Ldap opened with sizelimit $retvalue");
 
     $dbman = $DB->get_manager();
 
@@ -267,6 +276,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     $ldapcookie = '';
     foreach ($filters as $filterdef) {
 
+        mtrace('Processing filter '.$filterdef->userfield);
         $institutions = '';
         if (!empty($filterdef->institutions)) {
             if (count($filterdef->institutions) > 1) {
@@ -290,11 +300,11 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 }
                 if ($ldapauth->config->search_sub) {
                     // Use ldap_search to find first user from subtree.
-                    mtrace("ldapsearch $context, $filter for ".$ldapauth->config->user_attribute);
+                    mtrace("\tldapsearch $context, $filter for ".$ldapauth->config->user_attribute);
                     $ldap_result = ldap_search($ldapconnection, $context, $filter, array($ldapauth->config->user_attribute, $config->record_date_fieldname));
                 } else {
                     // Search only in this context.
-                    mtrace("ldaplist $context, $filter for ".$ldapauth->config->user_attribute);
+                    mtrace("\tldaplist $context, $filter for ".$ldapauth->config->user_attribute);
                     $ldap_result = ldap_list($ldapconnection, $context, $filter, array($ldapauth->config->user_attribute, $config->record_date_fieldname));
                 }
                 if (!$ldap_result) {
@@ -339,6 +349,9 @@ function local_ent_installer_sync_users($ldapauth, $options) {
         mtrace(get_string('didntgetusersfromldap', 'auth_ldap'));
         $dbman->drop_table($table);
         $ldapauth->ldap_close(true);
+
+        // Mark last time the user sync was run.
+        set_config('last_sync_date_user', time(), 'local_ent_installer');
         return false;
     } else {
         mtrace(get_string('gotcountrecordsfromldap', 'auth_ldap', $count));
@@ -633,11 +646,13 @@ function local_ent_installer_sync_users($ldapauth, $options) {
         $updateerrorcount = 0;
         $insertcount = 0;
         $updatecount = 0;
+        $addcount = 0;
 
         // We scan new proposed users from LDAP.
         foreach ($add_users as $user) {
 
-            mtrace('----');
+            $addcount++;
+            mtrace($addcount.' ----');
             // Save usertype.
             $usertype = $user->usertype;
             $username = $user->username;
@@ -688,7 +703,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
             $realauth = $config->real_used_auth;
             $user->auth = (empty($realauth)) ? $ldapauth->authtype : $realauth;
             $user->mnethostid = $CFG->mnet_localhost_id;
-            $user->country = $CFG->country;
+            $user->country = get_config('moodle', 'country');
 
             // If is set, User is being deleted or faked account. Ignore.
             // Atrium related.
@@ -715,7 +730,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
              */
             $user->username = trim(core_text::strtolower($user->username));
             if (empty($user->lang)) {
-                $user->lang = $CFG->lang;
+                $user->lang = get_config('moodle', 'lang');
             }
 
             /*
@@ -789,6 +804,11 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         $updatecount++;
                     } catch (Exception $e) {
                         mtrace('ERROR : Failed update '.$user->username);
+                        if (!empty($options['debug'])) {
+                            echo $DB->get_last_error();
+                            exit(1);
+                        }
+
                         $updateerrorcount++;
                         continue;
                     }
@@ -850,9 +870,13 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 // REAL PROCESSING.
                 $euser = $DB->get_record('user', array('id' => $id));
                 if (empty($oldrec)) {
+                    // Keep this event in table to know when the user was created.
                     \core\event\user_created::create_from_userid($euser->id)->trigger();
                 } else {
+                    /*
+                    // This may pollute too much the log table.
                     \core\event\user_updated::create_from_userid($euser->id)->trigger();
+                    */
                 }
                 if (!empty($ldapauth->config->forcechangepassword)) {
                     set_user_preference('auth_forcepasswordchange', 1, $id);
@@ -1027,6 +1051,10 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     $deltatime = $stoptick - $starttick;
 
     mtrace('Execution time : '.$deltatime);
+    mtrace('Insertions : '.$insertcount);
+    mtrace('Updates : '.$updatecount);
+    mtrace('Insertion errors : '.$inserterrorcount);
+    mtrace('Update errors : '.$updateerrorcount);
 
     $benchrec = new StdClass();
     $benchrec->timestart = floor($starttick);
@@ -1043,7 +1071,6 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     // Mark last time the user sync was run.
     set_config('last_sync_date_user', time(), 'local_ent_installer');
-    
 
     return true;
 }
@@ -1152,6 +1179,10 @@ function local_ent_installer_guess_old_record($newuser, &$status) {
 function local_ent_installer_ldap_bulk_insert($username, $usertype, $timemodified) {
     global $DB, $CFG;
 
+    if (empty($CFG->mnet_localhost_id)) {
+        $CFG->mnet_localhost_id = 1;
+    }
+
     $username = core_text::strtolower($username); // usernames are __always__ lowercase.
     if (!$DB->record_exists('tmp_extuser', array('username' => $username,
                                                 'mnethostid' => $CFG->mnet_localhost_id,
@@ -1253,92 +1284,6 @@ function local_ent_installer_load_user_fields() {
     return $USERFIELDS;
 }
 
-/**
- * an utility function that explores the ldap ENTEtablissement object list to get proper institution id
- *
- * @param object $ldapauth the ldap authentication instance
- * @param string $search the search pattern
- * @param array $searchby where to search, either 'name' or 'city'
- * @return an array of objects with institution ID and institution name
- */
-function local_ent_installer_ldap_search_institution_id($ldapauth, $search, $searchby = 'name') {
-    global $LDAPQUERYTRACE;
-
-    $ldapconnection = $ldapauth->ldap_connect();
-
-    $context = get_config('local_ent_installer', 'structure_context');
-    $config = get_config('local_ent_installer');
-
-    // Just for tests.
-    if (empty($context)) {
-        $context = 'ou=structures,dc=atrium-paca,dc=fr';
-    }
-
-    if ($searchby == 'name') {
-
-        if ($search != '*') {
-            $search = '*'.$search.'*';
-        }
-
-        $filter = str_replace('%SEARCH%', $search, $config->structure_name_filter);
-    } else if ($searchby == 'city') {
-
-        if ($search != '*') {
-            $search = '*'.$search.'*';
-        }
-
-        $filter = str_replace('%SEARCH%', $search, $config->structure_city_filter);
-    } else {
-        // Search by id.
-        $filter = '('.$config->structure_id_attribute.'='.$search.')';
-    }
-
-    $structureid = $config->structure_id_attribute;
-    $structurename = $config->structure_name_attribute;
-    $structurecity = $config->structure_city_attribute;
-
-    // Just for tests.
-    if (empty($structurename)) {
-        $structurename = 'ENTStructureNomCourant';
-    }
-
-    list($usec, $sec) = explode(' ',microtime());
-    $pretick = (float)$sec + (float)$usec;
-
-    // Search only in this context.
-    echo "Searching in $context where $filter for ($structureid, $structurename, $structurecity) <br/>";
-    $ldap_result = @ldap_search($ldapconnection, $context, $filter, array($structureid, $structurename, $structurecity));
-    list($usec, $sec) = explode(' ',microtime()); 
-    $posttick = (float)$sec + (float)$usec;
-
-    $LDAPQUERYTRACE = $posttick - $pretick. ' s. ('.$context.' '.$filter.' ['.$structureid.','.$structurename.','.$structurecity.'])';
-
-    if (!$ldap_result) {
-        return '';
-    }
-
-    $results = array();
-    if ($entry = @ldap_first_entry($ldapconnection, $ldap_result)) {
-        do {
-            $institution = new StdClass();
-
-            $value = ldap_get_values_len($ldapconnection, $entry, $structureid);
-            $institution->id = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
-
-            $value = ldap_get_values_len($ldapconnection, $entry, $structurename);
-            $institution->name = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
-
-            $value = ldap_get_values_len($ldapconnection, $entry, $structurecity);
-            $institution->city = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
-
-            $results[] = $institution;
-
-        } while ($entry = ldap_next_entry($ldapconnection, $entry));
-    }
-    unset($ldap_result); // Free mem.
-
-    return $results;
-}
 
 /**
  * Reads user information from ldap and returns it in array()

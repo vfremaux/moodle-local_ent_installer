@@ -48,7 +48,13 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     $systemcontext = context_system::instance();
 
+    core_php_time_limit::raise(600);
+
     $ldapconnection = $ldapauth->ldap_connect();
+    // Ensure an explicit limit, or some defaults may  cur some results.
+    ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 100000);
+    ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
+    mtrace("Ldap opened with sizelimit $retvalue");
 
     $dbman = $DB->get_manager();
 
@@ -77,6 +83,12 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
     $institutionids = explode(',', $institutionidlist);
 
     $ldap_pagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
+    if ($ldap_pagedresults) {
+        mtrace("Paging results...\n");
+    } else {
+        mtrace("Paging not supported...\n");
+    }
+
     $ldapcookie = '';
 
     $cohortrecordfields = array($config->cohort_idnumber_attribute,
@@ -195,6 +207,15 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     $created = $DB->get_records_sql($sql);
 
+    $lastmodified = '';
+    $params = array();
+    if (empty($options['force'])) {
+        // If not force, do check when cohorts have changed in ldap.
+        $lastmodified = ' AND tc.lastmodified > ? ';
+        $params = array(0 + @$config->last_sync_date_cohort);
+
+    }
+
     // Updated cohorts.
     $sql = "
         SELECT
@@ -204,18 +225,12 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
             {cohort} c,
             {tmp_extcohort} tc
         WHERE
-            CONCAT('".$config->cohort_ix."_', tc.idnumber) = c.idnumber AND
-            tc.lastmodified > ?
+            CONCAT('".$config->cohort_ix."_', tc.idnumber) = c.idnumber
+            $lastmodified
             $captureautocohorts
     ";
 
-    if (empty($options['force'])) {
-        $lastmodified = 0 + @$config->last_sync_date_cohort;
-    } else {
-        $lastmodified = 0;
-    }
-
-    $updated = $DB->get_records_sql($sql, array($lastmodified));
+    $updated = $DB->get_records_sql($sql, $params);
 
     if (empty($options['updateonly'])) {
         mtrace("\n>> ".get_string('deletingcohorts', 'local_ent_installer'));
@@ -340,7 +355,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 $cohortinfo = local_ent_installer_get_cohortinfo_asobj($ldapauth, $cohortldapidentifier, $options);
 
                 $cohort = new StdClass;
-                $cohort->name = $cohortinfo->name;
+                $cohort->name = $config->cohort_ix.'_'.$cohortinfo->name;
                 $cohort->description = $cohortinfo->description;
                 $cohort->descriptionformat = FORMAT_HTML;
                 $cohort->idnumber = $config->cohort_ix.'_'.$cohortinfo->idnumber;
