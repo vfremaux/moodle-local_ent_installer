@@ -52,7 +52,7 @@ global $CLI_VMOODLE_PRECHECK;
 
 $CLI_VMOODLE_PRECHECK = true; // force first config to be minimal
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
-require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions
+require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
 
 // Now get cli options.
 list($options, $unrecognized) = cli_get_params(
@@ -64,6 +64,7 @@ list($options, $unrecognized) = cli_get_params(
         'role'              => false,
         'host'              => false,
         'force'             => false,
+        'debug'             => false,
     ),
     array(
         'h' => 'help',
@@ -72,29 +73,32 @@ list($options, $unrecognized) = cli_get_params(
         'v' => 'verbose',
         's' => 'simulate',
         'r' => 'role',
-        'H' => 'host'
+        'H' => 'host',
+        'd' => 'debug',
     )
 );
 
 if ($unrecognized) {
     $unrecognized = implode("\n  ", $unrecognized);
-    cli_error("$unrecognized is not a recognized option\n");
+    echo "$unrecognized is not a recognized option\n";
+    exit(1);
 }
 
 if ($options['help']) {
-    $help =
-        "Command line ENT Users Synchronizer.
+    $help = "
+Command line ENT Users Synchronizer.
 
-        Options:
-         v, --verbose               Provides lot of output
-        -h, --help          Print out this help
-        -s, --simulate      Get all data for simulation but will NOT process any writing in database.
-        -f, --force         Force updating all data.
-        -r, --role          Restricts sync to a specific role.
-        -D, --fulldelete    Forces full deletion of user datas for deleted users.
-        -H, --host          Set the host (physical or virtual) to operate on
+Options:
+     v, --verbose               Provides lot of output
+    -h, --help          Print out this help
+    -s, --simulate      Get all data for simulation but will NOT process any writing in database.
+    -f, --force         Force updating all data.
+    -r, --role          Restricts sync to a specific ENT profile.
+    -D, --fulldelete    Forces full deletion of user datas for deleted users.
+    -H, --host          Set the host (physical or virtual) to operate on
+    -d, --debug         Turn on debug mode.
 
-        "; //TODO: localize - to be translated later when everything is finished
+"; // TODO: localize - to be translated later when everything is finished.
 
     echo $help;
     die;
@@ -107,11 +111,16 @@ if (!empty($options['host'])) {
 }
 
 // Replay full config whenever. If vmoodle switch is armed, will switch now config.
+if (defined('VMOODLE_BOOT')) {
+    require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+}
+echo('Config check : playing for '.$CFG->wwwroot."\n");
 
-require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
-echo('Config check : playing for '.$CFG->wwwroot);
+if (!empty($options['debug'])) {
+    $CFG->debug = DEBUG_NORMAL;
+}
+
 require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // ensure we have coursecat class.
-
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php'); // Ldap primitives.
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // general primitives.
 
@@ -119,14 +128,33 @@ require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // general prim
 
 // Fakes an admin identity for all the process.
 global $USER;
-$USER = get_admin();
+
+// Get main siteadmin.
+$USER = $DB->get_record('user', array('username' => $CFG->admin));
+
+// If failed, get first available site admin.
+if (empty($USER)) {
+    $siteadminlist = get_config('siteadmins');
+    if (empty($siteadminlist)) {
+        echo "No site admins. This is not a normal situation. Quitting.\n";
+        exit(1);
+    }
+    $siteadmins = explode(',', $siteadminlist);
+    foreach ($siteadmins as $uid) {
+        $USER = $DB->get_record('user', array('id' => $uid));
+        if (!empty($USER)) {
+            break;
+        }
+    }
+}
 
 // Get ldap params from real ldap plugin.
 $ldapauth = get_auth_plugin('ldap');
 
-// Run the customised synchro, with NO logs generated
+// Run the customised synchro, with NO logs generated.
 $logmuter = new \ent_installer\logmuter();
 $logmuter->activate();
 local_ent_installer_sync_users($ldapauth, $options);
 $logmuter->deactivate();
-return 0;
+
+exit(0);

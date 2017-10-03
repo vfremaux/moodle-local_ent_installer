@@ -37,18 +37,21 @@ list($options, $unrecognized) = cli_get_params(
         'help'              => false,
         'simulate'          => false,
         'host'              => false,
+        'debug'             => false,
     ),
     array(
         'h' => 'help',
         'v' => 'verbose',
         's' => 'simulate',
-        'H' => 'host'
+        'H' => 'host',
+        'd' => 'debug',
     )
 );
 
 if ($unrecognized) {
     $unrecognized = implode("\n  ", $unrecognized);
-    cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
+    echo get_string('cliunknowoption', 'admin', $unrecognized)."\n";
+    exit(1);
 }
 
 if ($options['help']) {
@@ -60,6 +63,7 @@ Command line ENT Initial categories initializer.
     -h, --help          Print out this help
     -s, --simulate      Get all data for simulation but will NOT process any writing in database.
     -H, --host          Set the host (physical or virtual) to operate on
+    -d, --debug         Turn on debug mode.
 
 "; // TODO: localize - to be translated later when everything is finished.
 
@@ -75,8 +79,14 @@ if (!empty($options['host'])) {
 
 // Replay full config whenever. If vmoodle switch is armed, will switch now config.
 
-require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+if (defined('VMOODLE_BOOT')) {
+    require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+}
 echo('Config check : playing for '.$CFG->wwwroot."\n");
+
+if (!empty($options['debug'])) {
+    $CFG->debug = E_ALL;
+}
 
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
@@ -88,4 +98,4 @@ echo "Installing site categories\n";
 local_ent_installer_install_categories(!empty($optiona['simulate']));
 
 echo "Done.\n";
-return 0;
+exit(0);

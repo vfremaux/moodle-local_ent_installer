@@ -31,28 +31,31 @@ list($options, $unrecognized) = cli_get_params(
         'role'              => false,
         'verbose'           => false,
         'logroot'           => false,
-        'horodate'            => false,
+        'horodate'          => false,
         'notify'            => false,
-        'hardstop'          => false,
+        'fullstop'          => false,
+        'debug'             => false,
     ),
     array(
         'h' => 'help',
         'n' => 'nodes',
         'l' => 'logroot',
-        'D' => 'fulldelete',
+        'x' => 'fulldelete',
         'm' => 'logmode',
         'v' => 'verbose',
         'f' => 'force',
         'r' => 'role',
         'H' => 'horodate',
         'N' => 'notify',
-        'S' => 'hardstop',
+        's' => 'fullstop',
+        'd' => 'debug',
     )
 );
 
 if ($unrecognized) {
     $unrecognized = implode("\n  ", $unrecognized);
-    cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
+    echo get_string('cliunknowoption', 'admin', $unrecognized)."\n";
+    exit(1);
 }
 
 if ($options['help'] || empty($options['nodes'])) {
@@ -63,19 +66,25 @@ if ($options['help'] || empty($options['nodes'])) {
     -h, --help          Print out this help
     -n, --nodes         Node ids to work with.
     -l, --logfile       the log file to use. No log if not defined
-    -D, --fulldelete    propagates a full delete option to final workers
+    -x, --fulldelete    propagates a full delete option to final workers
     -m, --logmode       'append' or 'overwrite'
     -f, --force         Force updating accounts even if not modified in user sourse.
     -r, --role          Role to process if not empty : (eleve,enseignant,administration).
     -v, --verbose       More output.
     -H, --horodate      If set, horodates log files.
     -N, --notify        If present will send a mail when a sync host fails.
-    -S, --hardstop      If present, will stop on first errored worker result.
+    -s, --fullstop      If present, will stop on first errored worker result.
+    -d, --debug         Turns on debug mode in worker.
 
     "; // TODO: localize - to be translated later when everything is finished.
 
     echo $help;
     die;
+}
+
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = ' --debug ';
 }
 
 if (empty($options['logmode'])) {
@@ -109,7 +118,7 @@ $nodes = explode(',', $options['nodes']);
 foreach ($nodes as $nodeid) {
 
     if (!empty($options['logroot'])) {
-        $logfile = $options['logroot'].'/ent_sync_'.$host->shortname;
+        $logfile = $options['logroot'].'/ent_sync_users_'.$host->shortname;
         if (!empty($options['horodate'])) {
             $logfile .= '_'.$runtime;
         }
@@ -123,7 +132,8 @@ foreach ($nodes as $nodeid) {
 
     mtrace("\nStarting process for node $nodeid\n");
     $host = $DB->get_record('local_vmoodle', array('id' => $nodeid));
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users.php --host={$host->vhostname} {$force} {$role} {$fulldelete}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users.php {$debug} {$force} {$role} {$fulldelete}";
+    $cmd .= " --host={$host->vhostname}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -136,12 +146,18 @@ foreach ($nodes as $nodeid) {
         if (isset($LOG)) {
             fputs($LOG, 'Process failure. No output of user feeder.');
         }
-        if (!empty($options['hardstop'])) {
+        if (!empty($options['fullstop'])) {
+            echo implode("\n", $output)."\n";
             die ("Worker failed");
-        } else {
-            echo "User Worker execution error on {$host->vhostname}... Continuing anyway\n";
         }
+        echo "User Worker execution error on {$host->vhostname}:\n";
+        echo implode("\n", $output)."\n";
+        echo "Pursuing anyway\n";
     }
+    if (!empty($options['verbose'])) {
+        echo implode("\n", $output)."\n";
+    }
+
     fclose($LOG);
 
     sleep(ENT_INSTALLER_SYNC_INTERHOST);

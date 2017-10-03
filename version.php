@@ -26,11 +26,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2017080800;   // The (date) version of this plugin.
+$plugin->version  = 2017082401;   // The (date) version of this plugin.
 $plugin->requires = 2016120500;   // Requires this Moodle version.
 $plugin->component = 'local_ent_installer';
-$plugin->release = '3.2.0 (Build 2017062100)';
+$plugin->release = '3.2.0 (Build 2017082401)';
 // $plugin->dependencies = array('local_vmoodle' => '2013020800'); // Not mandatory.
 
 // Non moodle attributes.
-$plugin->codeincrement = '3.2.0002';
+$plugin->codeincrement = '3.2.0004';

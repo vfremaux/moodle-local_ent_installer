@@ -31,8 +31,10 @@ require_once($CFG->dirroot.'/lib/formslib.php');
 class SyncUsersForm extends moodleform {
 
     public function definition() {
+        global $CFG;
 
         $config = get_config('local_ent_installer');
+        $isent = is_dir($CFG->dirroot.'/local/ent_access_point');
 
         $mform = $this->_form;
 
@@ -48,13 +50,12 @@ class SyncUsersForm extends moodleform {
 
         if (!empty($config->sync_groups_enable)) {
             $mform->addElement('checkbox', 'groups', get_string('coursegroups', 'local_ent_installer'));
-
-            $mform->addElement('checkbox', 'emptygroups', get_string('emptygroups', 'local_ent_installer'), get_string('clear', 'local_ent_installer'));
         }
 
         if (!empty($config->sync_roleassigns_enable)) {
             $mform->addElement('checkbox', 'roleassigns', get_string('roleassigns', 'local_ent_installer'));
 
+            /*
             $enrolplugins = enrol_get_plugins(true);
             $options = array();
             foreach ($enrolplugins as $key => $epl) {
@@ -62,6 +63,7 @@ class SyncUsersForm extends moodleform {
             }
             $mform->addElement('select', 'enrol', get_string('enrolmethod', 'local_ent_installer'), $options);
             $mform->setDefault('enrol', 'manual');
+            */
         }
 
         $mform->addElement('html', '<h3>'.get_string('options', 'local_ent_installer').'</h3>');
@@ -74,9 +76,26 @@ class SyncUsersForm extends moodleform {
 
         $mform->addElement('checkbox', 'verbose', get_string('verbose', 'local_ent_installer'));
 
-        $mform->addElement('checkbox', 'disableautocohortscheck', get_string('disableautocohortscheck', 'local_ent_installer'));
+        if (!empty($config->sync_groups_enable)) {
+            $mform->addElement('checkbox', 'skipmembership', get_string('skipmembership', 'local_ent_installer'));
+            $mform->addHelpButton('skipmembership', 'skipmembership', 'local_ent_installer');
 
-        $mform->addElement('submit', 'teachercatreorder', get_string('teachercatreorder', 'local_ent_installer'));
+            $mform->addElement('checkbox', 'emptygroups', get_string('emptygroups', 'local_ent_installer'), get_string('clear', 'local_ent_installer'));
+        }
+
+        if (!empty($config->sync_cohorts_enable)) {
+            $mform->addElement('checkbox', 'disableautocohortscheck', get_string('disableautocohortscheck', 'local_ent_installer'));
+        }
+
+        if ($isent) {
+            $mform->addElement('submit', 'teachercatreorder', get_string('teachercatreorder', 'local_ent_installer'));
+
+            $group = array();
+            $group[] = & $mform->createElement('html', '', '');
+            $group[] = & $mform->createElement('submit', 'teachercourserelocatesubmit', get_string('relocateteachercourses', 'local_ent_installer'));
+            $mform->addGroup($group, 'teachercourserelocate', get_string('relocateteachercourses', 'local_ent_installer'), array(), false);
+            $mform->addHelpButton('teachercourserelocate', 'relocateteachercourses', 'local_ent_installer');
+        }
 
         $this->add_action_buttons(true, get_string('runsync', 'local_ent_installer'));
     }

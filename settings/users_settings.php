@@ -31,6 +31,18 @@ $desc = '';
 $default = 1;
 $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
 
+$key = 'local_ent_installer/generic_usertype_filter';
+$label = get_string('configgenericusertypefilter', 'local_ent_installer');
+$desc = get_string('configgenericusertypefilter_desc', 'local_ent_installer');
+$default = '';
+$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
+$key = 'local_ent_installer/generic_institution_filter';
+$label = get_string('configgenericinstitutionfilter', 'local_ent_installer');
+$desc = get_string('configgenericinstitutionfilter_desc', 'local_ent_installer');
+$default = '';
+$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
 $key = 'local_ent_installer/student_usertype_filter';
 $label = get_string('configstudentusertypefilter', 'local_ent_installer');
 $desc = get_string('configstudentusertypefilter_desc', 'local_ent_installer');

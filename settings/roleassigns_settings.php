@@ -194,11 +194,11 @@ $desc = get_string('configroleassignenrolmethod_desc', 'local_ent_installer');
 $default = 'manual';
 $enrolplugins = enrol_get_plugins(true);
 $options = array('' => get_string('noenrol', 'local_ent_installer'));
-foreach ($enrolplugins as $key => $epl) {
-    if (preg_match('/cohort/', $key)) {
+foreach ($enrolplugins as $plugkey => $epl) {
+    if (preg_match('/cohort/', $plugkey)) {
         // Cohorts are automated enrol methods that cannot be pre-feed.
         continue;
     }
-    $options[$key] = $epl->get_instance_name(null);
+    $options[$plugkey] = $epl->get_instance_name(null);
 }
 $settings->add(new admin_setting_configselect($key, $label, $desc, $default, $options));

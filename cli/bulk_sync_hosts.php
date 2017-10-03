@@ -16,12 +16,14 @@
 
 define('CLI_SCRIPT', true);
 
-define('ENT_INSTALLER_SYNC_MAX_WORKERS', 2);
+define('ENT_INSTALLER_SYNC_MAX_WORKERS', 4);
 define('JOB_INTERLEAVE', 2);
 
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
 require_once($CFG->dirroot.'/local/vmoodle/lib.php');
+
+raise_memory_limit(MEMORY_HUGE);
 
 // Ensure options are blanck.
 unset($options);
@@ -41,13 +43,14 @@ list($options, $unrecognized) = cli_get_params(
         'verbose'          => false,
         'horodate'         => false,
         'notify'           => false,
-        'hardstop'         => false,
+        'debug'            => false,
+        'fullstop'         => false,
     ),
     array(
         'h' => 'help',
         'w' => 'workers',
         'd' => 'distributed',
-        'D' => 'fulldelete',
+        'x' => 'fulldelete',
         'e' => 'empty',
         'l' => 'logroot',
         'f' => 'force',
@@ -55,7 +58,8 @@ list($options, $unrecognized) = cli_get_params(
         'v' => 'verbose',
         'H' => 'horodate',
         'N' => 'notify',
-        'S' => 'hardstop',
+        'd' => 'debug',
+        's' => 'fullstop',
     )
 );
 
@@ -73,14 +77,15 @@ if ($options['help']) {
     -w, --workers       Number of workers.
     -d, --distributed   Distributed operations.
     -l, --logroot       Root directory for logs.
-    -D, --fulldelete    Propagates a full delete option to all workers.
+    -x, --fulldelete    Propagates a full delete option to all workers.
     -f, --force         Force updating accounts even if not modified in user sourse.
     -e, --empty         Empty user structures if no more users in it.
     -r, --role          Role to process if not empty : (eleve,enseignant,administration).
     -v, --verbose       More output.
     -H, --horodate      Horodate log files.
     -N, --notify        Notify on failure.
-    -S, --hardstop      Stop on first failure.
+    -d, --debug         Turn on debug mode in workers.
+    -S, --fullstop      Stop on first failure.
 
 "; // TODO: localize - to be translated later when everything is finished.
 
@@ -103,6 +108,11 @@ if (!empty($options['force'])) {
     $force = '--force';
 }
 
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = '--debug';
+}
+
 $empty = '';
 if (!empty($options['empty'])) {
     $empty = '--empty';
@@ -113,9 +123,9 @@ if (!empty($options['notify'])) {
     $notify = '--notify';
 }
 
-$hardstop = '';
-if (!empty($options['hardstop'])) {
-    $hardstop = '--hardstop';
+$fullstop = '';
+if (!empty($options['fullstop'])) {
+    $hardstop = '--fullstop';
 }
 
 $horodate = '';
@@ -176,7 +186,7 @@ foreach ($joblist as $jl) {
     if (!empty($jl)) {
         $hids = implode(',', $jl);
         $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_hosts_worker.php --nodes=\"$hids\" ";
-        $workercmd .= "{$logroot} {$horodate} {$force} {$role} {$empty} {$verbose} {$fulldelete} {$notify} {$hardstop}";
+        $workercmd .= "{$debug} {$logroot} {$horodate} {$force} {$role} {$empty} {$verbose} {$fulldelete} {$notify} {$fullstop}";
         if ($options['distributed']) {
             $workercmd .= ' &';
         }
@@ -184,10 +194,16 @@ foreach ($joblist as $jl) {
         $output = array();
         exec($workercmd, $output, $return);
         if ($return) {
-            die("Worker ended with error");
+            if (!empty($options['fullstop'])) {
+                echo implode("\n", $output)."\n";
+                die("Worker ended with error\n");
+            } else {
+                echo "Worker ended with error:\n";
+                echo implode("\n", $output)."\n";
+            }
         }
-        if (!$options['distributed']) {
-            mtrace(implode("\n", $output));
+        if (!$options['distributed'] && !empty($options['verbose'])) {
+            echo implode("\n", $output)."\n";
         }
         $i++;
         sleep(JOB_INTERLEAVE);

@@ -16,12 +16,14 @@
 
 define('CLI_SCRIPT', true);
 
-define('ENT_INSTALLER_SYNC_MAX_WORKERS', 2);
+define('ENT_INSTALLER_SYNC_MAX_WORKERS', 4);
 define('JOB_INTERLEAVE', 2);
 
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
 require_once($CFG->dirroot.'/local/vmoodle/lib.php');
+
+raise_memory_limit(MEMORY_HUGE);
 
 // Ensure options are blanck.
 unset($options);
@@ -37,27 +39,30 @@ list($options, $unrecognized) = cli_get_params(
         'logroot'          => false,
         'force'            => false,
         'verbose'          => false,
-        'horodate'           => false,
+        'horodate'         => false,
         'notify'           => false,
-        'hardstop'         => false,
+        'fullstop'         => false,
+        'debug'            => false,
     ),
     array(
         'h' => 'help',
         'w' => 'workers',
-        'd' => 'distributed',
+        'D' => 'distributed',
         'e' => 'empty',
         'l' => 'logroot',
         'f' => 'force',
         'v' => 'verbose',
         'H' => 'horodate',
         'N' => 'notify',
-        'S' => 'hardstop',
+        's' => 'fullstop',
+        'd' => 'debug',
     )
 );
 
 if ($unrecognized) {
     $unrecognized = implode("\n  ", $unrecognized);
-    cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
+    echo get_string('cliunknowoption', 'admin', $unrecognized)."\n";
+    exit(1);
 }
 
 if ($options['help']) {
@@ -67,9 +72,9 @@ if ($options['help']) {
     Options:
     -h, --help          Print out this help
     -w, --workers       Number of workers.
-    -d, --distributed   Distributed operations.
+    -D, --distributed   Distributed operations.
     -l, --logroot       Root directory for logs.
-    -D, --fulldelete    Propagates a full delete option to all workers.
+    -d, --debug         Propagates a full delete option to all workers.
     -f, --force         Force updating accounts even if not modified in user sourse.
     -v, --verbose       More output.
     -H, --horodate      If set horodate log files
@@ -86,36 +91,40 @@ if ($options['workers'] === false) {
     $options['workers'] = ENT_INSTALLER_SYNC_MAX_WORKERS;
 }
 
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = '--debug ';
+}
+
+$logroot = '';
 if (!empty($options['logroot'])) {
-    $logroot = $options['logroot'];
-} else {
-    $logroot = '';
+    $logroot = " --logroot={$options['logroot']} ";
 }
 
 $force = '';
 if (!empty($options['force'])) {
-    $force = '--force';
+    $force = ' --force ';
 }
 
 $notify = '';
 if (!empty($options['notify'])) {
-    $notify = '--notify';
+    $notify = ' --notify ';
 }
 
 $horodate = '';
 if (!empty($options['horodate'])) {
-    $horodate = '--horodate';
+    $horodate = ' --horodate ';
 }
 
-$hardstop = '';
-if (!empty($options['hardstop'])) {
-    $hardstop = '--hardstop';
+$fullstop = '';
+if (!empty($options['fullstop'])) {
+    $fullstop = ' --fullstop ';
 }
 
 $verbose = '';
 if (!empty($options['verbose'])) {
     echo "checking options\n";
-    $verbose = '--verbose';
+    $verbose = ' --verbose ';
 }
 
 $config = get_config('local_vmoodle');
@@ -130,7 +139,7 @@ if (!empty($config->clusterix)) {
     $clusterix = $config->clusterix;
 }
 
-if (!$allhosts = vmoodle_get_vmoodleset($clusters, $clusterix) {
+if (!$allhosts = vmoodle_get_vmoodleset($clusters, $clusterix)) {
     die("Nothing to do. No Vhosts");
 }
 
@@ -159,19 +168,24 @@ foreach ($joblist as $jl) {
     $jobids = array();
     if (!empty($jl)) {
         $hids = implode(',', $jl);
-        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts_worker.php --nodes=\"$hids\" ";
-        $workercmd = "--logroot={$logroot} {$horodate} {$force} {$verbose} {$empty} {$notify} {$hardstop}";
+        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts_worker.php {$debug} --nodes=\"$hids\" ";
+        $workercmd .= " {$logroot} {$horodate} {$force} {$verbose} {$empty} {$notify} {$hardstop}";
         if ($options['distributed']) {
             $workercmd .= ' &';
         }
-        mtrace("Executing $workercmd\n######################################################\n");
+        echo "Executing $workercmd\n######################################################\n";
         $output = array();
         exec($workercmd, $output, $return);
         if ($return) {
-            die("Worker ended with error");
+            if (!empty($options['fullstop'])) {
+                echo implode("\n", $output)."\n";
+                die("Worker ended with error");
+            }
+            die("Worker ended with error:\n");
+            echo implode("\n", $output)."\n";
         }
-        if (!$options['distributed']) {
-            mtrace(implode("\n", $output));
+        if (!$options['distributed'] && !empty($options['verbose'])) {
+            echo implode("\n", $output);
         }
         $i++;
         sleep(JOB_INTERLEAVE);
