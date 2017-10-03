@@ -160,7 +160,7 @@ if ($hassiteconfig) {
         $label = get_string('configprotectcategoriesfromrelocate', 'local_ent_installer');
         $desc = get_string('configprotectcategoriesfromrelocate_desc', 'local_ent_installer');
         $default = '';
-        $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
+        $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
         $categoryoptions = $DB->get_records_menu('course_categories', array(), 'parent,sortorder', 'id, name');
         $key = 'local_ent_installer/teacher_stub_category';

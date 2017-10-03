@@ -107,9 +107,10 @@ if (!empty($options['host'])) {
     define('CLI_VMOODLE_OVERRIDE', $options['host']);
 }
 
-// Replay full config whenever. If vmoodle switch is armed, will switch now config.
-
-require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+// Replay full config whenever (only in vmoodle). If vmoodle switch is armed, will switch now config.
+if (defined('VMOODLE_BOOT')) {
+    require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+}
 echo('Config check : playing for '.$CFG->wwwroot);
 require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // ensure we have coursecat class.
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php'); // Ldap primitives.

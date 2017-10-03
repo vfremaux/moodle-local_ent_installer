@@ -111,15 +111,16 @@ if (!empty($options['host'])) {
 }
 
 // Replay full config whenever. If vmoodle switch is armed, will switch now config.
-
-require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
-echo('Config check : playing for '.$CFG->wwwroot);
-require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // ensure we have coursecat class.
+if (defined('VMOODLE_BOOT')) {
+    require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+}
+echo('Config check : playing for '.$CFG->wwwroot."\n");
 
 if (!empty($options['debug'])) {
     $CFG->debug = DEBUG_NORMAL;
 }
 
+require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // ensure we have coursecat class.
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php'); // Ldap primitives.
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // general primitives.
 
@@ -127,7 +128,25 @@ require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // general prim
 
 // Fakes an admin identity for all the process.
 global $USER;
-$USER = get_admin();
+
+// Get main siteadmin.
+$USER = $DB->get_record('user', array('username' => $CFG->admin));
+
+// If failed, get first available site admin.
+if (empty($USER)) {
+    $siteadminlist = get_config('siteadmins');
+    if (empty($siteadminlist)) {
+        echo "No site admins. This is not a normal situation. Quitting.\n";
+        exit(1);
+    }
+    $siteadmins = explode(',', $siteadminlist);
+    foreach ($siteadmins as $uid) {
+        $USER = $DB->get_record('user', array('id' => $uid));
+        if (!empty($USER)) {
+            break;
+        }
+    }
+}
 
 // Get ldap params from real ldap plugin.
 $ldapauth = get_auth_plugin('ldap');

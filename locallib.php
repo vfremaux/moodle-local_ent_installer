@@ -338,7 +338,7 @@ function local_ent_installer_relocate_courses($simulate = false) {
     $config = get_config('local_ent_installer');
     $protectedcats = explode(',', $config->protect_categories_from_relocate);
 
-    $courses = $DB->get_records('course', array(), 'shortname', 'id, shortname, fullname');
+    $courses = $DB->get_records('course', array(), 'shortname', 'id, shortname, fullname, category');
 
     if ($courses) {
         foreach ($courses as $c) {

@@ -141,7 +141,7 @@ $string['syncbenchreport_desc'] = 'Un <a href="{$a}">rapport sur les temps de sy
 $string['synccohortsdisabled'] = 'La synchro des cohortes est désactivée sur ce site';
 $string['syncdisabled'] = 'La synchro est désactivée sur ce site';
 $string['syncgroupsdisabled'] = 'La synchro des groupes de cours est désactivée sur ce site';
-$string['synchroniseusers'] = 'Synchroniser les utilisateurs';
+$string['synchronisemoodle'] = 'Synchroniser les données de moodle';
 $string['syncroleassignsdisabled'] = 'La synchro des associations de rôle est désactivée sur ce site';
 $string['synctime'] = 'Temps de syncro';
 $string['synctimes'] = 'Temps de synchro';
@@ -364,11 +364,15 @@ $string['deletinggroups'] = 'Suppression des groupes';
 $string['creatinggroups'] = 'Création des nouvelles groupes';
 $string['updatinggroups'] = 'Mise à jour des groupes';
 $string['groupdeleted'] = 'Groupe {$a->name} supprimée dans le cours {$a->course}';
-$string['groupcreated'] = 'Groupe {$a->name} créée dans le cours {$a->courseid}';
-$string['groupupdated'] = 'Groupe {$a->name} mise à jour dans le cours {$a->courseid}';
+$string['groupcreated'] = 'Groupe [{$a->idnumber}] {$a->name} créée dans le cours {$a->courseid}';
+$string['groupupdated'] = 'Groupe [{$a->idnumber}] {$a->name} mise à jour dans le cours {$a->courseid}';
 $string['groupmemberadded'] = 'Membre {$a->username} ajouté au groupe {$a->idnumber} dans le cours {$a->course}';
 $string['groupmemberremoved'] = 'Membre {$a->username} supprimé du groupe {$a->idnumber} dans le cours {$a->course}';
+$string['groupmissinguser'] = 'Erreur : Utilisateur {$a->username} non connu';
 $string['disableautogroupscheck'] = 'Désactiver le verrou de groupes automatiques';
+$string['skipmembership'] = 'Ignorer les membres';
+$string['skipmembership'] = 'Membres ignorés.';
+$string['skipmembership_help'] = 'Si actif, seules les définitions du groupe sont mises à jour. Les inscriptions au groupes ne sont pas modifiées.';
 
 // Structures
 $string['configstructurecity'] = 'Ville';
@@ -388,7 +392,7 @@ $string['configstructureaddress_desc'] = 'L\'attribut LDAP contenant l\'adresse 
 $string['configstructuregeoloc'] = 'Géolocalisation';
 $string['configstructuregeoloc_desc'] = 'L\'attribut LDAP portant les données de géolocalisation de la structure';
 
-$string['teachercourserelocate_help'] = '
+$string['relocateteachercourses_help'] = '
 Déplacer tous les cours appartenant à un seul enseignant (en édition) dans la
 catégorie standard de l\'enseignant. Ceci affecte tous les cours de moodle sauf les cours
 placés dans des catégories protégées (voir réglages globaux du composant d\'installation ENT).

@@ -48,7 +48,13 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     $systemcontext = context_system::instance();
 
+    core_php_time_limit::raise(600);
+
     $ldapconnection = $ldapauth->ldap_connect();
+    // Ensure an explicit limit, or some defaults may  cur some results.
+    ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 100000);
+    ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
+    mtrace("Ldap opened with sizelimit $retvalue");
 
     $dbman = $DB->get_manager();
 
@@ -77,6 +83,12 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
     $institutionids = explode(',', $institutionidlist);
 
     $ldap_pagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
+    if ($ldap_pagedresults) {
+        mtrace("Paging results...\n");
+    } else {
+        mtrace("Paging not supported...\n");
+    }
+
     $ldapcookie = '';
 
     $cohortrecordfields = array($config->cohort_idnumber_attribute,

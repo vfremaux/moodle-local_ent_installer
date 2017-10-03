@@ -76,7 +76,9 @@ if (!empty($options['host'])) {
 
 // Replay full config whenever. If vmoodle switch is armed, will switch now config.
 
-require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+if (defined('VMOODLE_BOOT')) {
+    require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+}
 echo('Config check : playing for '.$CFG->wwwroot."\n");
 require_once($CFG->libdir.'/adminlib.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');

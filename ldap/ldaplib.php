@@ -70,7 +70,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
         mtrace('Turn off the developper mode to process all records.');
     }
 
-    core_php_time_limit::raise(120);
+    core_php_time_limit::raise(600);
 
     $isent = is_dir($CFG->dirroot.'/local/ent_access_point');
 
@@ -107,6 +107,14 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     mtrace("\n>> ".get_string('connectingldap', 'auth_ldap'));
 
     $ldapconnection = $ldapauth->ldap_connect();
+    // Ensure an explicit limit, or some defaults may  cut some results.
+    if ($CFG->debug == DEBUG_DEVELOPER) {
+        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 300);
+    } else {
+        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 100000);
+    }
+    ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
+    mtrace("Ldap opened with sizelimit $retvalue");
 
     $dbman = $DB->get_manager();
 
@@ -638,11 +646,13 @@ function local_ent_installer_sync_users($ldapauth, $options) {
         $updateerrorcount = 0;
         $insertcount = 0;
         $updatecount = 0;
+        $addcount = 0;
 
         // We scan new proposed users from LDAP.
         foreach ($add_users as $user) {
 
-            mtrace('----');
+            $addcount++;
+            mtrace($addcount.' ----');
             // Save usertype.
             $usertype = $user->usertype;
             $username = $user->username;
@@ -693,7 +703,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
             $realauth = $config->real_used_auth;
             $user->auth = (empty($realauth)) ? $ldapauth->authtype : $realauth;
             $user->mnethostid = $CFG->mnet_localhost_id;
-            $user->country = $CFG->country;
+            $user->country = get_config('moodle', 'country');
 
             // If is set, User is being deleted or faked account. Ignore.
             // Atrium related.
@@ -720,7 +730,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
              */
             $user->username = trim(core_text::strtolower($user->username));
             if (empty($user->lang)) {
-                $user->lang = $CFG->lang;
+                $user->lang = get_config('moodle', 'lang');
             }
 
             /*
@@ -794,6 +804,11 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         $updatecount++;
                     } catch (Exception $e) {
                         mtrace('ERROR : Failed update '.$user->username);
+                        if (!empty($options['debug'])) {
+                            echo $DB->get_last_error();
+                            exit(1);
+                        }
+
                         $updateerrorcount++;
                         continue;
                     }
@@ -1163,6 +1178,10 @@ function local_ent_installer_guess_old_record($newuser, &$status) {
  */
 function local_ent_installer_ldap_bulk_insert($username, $usertype, $timemodified) {
     global $DB, $CFG;
+
+    if (empty($CFG->mnet_localhost_id)) {
+        $CFG->mnet_localhost_id = 1;
+    }
 
     $username = core_text::strtolower($username); // usernames are __always__ lowercase.
     if (!$DB->record_exists('tmp_extuser', array('username' => $username,

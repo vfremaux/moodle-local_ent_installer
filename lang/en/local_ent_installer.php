@@ -143,7 +143,7 @@ $string['syncbenchreport_desc'] = 'A <a href="{$a}">report about user synchronis
 $string['synccohortsdisabled'] = 'ENT Cohorts sync is disabled on this site';
 $string['syncdisabled'] = 'ENT Data sync is disabled on this site';
 $string['syncgroupsdisabled'] = 'ENT Course Groups sync is disabled on this site';
-$string['synchroniseusers'] = 'Synchronize users';
+$string['synchronisemoodle'] = 'Synchronize moodle';
 $string['syncroleassignsdisabled'] = 'ENT Role Assignments sync is disabled on this site';
 $string['synctime'] = 'Sync time';
 $string['synctimes'] = 'Sync times';
@@ -370,11 +370,15 @@ $string['deletinggroups'] = 'Deleting old groups';
 $string['creatinggroups'] = 'Creating new groups';
 $string['updatinggroups'] = 'Updating existing groups';
 $string['groupdeleted'] = 'Group {$a->name} deleted in course {$a->course}';
-$string['groupcreated'] = 'Group {$a->name} created in course {$a->courseid}';
-$string['groupupdated'] = 'Group {$a->name} updated in course {$a->courseid}';
+$string['groupcreated'] = 'Group [{$a->idnumber}] {$a->name} created in course {$a->courseid}';
+$string['groupupdated'] = 'Group [{$a->idnumber}] {$a->name} updated in course {$a->courseid}';
 $string['groupmemberadded'] = 'Group member {$a->username} added to group {$a->idnumber} in course {$a->course}';
 $string['groupmemberremoved'] = 'Group member {$a->username} removed from group {$a->idnumber} in course {$a->course}';
+$string['groupmissinguser'] = 'Error :User {$a->username} is missing for group assignation ';
 $string['disableautogroupscheck'] = 'Disable auto group check';
+$string['skipmembership'] = 'Skip membership';
+$string['skippingmembership'] = 'Skipping membership';
+$string['skipmembership_help'] = 'If set, only group info is updated. No members are moved from groups.';
 
 // Structures
 $string['configstructurecity'] = 'Structure city';
@@ -394,7 +398,7 @@ $string['configstructureaddress_desc'] = 'LDAP attribute holding the structure a
 $string['configstructuregeoloc'] = 'Geolocation';
 $string['configstructuregeoloc_desc'] = 'LDAP attribute holding the structure geolocation';
 
-$string['teachercourserelocate_help'] = '
+$string['relocateteachercourses_help'] = '
 Relocating teacher courses will move courses belonging (in edition) to a single teacher to his
 standard owned category. This affects all courses in moodle complying the ownership rule and not
 in a protected category (See ENT installer global settings).

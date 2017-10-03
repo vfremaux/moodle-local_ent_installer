@@ -107,10 +107,14 @@ if (!empty($options['host'])) {
     define('CLI_VMOODLE_OVERRIDE', $options['host']);
 }
 
-// Replay full config whenever. If vmoodle switch is armed, will switch now config.
+// Replay full config whenever (only if vmoodle). If vmoodle switch is armed, will switch now config.
 
-require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
-echo('Config check : playing for '.$CFG->wwwroot);
+if (defined('VMOODLE_BOOT')) {
+    // If we are still in precheck, this means this is NOT a VMoodle install and full setup has already run.
+    // Otherwise we only have a tiny config at this location, sso run full config again forcing playing host if required.
+    require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+}
+echo('Config check : playing for '.$CFG->wwwroot."\n");
 require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // ensure we have coursecat class.
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php'); // Ldap primitives.
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_roleassigns.php'); // Ldap primitives.
@@ -124,6 +128,11 @@ if (!empty($options['debug'])) {
 // Fakes an admin identity for all the process.
 global $USER;
 $USER = get_admin();
+
+if (empty($USER->id)) {
+    echo "Error : Administrator not found. Cannot continue.\n";
+    exit(1);
+}
 
 // Get ldap params from real ldap plugin.
 $ldapauth = get_auth_plugin('ldap');
