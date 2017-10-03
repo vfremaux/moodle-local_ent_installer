@@ -125,8 +125,14 @@ $jqplot = array(
     'series' => array(
         array('color' => '#C00000'),
     ),
-    );
+    'cursor' => array(
+        'show' => true,
+        'zoom' => true,
+        'showTooltip' => false
+    ),
+);
 local_vflibs_jqplot_print_graph('plot1', $jqplot, $timegrid, 750, 250, 'margin:20px;');
+echo '<center><button id="timegraph-zoom-reset" onclick="plot.resetZoom();return true;" value="'.get_string('reset', 'local_ent_installer').'"></center>';
 echo $OUTPUT->box_end();
 
 echo $OUTPUT->box_start('ent-installer-report-globals');

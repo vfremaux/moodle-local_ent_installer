@@ -32,19 +32,23 @@ list($options, $unrecognized) = cli_get_params(
         'role'              => false,
         'verbose'           => false,
         'logroot'           => false,
+        'debug'             => false,
         'horodate'          => false,
+        'fullstop'          => false,
     ),
     array(
         'h' => 'help',
         'n' => 'nodes',
         'l' => 'logroot',
-        'D' => 'fulldelete',
+        'x' => 'fulldelete',
         'm' => 'logmode',
         'v' => 'verbose',
         'f' => 'force',
         'e' => 'empty',
         'r' => 'role',
         'H' => 'horodate',
+        'd' => 'debug',
+        's' => 'fullstop',
     )
 );
 
@@ -61,13 +65,15 @@ if ($options['help'] || empty($options['nodes'])) {
         -h, --help          Print out this help
         -n, --nodes         Node ids to work with.
         -l, --logroot       the log root where to write files. No log if not defined
-        -D, --fulldelete    propagates a full delete option to final workers
+        -x, --fulldelete    propagates a full delete option to final workers
         -m, --logmode       'append' or 'overwrite'
         -f, --force         Force updating accounts even if not modified in user sourse.
         -e, --empty         Empty user structures if no more users in it.
         -r, --role          Role to process if not empty : (eleve,enseignant,administration).
         -v, --verbose       More output.
         -H, --horodate      Horodate log files.
+        -d, --debug         Turn debug on.
+        -s, --fullstop      Stop on first error.
 
         "; // TODO: localize - to be translated later when everything is finished.
 
@@ -92,6 +98,11 @@ if (!empty($options['empty'])) {
 $role = '';
 if (!empty($options['role']) && in_array($options['role'], array('eleve', 'enseignant', 'administration'))) {
     $role = ' --role='.$options['role'];
+}
+
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = ' --debug ';
 }
 
 $verbose = '';
@@ -137,7 +148,7 @@ foreach ($nodes as $nodeid) {
     if ($LOG) {
         fputs($LOG, "\nStarting user process for node $nodeid\n");
     }
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users.php --host={$host->vhostname} {$force} {$role} {$fulldelete}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users.php {$debug} --host={$host->vhostname} {$force} {$role} {$fulldelete}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -150,7 +161,8 @@ foreach ($nodes as $nodeid) {
         if ($LOG) {
             fputs($LOG, 'Process failure. No output of user feeder.');
         }
-        if (!empty($options['hardstop'])) {
+        if (!empty($options['fullstop'])) {
+            echo implode("\n", $output)."\n";
             die ("User Worker failed");
         } else {
             echo "Cohort Worker execution error on {$host->vhostname}... Continuing anyway\n";
@@ -160,7 +172,7 @@ foreach ($nodes as $nodeid) {
 
     mtrace("\nStarting cohort process for node $nodeid\n");
 
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts.php --host={$host->vhostname} {$force} {$empty}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts.php {$debug} --host={$host->vhostname} {$force} {$empty}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -173,17 +185,24 @@ foreach ($nodes as $nodeid) {
         if ($LOG) {
             fputs($LOG, 'Process failure. No output of cohort feeder.');
         }
-        if (!empty($options['hardstop'])) {
+        if (!empty($options['fullstop'])) {
+            echo implode("\n", $output)."\n";
             die ("Cohort Worker failed");
         } else {
-            echo "Cohort Worker execution error on {$host->vhostname}... Continuing anyway\n";
+            echo "Cohort Worker execution error on {$host->vhostname}:\n";
+            echo implode("\n", $output)."\n";
+            echo "Continuing anyway.\n";
         }
     }
+    if (!empty($options['verbose'])) {
+        echo implode("\n", $output)."\n";
+    }
+
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
 
     mtrace("\nStarting role assignments process for node $nodeid\n");
 
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_roleassigns.php --host={$host->vhostname} {$force}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_roleassigns.php {$debug} --host={$host->vhostname} {$force}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -196,17 +215,23 @@ foreach ($nodes as $nodeid) {
         if ($LOG) {
             fputs($LOG, 'Process failure. No output of cohort feeder.');
         }
-        if (!empty($options['hardstop'])) {
-            die ("Role assignment Worker failed");
+        if (!empty($options['fullstop'])) {
+            echo implode("\n", $output)."\n";
+            die ("Role assignment Worker failed\n");
         } else {
-            echo "role assignment execution error on {$host->vhostname}... Continuing anyway\n";
+            echo "role assignment execution error on {$host->vhostname}:\n";
+            echo implode("\n", $output)."\n";
+            echo "Pursuing anyway.\n";
         }
+    }
+    if (!empty($options['verbose'])) {
+        echo implode("\n", $output)."\n";
     }
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
 
     mtrace("\nStarting coursegroup process for node $nodeid\n");
 
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_groups.php --host={$host->vhostname} {$force} {$empty}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_groups.php {$debug} --host={$host->vhostname} {$force} {$empty}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -219,11 +244,17 @@ foreach ($nodes as $nodeid) {
         if ($LOG) {
             fputs($LOG, 'Process failure. No output of coursegroups feeder.');
         }
-        if (!empty($options['hardstop'])) {
+        if (!empty($options['fullstop'])) {
+            echo implode("\n", $output)."\n";
             die ("Course groups Worker failed");
         } else {
-            echo "Course Groups Worker execution error on {$host->vhostname}... Continuing anyway\n";
+            echo "Course Groups Worker execution error on {$host->vhostname}:\n";
+            echo implode("\n", $output)."\n";
+            echo "Pursuing anyway.\n";
         }
+    }
+    if (!empty($options['verbose'])) {
+        echo implode("\n", $output)."\n";
     }
 
     if ($LOG) {

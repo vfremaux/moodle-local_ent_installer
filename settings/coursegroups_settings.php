@@ -31,6 +31,12 @@ $desc = '';
 $default = 1;
 $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
 
+$key = 'local_ent_installer/no_delete';
+$label = get_string('configgroupsprotectformdeletion', 'local_ent_installer');
+$desc = get_string('configgroupsprotectformdeletion_desc', 'local_ent_installer');
+$default = 0;
+$settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
+
 $key = 'local_ent_installer/group_contexts';
 $label = get_string('configgroupcontexts', 'local_ent_installer');
 $desc = get_string('configgroupcontexts_desc', 'local_ent_installer');

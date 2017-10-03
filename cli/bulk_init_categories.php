@@ -28,18 +28,23 @@ list($options, $unrecognized) = cli_get_params(
     array(
         'help'             => false,
         'logroot'          => false,
-        'fullstop'          => false,
+        'fullstop'         => false,
+        'debug'            => false,
+        'verbose'          => false,
     ),
     array(
         'h' => 'help',
         'l' => 'logroot',
         'f' => 'fullstop',
+        'd' => 'debug',
+        'v' => 'verbose',
     )
 );
 
 if ($unrecognized) {
     $unrecognized = implode("\n  ", $unrecognized);
-    cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
+    echo get_string('cliunknowoption', 'admin', $unrecognized)."\n";
+    exit(1);
 }
 
 if ($options['help']) {
@@ -52,6 +57,8 @@ Creates initial categories based on 'initialcategories' settings.
     -h, --help              Print out this help
     -l, --logroot           Root directory for logs.
     -s, --fullstop          Stops on fist error.
+    -d, --debug             Turn on debug mode in workers.
+    -v, --verbose           Print out workers output.
 
 "; // TODO: localize - to be translated later when everything is finished.
 
@@ -59,10 +66,9 @@ Creates initial categories based on 'initialcategories' settings.
     die;
 }
 
-if (!empty($options['logroot'])) {
-    $logroot = $options['logroot'];
-} else {
-    $logroot = $CFG->dataroot;
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = ' --debug ';
 }
 
 $allhosts = $DB->get_records('local_vmoodle', array('enabled' => 1));
@@ -73,19 +79,24 @@ echo "Starting creating/checking site categories....\n";
 
 $i = 1;
 foreach ($allhosts as $h) {
-    $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/init_categories.php --host=\"{$h->vhostname}\" ";
+    $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/init_categories.php {$debug} --host=\"{$h->vhostname}\" ";
 
     mtrace("Executing $workercmd\n######################################################\n");
     $output = array();
     exec($workercmd, $output, $return);
-    echo implode("\n", $output);
     if ($return) {
         if (!empty($options['fullstop'])) {
-            die("Worker ended with error");
+            echo implode("\n", $output)."\n";
+            die("Worker ended with error\n");
         } else {
-            mtrace("Worker ended with error");
+            echo "Worker ended with error:\n";
+            echo implode("\n", $output)."\n";
+        }
+    } else {
+        if (!empty($options['verbose'])) {
+            echo implode("\n", $output)."\n";
         }
     }
 }
 
-echo "All done.";
+echo "All done.\n";

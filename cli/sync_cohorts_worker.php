@@ -30,49 +30,59 @@ list($options, $unrecognized) = cli_get_params(
         'force'             => false,
         'verbose'           => false,
         'logroot'           => false,
-        'horodate'            => false,
+        'logmode'           => false,
+        'horodate'          => false,
         'notify'            => false,
-        'hardstop'          => false,
+        'fullstop'          => false,
+        'debug'             => false,
     ),
     array(
         'h' => 'help',
         'n' => 'nodes',
-        'l' => 'logfile',
+        'l' => 'logroot',
         'e' => 'empty',
         'm' => 'logmode',
         'v' => 'verbose',
         'f' => 'force',
         'H' => 'horodate',
         'N' => 'notify',
-        'S' => 'hardstop',
+        's' => 'fullstop',
+        'd' => 'debug',
     )
 );
 
 if ($unrecognized) {
     $unrecognized = implode("\n  ", $unrecognized);
-    cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
+    echo "$unrecognized is not a recognized option \n";
+    exit(1);
 }
 
 if ($options['help'] || empty($options['nodes'])) {
     $help = "
-    Command line ENT Sync worker for cohorts.
+Command line ENT Sync worker for cohorts.
 
-    Options:
+Options:
     -h, --help          Print out this help
     -n, --nodes         Node ids to work with.
-    -l, --logfile       the log file to use. No log if not defined
+    -l, --logroot       The Root to log in.
     -e, --empty         propagates an empty option to final workers
     -m, --logmode       'append' or 'overwrite'
     -f, --force         Force updating accounts even if not modified in user sourse.
     -v, --verbose       More output.
     -H, --horodate      If set horodates log files.
     -N, --notify        Sends a mail on failure.
-    -S, --hardstop      Stops on first error.
+    -S, --fullstop      Stops on first error.
+    -d, --debug         Turn on debug in workers.
 
 "; // TODO: localize - to be translated later when everything is finished.
 
     echo $help;
     die;
+}
+
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = ' --debug ';
 }
 
 if (empty($options['logmode'])) {
@@ -101,7 +111,7 @@ $nodes = explode(',', $options['nodes']);
 foreach ($nodes as $nodeid) {
 
     if (!empty($options['logroot'])) {
-        $logfile = $options['logroot'].'/ent_sync_'.$host->shortname;
+        $logfile = $options['logroot'].'/ent_sync_cohorts_'.$host->shortname;
         if (!empty($options['horodate'])) {
             $logfile .= '_'.$runtime;
         }
@@ -115,7 +125,8 @@ foreach ($nodes as $nodeid) {
 
     mtrace("\nStarting process for node $nodeid\n");
     $host = $DB->get_record('local_vmoodle', array('id' => $nodeid));
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts.php --host={$host->vhostname} {$force} {$empty}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts.php {$debug} --host={$host->vhostname} ";
+    $cmd .= "{$force} {$empty}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -128,17 +139,22 @@ foreach ($nodes as $nodeid) {
         if (isset($LOG)) {
             fputs($LOG, 'Process failure. No output of user feeder.');
         }
-        if (!empty($options['hardstop'])) {
+        if (!empty($options['fullstop'])) {
             fclose($LOG);
+            echo implode("\n", $output)."\n";
             die ("Worker failed");
-        } else {
-            echo "Cohort Worker execution error on {$host->vhostname}... Continuing anyway\n";
         }
+        echo "Cohort Worker execution error on {$host->vhostname}:\n";
+        echo implode("\n", $output)."\n";
+        echo "Pursuing anyway\n";
+    }
+
+    if (!empty($options['verbose'])) {
+        echo implode("\n", $output)."\n";
     }
     fclose($LOG);
 
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
-
 }
 
-return 0;
+exit(0);

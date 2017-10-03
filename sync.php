@@ -38,7 +38,7 @@ require_login();
 $systemcontext = context_system::instance();
 require_capability('local/ent_installer:sync', $systemcontext);
 
-$syncstr = get_string('synchroniseusers', 'local_ent_installer');
+$syncstr = get_string('synchronisemoodle', 'local_ent_installer');
 
 $PAGE->set_context($systemcontext);
 $PAGE->set_heading($syncstr);
@@ -61,8 +61,14 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading($syncstr);
 
 if ($data = $mform->get_data()) {
-
-    if (!empty($data->teachercatreorder)) {
+    if (!empty($data->teachercourserelocatesubmit)) {
+        echo '<div class="console">';
+        echo '<pre>';
+        echo "Moving teacher courses\n";
+        local_ent_installer_relocate_courses();
+        echo '</pre>';
+        echo '</div>';
+    } else if (!empty($data->teachercatreorder)) {
         local_ent_installer_fix_teacher_categories();
         echo '<div class="console">';
         echo '<pre>';
@@ -82,6 +88,7 @@ if ($data = $mform->get_data()) {
         $options['empty'] = @$data->clearemptygroups;
         $options['enrol'] = @$data->enrol;
         $options['updateonly'] = @$data->updateonly;
+        $options['skipmembership'] = @$data->skipmembership;
 
         if (!empty(@$data->users)) {
             echo '<div class="console">';

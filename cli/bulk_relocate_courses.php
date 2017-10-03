@@ -28,18 +28,23 @@ list($options, $unrecognized) = cli_get_params(
     array(
         'help'             => false,
         'logroot'          => false,
-        'fullstop'          => false,
+        'fullstop'         => false,
+        'verbose'          => false,
+        'debug'         => false,
     ),
     array(
         'h' => 'help',
         'l' => 'logroot',
         's' => 'fullstop',
+        'v' => 'verbose',
+        'd' => 'debug',
     )
 );
 
 if ($unrecognized) {
     $unrecognized = implode("\n  ", $unrecognized);
-    cli_error(get_string('cliunknowoption', 'admin', $unrecognized));
+    echo get_string('cliunknowoption', 'admin', $unrecognized)."\n";
+    exit(1);
 }
 
 if ($options['help']) {
@@ -52,7 +57,9 @@ This script needs run after users feeding have succeeded and teachers have there
     Options:
     -h, --help              Print out this help
     -l, --logroot           Root directory for logs.
-    -s, --fullstop          Root directory for logs.
+    -s, --fullstop          Stops on first error.
+    -v, --verbose           Print our workers output.
+    -d, --debug             Turns on debug mode in workers.
 
 "; // TODO: localize - to be translated later when everything is finished.
 
@@ -60,10 +67,9 @@ This script needs run after users feeding have succeeded and teachers have there
     die;
 }
 
-if (!empty($options['logroot'])) {
-    $logroot = $options['logroot'];
-} else {
-    $logroot = $CFG->dataroot;
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = ' --debug ';
 }
 
 $allhosts = $DB->get_records('local_vmoodle', array('enabled' => 1));
@@ -75,16 +81,22 @@ echo "Starting relocating courses....";
 
 $i = 1;
 foreach ($allhosts as $h) {
-    $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/relocate_courses.php --host=\"{$h->vhostname}\" ";
+    $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/relocate_courses.php {$debug} --host=\"{$h->vhostname}\" ";
 
     mtrace("Executing $workercmd\n######################################################\n");
     $output = array();
     exec($workercmd, $output, $return);
     if ($return) {
         if (!empty($options['fullstop'])) {
+            echo implode("\n", $output)."\n";
             die("Worker ended with error");
         } else {
-            mtrace("Worker ended with error");
+            echo "Worker ended with error:\n";
+            echo implode("\n", $output)."\n";
+        }
+    } else {
+        if (!empty($options['verbose'])) {
+            echo implode("\n", $output)."\n";
         }
     }
 }

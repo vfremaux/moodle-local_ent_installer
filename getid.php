@@ -29,7 +29,7 @@
 
 require('../../config.php');
 require_once($CFG->dirroot.'/local/ent_installer/getid_form.php');
-require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php');
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_structures.php');
 
 $url = new moodle_url('/local/ent_installer/getid.php');
 $PAGE->set_url($url);

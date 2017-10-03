@@ -36,6 +36,15 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
 
     $config = get_config('local_ent_installer');
 
+    $debughardlimit = '';
+    if ($CFG->debug == DEBUG_DEVELOPER) {
+        $debughardlimit = ' LIMIT 30 ';
+        echo '<span style="font-size:2.5em">';
+        mtrace('RUNNING WITH HARD LIMIT OF 30 Objets');
+        echo '</span>';
+        mtrace('Turn off the developper mode to process all records.');
+    }
+
     mtrace('');
     $enable = get_config('local_ent_installer', 'sync_enable');
     if (!$enable) {
@@ -45,7 +54,18 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
 
     $systemcontext = context_system::instance();
 
+    core_php_time_limit::raise(600);
+
     $ldapconnection = $ldapauth->ldap_connect();
+    // Ensure an explicit limit, or some defaults may  cur some results.
+    if ($CFG->debug == DEBUG_DEVELOPER) {
+        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 30);
+    } else {
+        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 500000);
+    }
+    ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
+
+    mtrace("Ldap opened with sizelimit $retvalue");
 
     $dbman = $DB->get_manager();
 
@@ -93,6 +113,12 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
     $institutionids = explode(',', $institutionidlist);
 
     $ldap_pagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
+    if ($ldap_pagedresults) {
+        mtrace("Paging results...\n");
+    } else {
+        mtrace("Paging not supported...\n");
+    }
+
     $ldapcookie = '';
 
     $grouprecordfields = array($config->group_idnumber_attribute,
@@ -101,6 +127,13 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                                $config->group_grouping_attribute,
                                $config->group_membership_attribute,
                                'modifyTimestamp');
+
+    $grouprecordattribs = array();
+    foreach ($grouprecordfields as $field) {
+        if (!empty($field) && !in_array($field, $grouprecordattribs)) {
+            $grouprecordattribs[] = $field;
+        }
+    }
 
     // First fetch idnnumbers to compare.
     foreach ($institutionids as $institutionid) {
@@ -119,12 +152,12 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                 }
                 if ($ldapauth->config->search_sub) {
                     // Use ldap_search to find first user from subtree.
-                    mtrace("ldapsearch $context, $filter for ".$config->group_idnumber_attribute);
-                    $ldap_result = ldap_search($ldapconnection, $context, $filter, array($config->group_idnumber_attribute, 'modifyTimestamp'));
+                    mtrace("ldapsearch $context, $filter for attributes ".implode(', ',$grouprecordattribs));
+                    $ldap_result = ldap_search($ldapconnection, $context, $filter, $grouprecordattribs);
                 } else {
                     // Search only in this context.
-                    mtrace("ldaplist $context, $filter for ".$config->group_idnumber_attribute);
-                    $ldap_result = ldap_list($ldapconnection, $context, $filter, array($config->group_idnumber_attribute, 'modifyTimestamp'));
+                    mtrace("ldaplist $context, $filter for attributes ".implode(', ',$grouprecordattribs));
+                    $ldap_result = ldap_list($ldapconnection, $context, $filter, $grouprecordattribs);
                 }
                 if (!$ldap_result) {
                     continue;
@@ -135,10 +168,14 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                 if ($entry = @ldap_first_entry($ldapconnection, $ldap_result)) {
                     do {
                         $gidnumber = '';
+                        $gname = '';
+
                         $value = ldap_get_values_len($ldapconnection, $entry, $config->group_idnumber_attribute);
                         $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
                         if (preg_match('/'.$config->group_idnumber_filter.'/', $value, $matches)) {
                             $gidnumber = $matches[1];
+                        } else {
+                            mtrace("Empty GIDNumber.");
                         }
 
                         // Get course and final moodle course id.
@@ -149,20 +186,38 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                             if ($course = $DB->get_record('course', array($config->group_course_identifier => $courseid))) {
                                 $gcourse = $course->id;
                             } else {
-                                echo 'm';
+                                if ($options['verbose']) {
+                                    mtrace("Group course not found by {$config->group_course_identifier} for identifier $courseid");
+                                }
                                 continue;
                             }
                         } else {
+                            if ($options['verbose']) {
+                                mtrace("Filter catched no value in {$config->group_course_attribute}");
+                            }
                             continue;
                         }
 
                         $value = ldap_get_values_len($ldapconnection, $entry, $config->group_name_attribute);
                         $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
+                        if (!empty($options['verbose'])) {
+                            mtrace("Getting group name from {$config->group_name_attribute} with {$config->group_name_filter} ");
+                        }
                         if (preg_match('/'.$config->group_name_filter.'/', $value, $matches)) {
                             $gname = $matches[1];
                         }
+                        if (!empty($options['verbose'])) {
+                            mtrace("Got $gname ");
+                        }
                         if (empty($gname)) {
-                            $gname = $gidnumber;
+                            if (empty($gidnumber)) {
+                                mtrace("Group identity error. No name nor idnumber found by matches. Ignoring\n");
+                            } else {
+                                if (!empty($options['verbose'])) {
+                                    mtrace("Empty name, taking IDNumer as name.");
+                                }
+                                $gname = $gidnumber;
+                            }
                         }
 
                         $modify = ldap_get_values_len($ldapconnection, $entry, 'modifyTimestamp');
@@ -196,8 +251,6 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
             $params[] = $config->group_auto_name_prefix.'%';
         }
     }
-
-    print_object($DB->get_records('tmp_extgroup'));
 
     // Deleted groups.
     $sql = "
@@ -263,7 +316,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
 
     $updated = $DB->get_records_sql($sql, $params);
 
-    if (empty($options['updateonly'])) {
+    if (empty($options['updateonly']) && empty($config->no_delete) && !empty($options['force'])) {
         mtrace("\n>> ".get_string('deletinggroups', 'local_ent_installer'));
         if ($deleted) {
             foreach ($deleted as $dl) {
@@ -271,7 +324,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                     if ($members = $DB->get_records('groups_members', array('groupid' => $dl->gid))) {
                         foreach ($members as $m) {
                             // This will trigger cascade events to get everything clean.
-                            \group_remove_member($dl->gid, $m->userid);
+                            \groups_remove_member($dl->gid, $m->userid);
                         }
                     }
                     $DB->delete_records('groups', array('id' => $dl->gid));
@@ -281,6 +334,9 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                 }
             }
         }
+    }
+    if (!empty($config->no_delete)) {
+        mtrace("Group deletion disabled by global configuration\n");
     }
 
     mtrace("\n>> ".get_string('updatinggroups', 'local_ent_installer'));
@@ -295,6 +351,8 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
             $groupldapidentifier = $config->group_id_pattern;
             $groupldapidentifier = str_replace('%CID%', $up->course, $groupldapidentifier);
             $groupldapidentifier = str_replace('%GID%', $up->gid, $groupldapidentifier);
+            $groupldapidentifier = str_replace('%GIDNUMBER%', $up->idnumber, $groupldapidentifier);
+            $gname = $up->groupname;
             if (!empty($config->group_auto_name_prefix)) {
                 $gname = str_replace($config->group_auto_name_prefix, '', $up->name); // Unprefix the group name.
             }
@@ -306,8 +364,9 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                 continue;
             }
 
-            $oldrec = $DB->get_record('group', array('id' => $up->gid));
-            $oldrec->name = @$config->group_auto_name_prefix.$groupinfo->name;
+            $oldrec = $DB->get_record('groups', array('id' => $up->gid));
+            $oldrec->name = $gname;
+            $oldrec->idnumber = $up->idnumber;
             $oldrec->description = $groupinfo->description;
             $oldrec->descriptionformat = FORMAT_HTML;
             $oldrec->timecreated = time();
@@ -319,51 +378,55 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                 mtrace('[SIMULATION] '.get_string('groupupdated', 'local_ent_installer', $oldrec));
             }
 
-            if (!empty($groupinfo->members)) {
+            if (empty($options['skipmembership'])) {
+                if (!empty($groupinfo->members)) {
 
-                if ($oldmembers = $DB->get_records_menu('group_members', array('groupid' => $oldrec->id), 'userid,userid')) {
-                    $oldmemberids = array_keys($oldmembers);
-                } else {
-                    $oldmemberids = array();
-                }
-
-                foreach ($groupinfo->members as $m) {
-                    if (!in_array($m->id, $oldmemberids)) {
-                        $e = new StdClass;
-                        $e->username = $m->username;
-                        $e->idnumber = $oldrec->idnumber;
-                        $e->course = $oldrec->courseid;
-                        if (empty($options['simulate'])) {
-                            \group_add_member($group->id, $m->userid);
-                            mtrace(get_string('groupmemberadded', 'local_ent_installer', $e));
-                        } else {
-                            mtrace('[SIMULATION] '.get_string('groupmemberadded', 'local_ent_installer', $e));
-                        }
+                    if ($oldmembers = $DB->get_records_menu('groups_members', array('groupid' => $oldrec->id), 'userid,userid')) {
+                        $oldmemberids = array_keys($oldmembers);
                     } else {
-                        unset($oldmemberids[$m->id]);
-                        unset($oldmembers[$m->id]);
+                        $oldmemberids = array();
                     }
-                }
 
-                // Need reset register of ids after all updated have been cleaned out.
-                $oldmemberids = array_keys($oldmembers);
-
-                // remains only old ids in members. Remove them.
-                if (!empty($oldmemberids)) {
-                    foreach ($oldmemberids as $userid) {
-                        $e = new StdClass;
-                        $e->username = $DB->get_field('user', 'username', array('id' => $userid));
-                        $e->idnumber = $oldrec->idnumber;
-                        $e->course = $oldrec->courseid;
-                        if (empty($options['simulate'])) {
-                            // This will trigger cascade events to get everything clean.
-                            \group_remove_member($dl->cid, $userid);
-                            mtrace(get_string('groupmemberremoved', 'local_ent_installer', $e));
+                    foreach ($groupinfo->members as $m) {
+                        if (!in_array($m->id, $oldmemberids)) {
+                            $e = new StdClass;
+                            $e->username = $m->username;
+                            $e->idnumber = $oldrec->idnumber;
+                            $e->course = $oldrec->courseid;
+                            if (empty($options['simulate'])) {
+                                \groups_add_member($up->gid, $m->id);
+                                mtrace(get_string('groupmemberadded', 'local_ent_installer', $e));
+                            } else {
+                                mtrace('[SIMULATION] '.get_string('groupmemberadded', 'local_ent_installer', $e));
+                            }
                         } else {
-                            mtrace('[SIMULATION] '.get_string('groupmemberremoved', 'local_ent_installer', $e));
+                            unset($oldmemberids[$m->id]);
+                            unset($oldmembers[$m->id]);
+                        }
+                    }
+
+                    // Need reset register of ids after all updated have been cleaned out.
+                    $oldmemberids = array_keys($oldmembers);
+
+                    // remains only old ids in members. Remove them.
+                    if (!empty($oldmemberids)) {
+                        foreach ($oldmemberids as $userid) {
+                            $e = new StdClass;
+                            $e->username = $DB->get_field('user', 'username', array('id' => $userid));
+                            $e->idnumber = $oldrec->idnumber;
+                            $e->course = $oldrec->courseid;
+                            if (empty($options['simulate'])) {
+                                // This will trigger cascade events to get everything clean.
+                                \groups_remove_member($up->gid, $userid);
+                                mtrace(get_string('groupmemberremoved', 'local_ent_installer', $e));
+                            } else {
+                                mtrace('[SIMULATION] '.get_string('groupmemberremoved', 'local_ent_installer', $e));
+                            }
                         }
                     }
                 }
+            } else {
+                mtrace(get_string('skippingmembership', 'local_ent_installer'));
             }
         }
     }
@@ -380,13 +443,13 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                 $groupldapidentifier = str_replace('%CID%', $cr->course, $groupldapidentifier);
                 $groupldapidentifier = str_replace('%CSHORTNAME%', $course->shortname, $groupldapidentifier);
                 $groupldapidentifier = str_replace('%CIDNUMBER%', $course->idnumber, $groupldapidentifier);
-                $groupldapidentifier = str_replace('%GID%', $cr->idnumber, $groupldapidentifier);
-
+                $groupldapidentifier = str_replace('%GIDNUMBER%', $cr->idnumber, $groupldapidentifier);
                 $groupldapidentifier = str_replace('%GNAME%', $cr->groupname, $groupldapidentifier);
                 $groupldapidentifier = str_replace('%ID%', $config->institution_id, $groupldapidentifier);
 
                 $groupinfo = local_ent_installer_get_groupinfo_asobj($ldapauth, $groupldapidentifier, $options);
 
+                $gname = $cr->groupname;
                 if (!empty($config->group_auto_name_prefix)) {
                     $gname = $config->group_auto_name_prefix.$cr->groupname;
                 }
@@ -400,25 +463,33 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                 $group->timecreated = time();
                 $group->timemodified = time();
                 if (empty($options['simulate'])) {
-                    $group->id = $DB->insert_record('group', $group);
+                    $group->id = $DB->insert_record('groups', $group);
                     mtrace(get_string('groupcreated', 'local_ent_installer', $group));
                 } else {
                     mtrace('[SIMULATION] '.get_string('groupcreated', 'local_ent_installer', $group));
                 }
 
-                if (!empty($groupinfo->members)) {
-                    foreach ($groupinfo->members as $m) {
-                        $e = new StdClass;
-                        $e->username = $m->username;
-                        $e->idnumber = $group->idnumber;
-                        $e->course = $cr->course;
-                        if (empty($options['simulate'])) {
-                            \group_add_member($group->id, $m->userid);
-                            mtrace(get_string('groupmemberadded', 'local_ent_installer', $e));
-                        } else {
-                            mtrace('[SIMULATION] '.get_string('groupmemberadded', 'local_ent_installer', $e));
+                if (empty($options['skipmembership'])) {
+                    if (!empty($groupinfo->members)) {
+                        foreach ($groupinfo->members as $m) {
+                            $e = new StdClass;
+                            $e->username = $m->username;
+                            $e->idnumber = $group->idnumber;
+                            $e->course = $cr->course;
+                            if (empty($options['simulate'])) {
+                                if (!empty($m->userid)) {
+                                    \groups_add_member($group->id, $m->userid);
+                                    mtrace(get_string('groupmemberadded', 'local_ent_installer', $e));
+                                } else {
+                                    mtrace(get_string('groupmissinguser', 'local_ent_installer', $e));
+                                }
+                            } else {
+                                mtrace('[SIMULATION] '.get_string('groupmemberadded', 'local_ent_installer', $e));
+                            }
                         }
                     }
+                } else {
+                    mtrace(get_string('skippingmembership', 'local_ent_installer'));
                 }
             }
         }
@@ -432,22 +503,35 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
         // Detect empty groups.
         $sql = "
             SELECT
+                g.*
+            FROM
                 {groups} g
             LEFT JOIN
                 {groups_members} gm
             ON
                 gm.groupid = g.id
             WHERE
-                gm.id IS NULL
+                gm.id IS NULL AND
+                (g.idnumber <> '' OR g.idnumber IS NULL)
         ";
 
         $empties = $DB->get_records_sql($sql);
 
         foreach ($empties as $eg) {
-            group_delete_group($eg->id);
+            if (empty($options['simulate'])) {
+                groups_delete_group($eg->id);
+                if (!empty($options['verbose'])) {
+                    mtrace("Clear empty group ($eg->id) $eg->name");
+                }
+            } else {
+                mtrace("[SIMULATION] Clear empty group ($eg->id) $eg->name");
+            }
         }
     }
 
+    set_config('last_sync_date_group', time(), 'local_ent_installer');
+
+    echo "Cleaning temp group tables out\n";
     // Clean temporary table.
     try {
         $dbman->drop_table($table);
@@ -456,16 +540,13 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
     }
 
     if (!empty($config->use_groupings)) {
+        echo "Cleaning grouping temp tables out\n";
         try {
             $dbman->drop_table($gptable);
         } catch (Exception $e) {
             assert(1);
         }
     }
-
-    $ldapauth->ldap_close();
-
-    set_config('last_sync_date_group', time(), 'local_ent_installer');
 
 }
 
@@ -558,6 +639,8 @@ function local_ent_installer_get_groupinfo($ldapauth, $groupidentifier, $options
                         mtrace("Error : User record not found for $identifier. Skipping membership");
                         continue;
                     }
+                    // Ensure we have same fields when scaning the tmp table as source.
+                    $user->userid = $user->id;
                     $newval[] = $user;
                 }
             }
