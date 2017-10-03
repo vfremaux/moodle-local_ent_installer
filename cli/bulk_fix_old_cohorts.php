@@ -31,11 +31,15 @@ list($options, $unrecognized) = cli_get_params(
         'help'             => false,
         'logroot'          => false,
         'verbose'          => false,
+        'fullstop'         => false,
+        'debug'            => false,
     ),
     array(
         'h' => 'help',
         'l' => 'logroot',
         'v' => 'verbose',
+        's' => 'fullstop',
+        'd' => 'debug',
     )
 );
 
@@ -52,17 +56,18 @@ Command line ENT Sync worker.
     -h, --help          Print out this help
     -l, --logroot       Root directory for logs.
     -v, --verbose       More output.
+    -d, --debug         Turns on debug on workers.
+    -s, --fullstop      Stops on first error.
 
-    "; // TODO: localize - to be translated later when everything is finished.
+"; // TODO: localize - to be translated later when everything is finished.
 
     echo $help;
     die;
 }
 
-if (!empty($options['logroot'])) {
-    $logroot = $options['logroot'];
-} else {
-    $logroot = $CFG->dataroot;
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = ' --debug ';
 }
 
 $verbose = '';
@@ -77,15 +82,23 @@ $allhosts = $DB->get_records('local_vmoodle', array('enabled' => 1));
 // Linux only implementation.
 
 foreach ($allhosts as $h) {
-    $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/fix_old_cohorts.php --host={$h->vhostname} {$verbose}";
+    $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/fix_old_cohorts.php {$debug} --host={$h->vhostname} {$verbose}";
     mtrace("Executing $workercmd\n######################################################\n");
 
     $output = array();
     exec($workercmd, $output, $return);
-    echo implode("\n", $output);
-
     if ($return) {
-        die("Worker ended with error");
+        if (!empty($options['fullstop'])) {
+            echo implode("\n", $output)."\n";
+            die("Worker ended with error\n");
+        } else {
+            echo "Worker ended with error:\n";
+            echo implode("\n", $output)."\n";
+        }
+    } else {
+        if (!empty($options['verbose'])) {
+            echo implode("\n", $output)."\n";
+        }
     }
 
     sleep(HOST_INTERLEAVE);

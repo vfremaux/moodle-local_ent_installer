@@ -30,17 +30,30 @@ defined('MOODLE_INTERNAL') || die();
  * @param array $options an array of options
  */
 function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
-    global $DB;
+    global $DB, $CFG;
     static $rolemapcache = array();
 
     $config = get_config('local_ent_installer');
+
+    $debughardlimit = '';
+    if ($CFG->debug == DEBUG_DEVELOPER) {
+        $debughardlimit = ' LIMIT 30 ';
+        echo '<span style="font-size:2.5em">';
+        mtrace('RUNNING WITH HARD LIMIT OF 30 OBJECTS');
+        echo '</span>';
+        mtrace('Turn off the developper mode to process all records.');
+    }
 
     $enrolplugin = null;
     if (!empty($config->roleassign_enrol_method)) {
         $enrolplugin = enrol_get_plugin($config->roleassign_enrol_method);
     }
 
-    mtrace('');
+     if (!empty($enrolplugin)) {
+        mtrace("Enrol plugin : $config->roleassign_enrol_method");
+    } else {
+        mtrace("No enrol plugin in config. Only assign roles\n");
+    }
     if (empty($config->sync_enable)) {
         mtrace(get_string('syncdisabled', 'local_ent_installer'));
         return;
@@ -53,7 +66,17 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
     $systemcontext = context_system::instance();
 
+    core_php_time_limit::raise(600);
+
     $ldapconnection = $ldapauth->ldap_connect();
+    // Ensure an explicit limit, or some defaults may  cut some results.
+    if ($CFG->debug == DEBUG_DEVELOPER) {
+        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 30);
+    } else {
+        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 500000);
+    }
+    ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
+    mtrace("Ldap opened with sizelimit $retvalue");
 
     $dbman = $DB->get_manager();
 
@@ -114,7 +137,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     }
     if (!empty($config->roleassign_context_attribute)) {
         if (!in_array($config->roleassign_context_attribute, $rarecordfields)) {
-            $rarecordfields[] = $config->roleassign_contextlevel_attribute;
+            $rarecordfields[] = $config->roleassign_context_attribute;
         }
     }
     if (!in_array($config->roleassign_contextlevel_attribute, $rarecordfields)) {
@@ -188,7 +211,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
                         // Get context object id part.
                         /*
-                         * the context id may be obtrained indirectly giving a context instance identifier and a
+                         * the context id may be obtained indirectly giving a context instance identifier and a
                          * context level info.
                          * The context finder will match any instance at the appropriate level using the required
                          * identifying field, and gives back the context object required for the role assignation.
@@ -199,6 +222,9 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                         $cidvalue = 0;
                         if (($config->roleassign_context_attribute != $config->roleassign_membership_attribute) && isset($clevelvalue)) {
                             if (!empty($config->roleassign_context_attribute)) {
+                                if (!empty($options['verbose'])) {
+                                    mtrace("Searching context identifier value in {$config->roleassign_context_attribute}");
+                                }
                                 $value = ldap_get_values_len($ldapconnection, $entry, $config->roleassign_context_attribute);
                                 $cidvalue = local_ent_installer_get_from_value('context', $value, $ldapauth, $config);
                             }
@@ -210,6 +236,9 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                             if (!$context) {
                                 mtrace("ERROR : Missing $clevelvalue context for identifier $cidvalue ");
                                 continue;
+                            }
+                            if (!empty($options['verbose'])) {
+                                mtrace("Found context $context->id ");
                             }
                         }
 
@@ -285,13 +314,13 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
         $ldapconnection = $ldapauth->ldap_connect();
     }
 
+    mtrace("\n########### Processing results #####################\n");
+
     $captureautoroleassigns = '';
     if (empty($options['disableautoroleassignscheck'])) {
         $captureautoroleassigns = "AND
             ra.component = 'local_ent_installer'";
     }
-
-    $allrecs = $DB->get_records('tmp_extroleassigns');
 
     // Deleted roleassigns.
     $sql = "
@@ -302,7 +331,8 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
             ra.userid,
             u.username as userinfo,
             r.shortname as roleinfo,
-            CONCAT(ctx.contextlevel,'_',ctx.instanceid) as contextinfo
+            CONCAT(ctx.contextlevel,'_',ctx.instanceid) as contextinfo,
+            ctx.contextlevel
         FROM
             {role_assignments} ra
         LEFT JOIN
@@ -377,31 +407,45 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
     $nochange = $DB->get_records_sql($sql);
 
-    mtrace("\n>> ".get_string('deletingroleassigns', 'local_ent_installer'));
-    if ($deleted) {
-        foreach ($deleted as $dl) {
-            $ctx = $DB->get_record('context', array('id' => $dl->contextid));
-            if (empty($options['simulate'])) {
-                role_unassign($dl->roleid, $dl->userid, $dl->contextid, 'local_ent_installer');
-                mtrace(get_string('roleunassigned', 'local_ent_installer', $dl));
+    if (!empty($options['force'])) {
+        mtrace("\n>> ".get_string('deletingroleassigns', 'local_ent_installer'));
+        if ($deleted) {
+            foreach ($deleted as $dl) {
+                $ctx = $DB->get_record('context', array('id' => $dl->contextid));
+                if (empty($options['simulate'])) {
+                    role_unassign($dl->roleid, $dl->userid, $dl->contextid, 'local_ent_installer');
+                    mtrace(get_string('roleunassigned', 'local_ent_installer', $dl));
 
-                if ($ctx->contextlevel == CONTEXT_COURSE && $enrolplugin) {
-                    // We only manage in course.
-                    // Unenrol the required plugin.
-                    $enrolplugin->unenrol_user($enrol, $dl->userid);
-                    mtrace(get_string('unenrolled', 'local_ent_installer', $options['enrol']));
+                    if ($ctx->contextlevel == CONTEXT_COURSE && $enrolplugin) {
+
+                        $params = array('enrol' => $config->roleassign_enrol_method, 'courseid' => $ctx->instanceid, 'status' => ENROL_INSTANCE_ENABLED);
+                        if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
+                            mtrace("No enrol instance found in course for this enrol method\n");
+                            continue;
+                        } else {
+                            $enrol = reset($enrols);
+                        }
+
+                        // We only manage in course.
+                        // Unenrol the required plugin.
+                        $enrolplugin->unenrol_user($enrol, $dl->userid);
+                        mtrace(get_string('unenrolled', 'local_ent_installer', $options['enrol']));
+                    }
+                } else {
+                    mtrace('[SIMULATION] '.get_string('roleunassigned', 'local_ent_installer', $dl));
+                    if ($enrolplugin && $ctx->contextlevel == CONTEXT_COURSE) {
+                        // Context level comes from context table.
+                        mtrace('[SIMULATION] '.get_string('unenrolled', 'local_ent_installer', $enrol->enrol.' '.$enrol->id));
+                    }
                 }
-            } else {
-                mtrace('[SIMULATION] '.get_string('roleunassigned', 'local_ent_installer', $dl));
-                if ($enrolplugin && $ctx->contextlevel == CONTEXT_COURSE) {
-                    mtrace('[SIMULATION] '.get_string('unenrolled', 'local_ent_installer', $options['enrol']));
-                }
+            }
+        } else {
+            if (!empty($options['verbose'])) {
+                mtrace('Nothing to delete');
             }
         }
     } else {
-        if (!empty($options['verbose'])) {
-            mtrace('Nothing to delete');
-        }
+        mtrace('No deletion possible unless in forced mode');
     }
 
     mtrace("\n>> ".get_string('creatingroleassigns', 'local_ent_installer'));
@@ -409,15 +453,25 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
         foreach ($created as $cr) {
             if (empty($options['simulate'])) {
                 // Ensures we capture the assignment in the component scope.
+                $ctx = $DB->get_record('context', array('id' => $cr->contextid));
                 role_unassign($cr->roleid, $cr->userid, $cr->contextid);
                 role_assign($cr->roleid, $cr->userid, $cr->contextid, 'local_ent_installer');
                 mtrace(get_string('roleassigned', 'local_ent_installer', $cr));
+                if (($cr->contextlevel == 'course') && $enrolplugin) {
+                    // Context level comes from temp table.
 
-                if ($cr->contextlevel == CONTEXT_COURSE && $enrolplugin) {
+                    $params = array('enrol' => $config->roleassign_enrol_method, 'courseid' => $ctx->instanceid, 'status' => ENROL_INSTANCE_ENABLED);
+                    if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
+                        mtrace("No enrol instance found in course for this enrol method\n");
+                        continue;
+                    } else {
+                        $enrol = reset($enrols);
+                    }
+
                     // We only manage in course.
                     // Enrol with specified plugin.
-                    $enrolplugin->enrol_user($enrol, $dl->userid);
-                    mtrace(get_string('enrolled', 'local_ent_installer', $options['enrol']));
+                    $enrolplugin->enrol_user($enrol, $cr->userid);
+                    mtrace(get_string('enrolled', 'local_ent_installer', $enrol->enrol.' '.$enrol->id));
                 }
             } else {
                 mtrace('[SIMULATION] '.get_string('roleassigned', 'local_ent_installer', $cr));
@@ -447,8 +501,6 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     } catch (Exception $e) {
         assert(1);
     }
-
-    $ldapauth->ldap_close();
 
     set_config('last_sync_date_roles', time(), 'local_ent_installer');
 }
@@ -513,7 +565,7 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
 
     $extdn = core_text::convert($dn, 'utf-8', $ldapauth->config->ldapencoding);
 
-    if ($options['verbose']) {
+    if ($options['debug']) {
         mtrace("\nGetting $dn for ".$config->roleassign_membership_attribute);
     }
     if (!$roleassign_info_result = ldap_read($ldapconnection, $extdn, '(objectClass=*)', array($config->roleassign_membership_attribute))) {
@@ -552,7 +604,7 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
             }
             foreach ($entry[$value] as $newvalopt) {
                 $newvalopt  = core_text::convert($newvalopt, $ldapauth->config->ldapencoding, 'utf-8');
-                if (!empty($options['verbose'])) {
+                if (!empty($options['debug'])) {
                     mtrace("Extracting from $newvalopt with {$config->roleassign_membership_filter} ");
                 }
                 if (preg_match('/'.$config->roleassign_membership_filter.'/', $newvalopt, $matches)) {
@@ -708,7 +760,7 @@ function local_ent_installer_find_context($clevelvalue, $cidvalue = 0) {
                 break;
 
             case 'course':
-                mtrace("Search course context by $config->roleassign_course_key with identifier $cidvalue ");
+                mtrace("Search course context by {$config->roleassign_course_key} with identifier $cidvalue ");
                 if (!$objid = $DB->get_field('course', 'id', array($config->roleassign_course_key => $cidvalue))) {
                     return false;
                 }

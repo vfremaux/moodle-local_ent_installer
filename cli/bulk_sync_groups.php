@@ -16,12 +16,14 @@
 
 define('CLI_SCRIPT', true);
 
-define('ENT_INSTALLER_SYNC_MAX_WORKERS', 2);
+define('ENT_INSTALLER_SYNC_MAX_WORKERS', 4);
 define('JOB_INTERLEAVE', 2);
 
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
 require_once($CFG->dirroot.'/local/vmoodle/lib.php');
+
+raise_memory_limit(MEMORY_HUGE);
 
 // Ensure options are blanck.
 unset($options);
@@ -39,19 +41,21 @@ list($options, $unrecognized) = cli_get_params(
         'verbose'          => false,
         'horodate'         => false,
         'notify'           => false,
-        'hardstop'         => false,
+        'debug'            => false,
+        'fullstop'         => false,
     ),
     array(
         'h' => 'help',
         'w' => 'workers',
-        'd' => 'distributed',
+        'D' => 'distributed',
         'e' => 'empty',
         'l' => 'logroot',
         'f' => 'force',
         'v' => 'verbose',
         'H' => 'horodate',
         'N' => 'notify',
-        'S' => 'hardstop',
+        'd' => 'debug',
+        'S' => 'fullstop',
     )
 );
 
@@ -67,14 +71,15 @@ if ($options['help']) {
     Options:
     -h, --help          Print out this help
     -w, --workers       Number of workers.
-    -d, --distributed   Distributed operations.
+    -D, --distributed   Distributed operations.
     -l, --logroot       Root directory for logs.
-    -D, --empty         Propagates a empty option to all workers.
+    -e, --empty         Propagates a empty option to all workers.
     -f, --force         Force updating accounts even if not modified in user sourse.
     -v, --verbose       More output.
     -H, --horodate      If set, horodates log files.
     -N, --notify        Sends email on finish.
-    -S, --hardstop      Stops on first failure.
+    -s, --fullstop      Stops on first failure.
+    -d, --debug         Turn on debug mode in workers.
 
     "; // TODO: localize - to be translated later when everything is finished.
 
@@ -84,6 +89,11 @@ if ($options['help']) {
 
 if ($options['workers'] === false) {
     $options['workers'] = ENT_INSTALLER_SYNC_MAX_WORKERS;
+}
+
+$debug = '';
+if (!empty($options['debug'])) {
+    $debug = '--debug';
 }
 
 if (!empty($options['logroot'])) {
@@ -120,7 +130,7 @@ if (!empty($config->clusterix)) {
     $clusterix = $config->clusterix;
 }
 
-if (!$allhosts = vmoodle_get_vmoodleset($clusters, $clusterix) {
+if (!$allhosts = vmoodle_get_vmoodleset($clusters, $clusterix)) {
     die("Nothing to do. No Vhosts");
 }
 
@@ -149,8 +159,8 @@ foreach ($joblist as $jl) {
     $jobids = array();
     if (!empty($jl)) {
         $hids = implode(',', $jl);
-        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_groups_worker.php --nodes=\"$hids\" ";
-        $workercmd .= "--logroot={$logroot} {$horodate} {$force} {$verbose} {$empty} {$notify} {$hardstop}";
+        $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_groups_worker.php {$debug} --nodes=\"$hids\" ";
+        $workercmd .= "--logroot={$logroot} {$horodate} {$force} {$verbose} {$empty} {$notify} {$fullstop}";
         if ($options['distributed']) {
             // Spawn a detached execution.
             $workercmd .= ' &';
@@ -159,10 +169,16 @@ foreach ($joblist as $jl) {
         $output = array();
         exec($workercmd, $output, $return);
         if ($return) {
-            die("Worker ended with error");
+            if (!empty($options['fullstop'])) {
+                echo implode("\n", $output)."\n";
+                die("Worker ended with error");
+            }
+            echo "Worker ended with error\n:";
+            echo implode("\n", $output)."\n";
+            echo "Pursuing anyway.\n";
         }
-        if (!$options['distributed']) {
-            mtrace(implode("\n", $output));
+        if (!$options['distributed'] && !empty($options['verbose'])) {
+            echo implode("\n", $output)."\n";
         }
         $i++;
         sleep(JOB_INTERLEAVE);
