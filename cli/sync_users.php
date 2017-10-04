@@ -134,7 +134,7 @@ $USER = $DB->get_record('user', array('username' => $CFG->admin));
 
 // If failed, get first available site admin.
 if (empty($USER)) {
-    $siteadminlist = get_config('siteadmins');
+    $siteadminlist = $CFG->siteadmins;
     if (empty($siteadminlist)) {
         echo "No site admins. This is not a normal situation. Quitting.\n";
         exit(1);
@@ -146,6 +146,11 @@ if (empty($USER)) {
             break;
         }
     }
+}
+
+if (empty($USER)) {
+    echo "No site admins at all. This is not a normal situation. Quitting.\n";
+    exit(1);
 }
 
 // Get ldap params from real ldap plugin.
