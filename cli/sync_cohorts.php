@@ -123,7 +123,30 @@ if (!empty($options['debug'])) {
 
 // Fakes an admin identity for all the process.
 global $USER;
-$USER = get_admin();
+
+// Get main siteadmin.
+$USER = $DB->get_record('user', array('username' => $CFG->admin));
+
+// If failed, get first available site admin.
+if (empty($USER)) {
+    $siteadminlist = $CFG->siteadmins;
+    if (empty($siteadminlist)) {
+        echo "No site admins. This is not a normal situation. Quitting.\n";
+        exit(1);
+    }
+    $siteadmins = explode(',', $siteadminlist);
+    foreach ($siteadmins as $uid) {
+        $USER = $DB->get_record('user', array('id' => $uid));
+        if (!empty($USER)) {
+            break;
+        }
+    }
+}
+
+if (empty($USER)) {
+    echo "No site admins at all. This is not a normal situation. Quitting.\n";
+    exit(1);
+}
 
 // Get ldap params from real ldap plugin.
 $ldapauth = get_auth_plugin('ldap');
