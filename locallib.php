@@ -414,6 +414,7 @@ function local_ent_installer_install_categories($simulate = false) {
 
             list($plugin, $settingkey) = explode('/', $setting);
 
+            preg_replace('#^/#', '', $category->name);
             $parts = explode('/', $category->name);
             $maxdepth = count($parts);
             $parentid = 0;
@@ -432,14 +433,18 @@ function local_ent_installer_install_categories($simulate = false) {
              */
             foreach ($parts as $part) {
                 $namepath .= '/'.$part;
+                // Note that initial categories names and parent names should be unique in Moodle. Or this will fail.
                 if (!$thiscat = $DB->get_record('course_categories', array('name' => $part))) {
                     if (!$simulate) {
 
                         if ($depth == $maxdepth) {
+                            // This is the real category name to create.
                             // Pre check idnumber. We may already have one with this IDNum.
                             if (!empty($category->idnumber)) {
                                 if ($oldcategory = $DB->get_record('course_categories', array('idnumber' => $category->idnumber))) {
                                     // Bind this category to plugin before leaving.
+                                    $oldcategory->name = $part;
+                                    $DB->update_record('course_categories', $oldrecord);
                                     local_ent_installer_bind_cat_to_plugin($plugin, $settingkey, $oldcategory, $simulate);
                                     continue 2;
                                 }
@@ -466,10 +471,11 @@ function local_ent_installer_install_categories($simulate = false) {
                         }
                         $depth++;
                     } else {
-                        mtrace("Category $namepath is missing at depth $depth.");
+                        mtrace("Category $namepath is missing at depth $depth. Will be created.");
                         $depth++;
                     }
                 } else {
+                    // We have a category of this name already.
                     $coursecat = coursecat::get($thiscat->id);
                     $parentid = $thiscat->id;
                     if (!$simulate) {
@@ -494,9 +500,6 @@ function local_ent_installer_install_categories($simulate = false) {
                 local_ent_installer_bind_cat_to_plugin($plugin, $settingkey, $category, $simulate);
             };
         }
-    }
-
-    if (!$simulate) {
     }
 }
 

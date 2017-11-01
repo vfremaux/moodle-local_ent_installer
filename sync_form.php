@@ -41,7 +41,15 @@ class SyncUsersForm extends moodleform {
         $mform->addElement('html', '<h3>'.get_string('entities', 'local_ent_installer').'</h3>');
 
         if (!empty($config->sync_users_enable)) {
-            $mform->addElement('checkbox', 'users', get_string('users', 'local_ent_installer'));
+            $group = array();
+            $group[] = &$mform->createElement('checkbox', 'users', '');
+            $attrs = array('type' => 'button', 'value' => get_string('syncsingle', 'local_ent_installer'));
+            $button = html_writer::tag('input', '', $attrs);
+            $singleuserurl = new moodle_url('/local/ent_installer/syncuser.php');
+            $attrs = array('href' => $singleuserurl);
+            $html = html_writer::tag('a', $button, $attrs);
+            $group[] = &$mform->createElement('static', 'singleuser', '', $html);
+            $mform->addGroup($group, 'usersgroup', get_string('users', 'local_ent_installer'), false, array(''), false);
         }
 
         if (!empty($config->sync_cohorts_enable)) {

@@ -74,6 +74,11 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     $isent = is_dir($CFG->dirroot.'/local/ent_access_point');
 
+    $insertcount = 0;
+    $updatecount = 0;
+    $inserterrorcount = 0;
+    $updateerrorcount = 0;
+
     mtrace('');
 
     $config = get_config('local_ent_installer');
@@ -160,7 +165,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
      * - Toutatice : Use generic for invited people not assigned to the internal pedagogic setup
      */
 
-    if (empty($options['role']) || preg_match('/generic/', $options['role'])) {
+    if (!empty($options['force']) || empty($options['role']) || preg_match('/generic/', $options['role'])) {
         if (!empty($config->generic_usertype_filter)) {
             $filterdef = new StdClass();
             foreach ($institutionids as $iid) {
@@ -181,7 +186,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
      * - Toutatice : variant scheme => user must have class ENTEleve AND have ENTPersonStructRattach equals institutionid.
      */
 
-    if (empty($options['role']) || preg_match('/eleve/', $options['role'])) {
+    if (!empty($options['force']) || empty($options['role']) || preg_match('/eleve/', $options['role'])) {
         if (!empty($config->student_usertype_filter)) {
             $filterdef = new StdClass();
             foreach ($institutionids as $iid) {
@@ -202,7 +207,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
      * - Toutatice : user must have ENTAuxEnseignant AND title is ENS or CTR and have a ENTPersonFonctions containing intitutionid
      */
 
-    if (empty($options['role']) || preg_match('/enseignant/', $options['role'])) {
+    if (!empty($options['force']) || empty($options['role']) || preg_match('/enseignant/', $options['role'])) {
         $filterdef = new StdClass();
         if (!empty($config->teachstaff_usertype_filter)) {
             foreach ($institutionids as $iid) {
@@ -223,7 +228,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
      * - Toutatice : user must have class ENTAuxEnseignant AND title is DIR or DOC or ADOC or EDU and have a ENTPersonFonctions containing intitutionid
      */
 
-    if (empty($options['role']) || preg_match('/administration/', $options['role'])) {
+    if (!empty($options['force']) || empty($options['role']) || preg_match('/administration/', $options['role'])) {
         if (!empty($config->adminstaff_usertype_filter)) {
             $filterdef = new StdClass();
             foreach ($institutionids as $iid) {
@@ -245,7 +250,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
      * role profile references.
      */
 
-    if (empty($options['role']) || preg_match('/siteadmins/', $options['role'])) {
+    if (!empty($options['force']) || empty($options['role']) || preg_match('/siteadmins/', $options['role'])) {
         if (!empty($config->siteadmins_usertype_filter)) {
             $filterdef = new StdClass();
             if (!empty($config->siteadmins_institution_filter)) {
@@ -273,7 +278,16 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     } else {
         mtrace("Paging not supported...\n");
     }
+
     $ldapcookie = '';
+    $requid = '*';
+    if (!empty($options['uid'])) {
+        // Force the ldap filter to match only one single user. We cannot be in forced mode in this case.
+        $options['force'] = false;
+        $user = $DB->get_record('user', array('id' => $options['uid']));
+        $requid = $user->username;
+    }
+
     foreach ($filters as $filterdef) {
 
         mtrace('Processing filter '.$filterdef->userfield);
@@ -286,7 +300,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
             }
         }
 
-        $filter = '(&('.$ldapauth->config->user_attribute.'=*)'.$filterdef->usertype.$institutions.')';
+        $filter = '(&('.$ldapauth->config->user_attribute.'='.$requid.')'.$filterdef->usertype.$institutions.')';
 
         foreach ($contexts as $context) {
             $context = trim($context);
@@ -366,7 +380,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     if (!empty($options['force']) && !empty($config->create_cohorts_from_user_records)) {
 
-        // clean out old cohort memberships that will be renewed from the directory.
+        // Clean out old cohort memberships that will be renewed from the directory.
         $select = " component = 'local_ent_installer' AND name LIKE '{$cohortix}%' ";
         $automated = $DB->get_records_select_menu('cohort', $select, array(), 'id,name');
         mtrace("\n>> ".get_string('cleaningautomatedcohortscontent', 'local_ent_installer', count($automated)));
@@ -389,78 +403,80 @@ function local_ent_installer_sync_users($ldapauth, $options) {
      * Find users in DB that aren't in ldap -- to be removed!
      * this is still not as scalable (but how often do we mass delete?)
      */
-    if (@$ldapauth->config->removeuser != AUTH_REMOVEUSER_KEEP) {
+    if (empty($options['role'])) {
+        if (@$ldapauth->config->removeuser != AUTH_REMOVEUSER_KEEP) {
 
-        mtrace("\n>> ".get_string('usersdeletion', 'local_ent_installer'));
+            mtrace("\n>> ".get_string('usersdeletion', 'local_ent_installer'));
 
-        $sql = '
-            SELECT
-                u.*
-            FROM
-                {user} u
-            LEFT JOIN
-                {tmp_extuser} e
-            ON
-                (u.username = e.username AND u.mnethostid = e.mnethostid)
-            WHERE
-                u.auth = ? AND
-                u.deleted = 0 AND
-                u.suspended = 0 AND
-                e.username IS NULL
-        '.@$debughardlimit;
-        $real_user_auth = $config->real_used_auth;
-        $remove_users = $DB->get_records_sql($sql, array($real_user_auth));
+            $sql = '
+                SELECT
+                    u.*
+                FROM
+                    {user} u
+                LEFT JOIN
+                    {tmp_extuser} e
+                ON
+                    (u.username = e.username AND u.mnethostid = e.mnethostid)
+                WHERE
+                    u.auth = ? AND
+                    u.deleted = 0 AND
+                    u.suspended = 0 AND
+                    e.username IS NULL
+            '.@$debughardlimit;
+            $real_user_auth = $config->real_used_auth;
+            $remove_users = $DB->get_records_sql($sql, array($real_user_auth));
 
-        if (!empty($remove_users)) {
-            mtrace(get_string('userentriestoremove', 'auth_ldap', count($remove_users)));
+            if (!empty($remove_users)) {
+                mtrace(get_string('userentriestoremove', 'auth_ldap', count($remove_users)));
 
-            foreach ($remove_users as $user) {
-                if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_FULLDELETE) {
-                    if (empty($options['simulate'])) {
-                        if (empty($options['fulldelete'])) {
-                            // Make a light delete of users, but keeping data for revival.
-                            $user->deleted = 1;
-                            try {
-                                $DB->update_record('user', $user);
-                                $params = array('name' => $user->username, 'id' => $user->id);
-                                mtrace(get_string('auth_dbdeleteuser', 'auth_db', $params));
-                            } catch (Exception $e) {
-                                mtrace(get_string('auth_dbdeleteusererror', 'auth_db', $user->username));
+                foreach ($remove_users as $user) {
+                    if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_FULLDELETE) {
+                        if (empty($options['simulate'])) {
+                            if (empty($options['fulldelete'])) {
+                                // Make a light delete of users, but keeping data for revival.
+                                $user->deleted = 1;
+                                try {
+                                    $DB->update_record('user', $user);
+                                    $params = array('name' => $user->username, 'id' => $user->id);
+                                    mtrace(get_string('auth_dbdeleteuser', 'auth_db', $params));
+                                } catch (Exception $e) {
+                                    mtrace(get_string('auth_dbdeleteusererror', 'auth_db', $user->username));
+                                }
+                            } else {
+                                // Make a complete delete of users, enrols, grades and data.
+                                if (delete_user($user)) {
+                                    echo "\t";
+                                    $params = array('name' => $user->username, 'id' => $user->id);
+                                    mtrace(get_string('auth_dbdeleteuser', 'auth_db', $params));
+                                } else {
+                                    echo "\t";
+                                    mtrace(get_string('auth_dbdeleteusererror', 'auth_db', $user->username));
+                                }
                             }
                         } else {
-                            // Make a complete delete of users, enrols, grades and data.
-                            if (delete_user($user)) {
-                                echo "\t";
-                                $params = array('name' => $user->username, 'id' => $user->id);
-                                mtrace(get_string('auth_dbdeleteuser', 'auth_db', $params));
-                            } else {
-                                echo "\t";
-                                mtrace(get_string('auth_dbdeleteusererror', 'auth_db', $user->username));
-                            }
+                            mtrace("[SIMULATION] User $user->username deleted");
                         }
-                    } else {
-                        mtrace("[SIMULATION] User $user->username deleted");
-                    }
-                } else if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_SUSPEND) {
-                    if (empty($options['simulate'])) {
-                        $updateuser = new stdClass();
-                        $updateuser->id = $user->id;
-                        $updateuser->auth = 'nologin';
-                        $updateuser->suspended = 1;
-                        $DB->update_record('user', $updateuser);
-                        echo "\t";
-                        mtrace(get_string('auth_dbsuspenduser', 'auth_db', array('name' => $user->username, 'id' => $user->id)));
-                        $euser = $DB->get_record('user', array('id' => $user->id));
-                        \core\event\user_updated::create_from_userid($euser->id)->trigger();
-                    } else {
-                        mtrace("[SIMULATION] User $user->username suspended");
+                    } else if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_SUSPEND) {
+                        if (empty($options['simulate'])) {
+                            $updateuser = new stdClass();
+                            $updateuser->id = $user->id;
+                            $updateuser->auth = 'nologin';
+                            $updateuser->suspended = 1;
+                            $DB->update_record('user', $updateuser);
+                            echo "\t";
+                            mtrace(get_string('auth_dbsuspenduser', 'auth_db', array('name' => $user->username, 'id' => $user->id)));
+                            $euser = $DB->get_record('user', array('id' => $user->id));
+                            \core\event\user_updated::create_from_userid($euser->id)->trigger();
+                        } else {
+                            mtrace("[SIMULATION] User $user->username suspended");
+                        }
                     }
                 }
+            } else {
+                mtrace("\n-- No user entries to remove.");
             }
-        } else {
-            mtrace("\n-- No user entries to remove.");
+            unset($remove_users); // Free mem!
         }
-        unset($remove_users); // Free mem!
     }
 
     // Revive suspended users. *********************************.
@@ -731,6 +747,10 @@ function local_ent_installer_sync_users($ldapauth, $options) {
             $user->username = trim(core_text::strtolower($user->username));
             if (empty($user->lang)) {
                 $user->lang = get_config('moodle', 'lang');
+            }
+
+            if (empty($user->theme)) {
+                $user->theme = get_config('moodle', 'theme');
             }
 
             /*
@@ -1624,7 +1644,7 @@ function local_ent_installer_release_old_cohorts() {
                 component = "local_ent_installer" AND
                 name NOT LIKE ?
         ';
-    
+
         $DB->execute($sql, array($config->cohort_ix.'%'));
     }
 }

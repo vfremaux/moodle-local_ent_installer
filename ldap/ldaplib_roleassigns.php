@@ -457,6 +457,9 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                 role_unassign($cr->roleid, $cr->userid, $cr->contextid);
                 role_assign($cr->roleid, $cr->userid, $cr->contextid, 'local_ent_installer');
                 mtrace(get_string('roleassigned', 'local_ent_installer', $cr));
+                if ($options['verbose']) {
+                    print_object($cr);
+                }
                 if (($cr->contextlevel == 'course') && $enrolplugin) {
                     // Context level comes from temp table.
 
@@ -501,6 +504,8 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     } catch (Exception $e) {
         assert(1);
     }
+
+    $ldapauth->ldap_close();
 
     set_config('last_sync_date_roles', time(), 'local_ent_installer');
 }
@@ -565,7 +570,7 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
 
     $extdn = core_text::convert($dn, 'utf-8', $ldapauth->config->ldapencoding);
 
-    if ($options['debug']) {
+    if (!empty($options['verbose'])) {
         mtrace("\nGetting $dn for ".$config->roleassign_membership_attribute);
     }
     if (!$roleassign_info_result = ldap_read($ldapconnection, $extdn, '(objectClass=*)', array($config->roleassign_membership_attribute))) {
@@ -604,7 +609,7 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
             }
             foreach ($entry[$value] as $newvalopt) {
                 $newvalopt  = core_text::convert($newvalopt, $ldapauth->config->ldapencoding, 'utf-8');
-                if (!empty($options['debug'])) {
+                if (!empty($options['verbose'])) {
                     mtrace("Extracting from $newvalopt with {$config->roleassign_membership_filter} ");
                 }
                 if (preg_match('/'.$config->roleassign_membership_filter.'/', $newvalopt, $matches)) {
