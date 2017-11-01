@@ -36,6 +36,9 @@ require_once $CFG->dirroot.'/local/ent_installer/adminlib.php';
 if ($hasconfig && is_dir($CFG->dirroot.'/admin/tool/sync')) {
 
     // Add a light weight resync service access to site managers.
+    if (!$ADMIN->locate('automation')) {
+        $ADMIN->add('root', new admin_category('automation', new lang_string('automation', 'tool_sync')));
+    }
 
     $settings = new admin_settingpage('local_ent_installer_light', get_string('entupdate', 'local_ent_installer'));
 

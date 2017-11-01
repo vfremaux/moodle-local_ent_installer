@@ -529,8 +529,6 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
         }
     }
 
-    set_config('last_sync_date_group', time(), 'local_ent_installer');
-
     echo "Cleaning temp group tables out\n";
     // Clean temporary table.
     try {
@@ -548,6 +546,8 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
         }
     }
 
+    $ldapauth->ldap_close();
+    set_config('last_sync_date_group', time(), 'local_ent_installer');
 }
 
 /**

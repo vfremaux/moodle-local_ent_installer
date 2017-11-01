@@ -187,7 +187,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
         HAVING
            c.idnumber LIKE '".$config->cohort_ix."_%'
     ";
-    // HAVING : Only delete cohorts of the same milesim
+    // HAVING : Only delete cohorts of the same milesim.
 
     $deleted = $DB->get_records_sql($sql);
 
