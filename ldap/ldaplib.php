@@ -609,7 +609,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     $maildisplay = get_config('local_ent_installer', 'maildisplay');
 
     // Diff get users for temporary table.
-    if (empty($options['force'])) {
+    if (empty($options['force']) && empty($requid)) {
         $sql = '
             SELECT
                 e.id,
@@ -630,6 +630,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
         '.@$debughardlimit;
         $params = array(0 + $config->last_sync_date_user);
     } else {
+        // If we are asking for a user, do update anyway.
         $sql = '
             SELECT
                 e.id,
@@ -880,7 +881,6 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 // For explicit simulation output.
                 mtrace('Checking network accesses');
                 if (file_exists($CFG->dirroot.'/blocks/user_mnet_hosts/xlib.php')) {
-                    $user->id = $euser->id;
                     require_once($CFG->dirroot.'/blocks/user_mnet_hosts/xlib.php');
                     user_mnet_host_update_ldapuser($user, $options);
                 }
