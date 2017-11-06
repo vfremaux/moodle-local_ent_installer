@@ -69,7 +69,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
 
     $dbman = $DB->get_manager();
 
-    list($usec, $sec) = explode(' ',microtime());
+    list($usec, $sec) = explode(' ', microtime());
     $starttick = (float)$sec + (float)$usec;
 
     mtrace(get_string('lastrun', 'local_ent_installer', userdate(@$config->last_sync_date_group)));
@@ -112,8 +112,8 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
     list($institutionidlist, $institutionalias) = local_ent_installer_strip_alias($config->institution_id);
     $institutionids = explode(',', $institutionidlist);
 
-    $ldap_pagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
-    if ($ldap_pagedresults) {
+    $ldappagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
+    if ($ldappagedresults) {
         mtrace("Paging results...\n");
     } else {
         mtrace("Paging not supported...\n");
@@ -147,25 +147,25 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
             }
 
             do {
-                if ($ldap_pagedresults) {
+                if ($ldappagedresults) {
                     ldap_control_paged_result($ldapconnection, $ldapauth->config->pagesize, true, $ldapcookie);
                 }
                 if ($ldapauth->config->search_sub) {
                     // Use ldap_search to find first user from subtree.
                     mtrace("ldapsearch $context, $filter for attributes ".implode(', ',$grouprecordattribs));
-                    $ldap_result = ldap_search($ldapconnection, $context, $filter, $grouprecordattribs);
+                    $ldapresult = ldap_search($ldapconnection, $context, $filter, $grouprecordattribs);
                 } else {
                     // Search only in this context.
-                    mtrace("ldaplist $context, $filter for attributes ".implode(', ',$grouprecordattribs));
-                    $ldap_result = ldap_list($ldapconnection, $context, $filter, $grouprecordattribs);
+                    mtrace("ldaplist $context, $filter for attributes ".implode(', ', $grouprecordattribs));
+                    $ldapresult = ldap_list($ldapconnection, $context, $filter, $grouprecordattribs);
                 }
-                if (!$ldap_result) {
+                if (!$ldapresult) {
                     continue;
                 }
-                if ($ldap_pagedresults) {
-                    ldap_control_paged_result_response($ldapconnection, $ldap_result, $ldapcookie);
+                if ($ldappagedresults) {
+                    ldap_control_paged_result_response($ldapconnection, $ldapresult, $ldapcookie);
                 }
-                if ($entry = @ldap_first_entry($ldapconnection, $ldap_result)) {
+                if ($entry = @ldap_first_entry($ldapconnection, $ldapresult)) {
                     do {
                         $gidnumber = '';
                         $gname = '';
@@ -227,8 +227,8 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                     } while ($entry = ldap_next_entry($ldapconnection, $entry));
                 }
                 echo "\n";
-                unset($ldap_result); // Free mem.
-            } while ($ldap_pagedresults && !empty($ldapcookie));
+                unset($ldapresult); // Free mem.
+            } while ($ldappagedresults && !empty($ldapcookie));
         }
     }
 
@@ -236,7 +236,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
      * If LDAP paged results were used, the current connection must be completely
      * closed and a new one created, to work without paged results from here on.
      */
-    if ($ldap_pagedresults) {
+    if ($ldappagedresults) {
         $ldapauth->ldap_close(true);
         $ldapconnection = $ldapauth->ldap_connect();
     }
@@ -438,7 +438,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
 
                 $course = $DB->get_record('course', array('id' => $cr->course));
 
-                // Build an external pattern
+                // Build an external pattern.
                 $groupldapidentifier = $config->group_id_pattern;
                 $groupldapidentifier = str_replace('%CID%', $cr->course, $groupldapidentifier);
                 $groupldapidentifier = str_replace('%CSHORTNAME%', $course->shortname, $groupldapidentifier);
@@ -579,7 +579,7 @@ function local_ent_installer_get_groupinfo($ldapauth, $groupidentifier, $options
     $extgroupidentifier = core_text::convert($groupidentifier, 'utf-8', $ldapauth->config->ldapencoding);
 
     $ldapconnection = $ldapauth->ldap_connect();
-    if (!($group_dn = local_ent_installer_ldap_find_group_dn($ldapconnection, $extgroupidentifier))) {
+    if (!($groupdn = local_ent_installer_ldap_find_group_dn($ldapconnection, $extgroupidentifier))) {
         $ldapauth->ldap_close();
         if (!empty($options['verbose'])) {
             mtrace("Internal Error : Could not locate $extgroupidentifier ");
@@ -588,15 +588,15 @@ function local_ent_installer_get_groupinfo($ldapauth, $groupidentifier, $options
     }
 
     if ($options['verbose']) {
-        mtrace("\nGetting $group_dn for ".implode(',', $groupattributes));
+        mtrace("\nGetting $groupdn for ".implode(',', $groupattributes));
     }
-    if (!$group_info_result = ldap_read($ldapconnection, $group_dn, '(objectClass=*)', array_values($groupattributes))) {
+    if (!$group_info_result = ldap_read($ldapconnection, $groupdn, '(objectClass=*)', array_values($groupattributes))) {
         $ldapauth->ldap_close();
         return false;
     }
 
-    $group_entry = ldap_get_entries_moodle($ldapconnection, $group_info_result);
-    if (empty($group_entry)) {
+    $groupentry = ldap_get_entries_moodle($ldapconnection, $group_info_result);
+    if (empty($groupentry)) {
         $ldapauth->ldap_close();
         return false; // Entry not found.
     }
@@ -604,7 +604,7 @@ function local_ent_installer_get_groupinfo($ldapauth, $groupidentifier, $options
     $result = array();
     foreach ($groupattributes as $key => $value) {
         // Value is an attribute name.
-        $entry = array_change_key_case($group_entry[0], CASE_LOWER);
+        $entry = array_change_key_case($groupentry[0], CASE_LOWER);
 
         if (!array_key_exists($value, $entry)) {
             if (!empty($options['verbose'])) {
@@ -634,7 +634,8 @@ function local_ent_installer_get_groupinfo($ldapauth, $groupidentifier, $options
                     if (!empty($options['verbose'])) {
                         mtrace("Getting user record for {$config->group_user_identifier} = $identifier");
                     }
-                    $user = $DB->get_record('user', array($config->group_user_identifier => $identifier, 'deleted' => 0), 'id,username,firstname,lastname');
+                    $params = array($config->group_user_identifier => $identifier, 'deleted' => 0);
+                    $user = $DB->get_record('user', $params, 'id,username,firstname,lastname');
                     if (!$user) {
                         mtrace("Error : User record not found for $identifier. Skipping membership");
                         continue;
@@ -698,41 +699,41 @@ function local_ent_installer_ldap_find_group_dn($ldapconnection, $extgroupdn) {
  * @param mixed $groupidentifier external group identifier (external LDAP encoding, no db slashes).
  * @param array $contexts contexts to look for the group.
  * @param string $objectclass objectlass of the groups (in LDAP filter syntax).
- * @param string $search_attrib the attribute use to look for the group.
+ * @param string $searchattrib the attribute use to look for the group.
  * @return mixed the group dn (external LDAP encoding, no db slashes) or false
  *
  */
-function ldap_find_groupdn($ldapconnection, $groupidentifier, $contexts, $objectclass, $search_attrib) {
-    if (empty($ldapconnection) || empty($groupidentifier) || empty($contexts) || empty($objectclass) || empty($search_attrib)) {
+function ldap_find_groupdn($ldapconnection, $groupidentifier, $contexts, $objectclass, $searchattrib) {
+    if (empty($ldapconnection) || empty($groupidentifier) || empty($contexts) || empty($objectclass) || empty($searchattrib)) {
         return false;
     }
 
-    // Default return value
-    $ldap_group_dn = false;
+    // Default return value.
+    $ldapgroupdn = false;
 
-    // Get all contexts and look for first matching user
+    // Get all contexts and look for first matching user.
     foreach ($contexts as $context) {
         $context = trim($context);
         if (empty($context)) {
             continue;
         }
 
-        $ldap_result = @ldap_list($ldapconnection, $context,
-                                  '(&'.$objectclass.'('.$search_attrib.'='.$groupidentifier.'))',
-                                  array($search_attrib));
+        $ldapresult = @ldap_list($ldapconnection, $context,
+                                  '(&'.$objectclass.'('.$searchattrib.'='.$groupidentifier.'))',
+                                  array($searchattrib));
 
-        if (!$ldap_result) {
+        if (!$ldapresult) {
             continue; // Not found in this context.
         }
 
-        $entry = ldap_first_entry($ldapconnection, $ldap_result);
+        $entry = ldap_first_entry($ldapconnection, $ldapresult);
         if ($entry) {
-            $ldap_group_dn = ldap_get_dn($ldapconnection, $entry);
+            $ldapgroupdn = ldap_get_dn($ldapconnection, $entry);
             break;
         }
     }
 
-    return $ldap_group_dn;
+    return $ldapgroupdn;
 }
 
 /**
@@ -744,15 +745,15 @@ function ldap_find_groupdn($ldapconnection, $groupidentifier, $contexts, $object
  */
 function local_ent_installer_get_groupinfo_asobj($ldapauth, $groupidentifier, $options = array()) {
 
-    $group_array = local_ent_installer_get_groupinfo($ldapauth, $groupidentifier, $options);
+    $grouparr = local_ent_installer_get_groupinfo($ldapauth, $groupidentifier, $options);
 
-    if ($group_array == false) {
-        return false; //error or not found
+    if ($grouparr == false) {
+        return false; // Error or not found.
     }
 
-    $group_array = truncate_userinfo($group_array);
+    $grouparr = truncate_userinfo($grouparr);
     $group = new stdClass();
-    foreach ($group_array as $key => $value) {
+    foreach ($grouparr as $key => $value) {
         $group->{$key} = $value;
     }
     return $group;
@@ -765,7 +766,10 @@ function local_ent_installer_ldap_bulk_group_insert($groupidentifier, $course, $
     global $DB;
 
     if (!$DB->record_exists('tmp_extgroup', array('idnumber' => $groupidentifier))) {
-        $params = array('idnumber' => $groupidentifier, 'course' => $course, 'groupname' => $groupname, 'lastmodified' => $timemodified);
+        $params = array('idnumber' => $groupidentifier,
+                        'course' => $course,
+                        'groupname' => $groupname,
+                        'lastmodified' => $timemodified);
         $DB->insert_record_raw('tmp_extgroup', $params, false, true);
     }
     echo '.';

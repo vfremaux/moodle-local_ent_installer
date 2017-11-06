@@ -15,14 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * IPAG Plugin - local utilities library
+ * local utilities library
  *
  * @copyright  2016 Edunao SAS (contact@edunao.com)
  * @author     Sadge (daniel@edunao.com)
- * @package    local_ipag
+ * @package    local_ent_installer
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 namespace ent_installer;
+
+defined('MOODLE_INTERNAL') || die();
 
 /**
  * log muter class
