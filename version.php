@@ -33,4 +33,4 @@ $plugin->release = '3.2.0 (Build 2017082401)';
 // $plugin->dependencies = array('local_vmoodle' => '2013020800'); // Not mandatory.
 
 // Non moodle attributes.
-$plugin->codeincrement = '3.2.0004';
+$plugin->codeincrement = '3.2.0005';
