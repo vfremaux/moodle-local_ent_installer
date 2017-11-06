@@ -29,7 +29,7 @@ require_once($CFG->dirroot.'/local/ent_installer/sync_user_form.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
-$url = new moodle_url('/local/ent_installer/sync.php');
+$url = new moodle_url('/local/ent_installer/syncuser.php');
 $PAGE->set_url($url);
 
 // Security.
@@ -45,7 +45,7 @@ $PAGE->set_heading($syncstr);
 $PAGE->set_pagelayout('admin');
 $PAGE->requires->js_call_amd('local_ent_installer/syncuser', 'init');
 
-$mform = new SyncUserForm();
+$mform = new SyncUserForm($url, null, 'get');
 
 // Get ldap params from real ldap plugin.
 $ldapauth = get_auth_plugin('ldap');
@@ -62,6 +62,8 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading($syncstr);
 
 if ($data = $mform->get_data()) {
+
+    require_sesskey();
 
     // Get ldap params from real ldap plugin.
     $ldapauth = get_auth_plugin('ldap');
