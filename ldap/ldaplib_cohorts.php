@@ -296,8 +296,8 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
             if (!empty($cohortinfo->members)) {
 
-                $params = array('cohortid' => $oldrec->id), 'userid', 'userid,userid');
-                if ($oldmembers = $DB->get_records_menu('cohort_members', $params) {
+                $params = array('cohortid' => $oldrec->id);
+                if ($oldmembers = $DB->get_records_menu('cohort_members', $params, 'userid', 'userid,userid')) {
                     $oldmemberids = array_keys($oldmembers);
                 } else {
                     $oldmemberids = array();
@@ -457,7 +457,7 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
     $extcohortidentifier = core_text::convert($cohortidentifier, 'utf-8', $ldapauth->config->ldapencoding);
 
     $ldapconnection = $ldapauth->ldap_connect();
-    if (!($cohort_dn = local_ent_installer_ldap_find_cohort_dn($ldapconnection, $extcohortidentifier))) {
+    if (!($cohortdn = local_ent_installer_ldap_find_cohort_dn($ldapconnection, $extcohortidentifier))) {
         $ldapauth->ldap_close();
         if ($options['verbose']) {
             mtrace("Internal Error : Could not locate $extcohortidentifier ");
@@ -466,15 +466,15 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
     }
 
     if ($options['verbose']) {
-        mtrace("Getting $cohort_dn for ".implode(',', array_values($cohortattributes)));
+        mtrace("Getting $cohortdn for ".implode(',', array_values($cohortattributes)));
     }
-    if (!$cohort_info_result = ldap_read($ldapconnection, $cohort_dn, '(objectClass=*)', array_values($cohortattributes))) {
+    if (!$cohortinforesult = ldap_read($ldapconnection, $cohortdn, '(objectClass=*)', array_values($cohortattributes))) {
         $ldapauth->ldap_close();
         return false;
     }
 
-    $cohort_entry = ldap_get_entries_moodle($ldapconnection, $cohort_info_result);
-    if (empty($cohort_entry)) {
+    $cohortentry = ldap_get_entries_moodle($ldapconnection, $cohortinforesult);
+    if (empty($cohortentry)) {
         $ldapauth->ldap_close();
         return false; // Entry not found.
     }
@@ -483,7 +483,7 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
     foreach ($cohortattributes as $key => $value) {
 
         // Value is an attribute name.
-        $entry = array_change_key_case($cohort_entry[0], CASE_LOWER);
+        $entry = array_change_key_case($cohortentry[0], CASE_LOWER);
 
         if (!array_key_exists($value, $entry)) {
             if ($options['verbose']) {
@@ -506,7 +506,8 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
                     if (!empty($options['verbose'])) {
                         mtrace("Getting user record for {$config->cohort_user_identifier} = $identifier");
                     }
-                    $user = $DB->get_record('user', array($config->cohort_user_identifier => $identifier), 'id,username,firstname,lastname');
+                    $fields = 'id,username,firstname,lastname';
+                    $user = $DB->get_record('user', array($config->cohort_user_identifier => $identifier), $fields);
                     if (!$user) {
                         mtrace("Error : User record not found for $identifier. Skipping membership");
                         continue;
