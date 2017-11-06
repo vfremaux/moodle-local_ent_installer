@@ -38,11 +38,11 @@ defined('MOODLE_INTERNAL') || die();
  */
 
 class logmuter {
-    // static variables.
+    // Static variables.
     private static $oldsettings = null;
     private static $stacksize   = 0;
 
-    // instance variables.
+    // Instance variables.
     private $stackidx           = -1;
 
 
@@ -70,7 +70,7 @@ class logmuter {
      * ensures that the log is
      */
     public function __destruct() {
-        if ($this->stackidx !== -1){
+        if ($this->stackidx !== -1) {
             throw new \Exception('Coding error: logmuter must be deactivated before destruction');
         }
     }
@@ -97,7 +97,7 @@ class logmuter {
         }
 
         // Override the configuration settings to disable all log stores and force re-construction of log manager singleton.
-        $CFG->forced_plugin_settings['tool_log'] = array('enabled_stores'=>'');
+        $CFG->forced_plugin_settings['tool_log'] = array('enabled_stores' => '');
         get_log_manager( true );
     }
 

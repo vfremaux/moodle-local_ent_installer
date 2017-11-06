@@ -14,4 +14,11 @@
     <version></version>
     <licenseversion></licenseversion>
   </library>
+  <library>
+    <location>x_prod</location>
+    <name>special scripts</name>
+    <license></license>
+    <version></version>
+    <licenseversion></licenseversion>
+  </library>
 </libraries>

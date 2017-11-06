@@ -64,7 +64,7 @@ $meantime = 0;
 $normalmeantime = 0;
 $sumdurationwovertimes = 0;
 
-$timegrid = array(array(array(date('d-M-Y', time()),'0')));
+$timegrid = array(array(array(date('d-M-Y', time()), '0')));
 if ($benchrecs = $DB->get_records_select('local_ent_installer', " timestart > $horizon ")) {
     $i = 0;
     $iwo = 0;
@@ -139,7 +139,8 @@ $jqplot = array(
 local_vflibs_jqplot_print_graph('plot1', $jqplot, $timegrid, 750, 250, 'margin:20px;');
 
 echo '<center>';
-echo '<button id="timegraph-zoom-reset" onclick="plot.resetZoom();return true;" value="'.get_string('reset', 'local_ent_installer').'">';
+$resetstr = get_string('reset', 'local_ent_installer');
+echo '<button id="timegraph-zoom-reset" onclick="plot.resetZoom();return true;" value="'.$resetstr.'">';
 echo '</center>';
 echo $OUTPUT->box_end();
 

@@ -590,12 +590,12 @@ function local_ent_installer_get_groupinfo($ldapauth, $groupidentifier, $options
     if ($options['verbose']) {
         mtrace("\nGetting $groupdn for ".implode(',', $groupattributes));
     }
-    if (!$group_info_result = ldap_read($ldapconnection, $groupdn, '(objectClass=*)', array_values($groupattributes))) {
+    if (!$groupinforesult = ldap_read($ldapconnection, $groupdn, '(objectClass=*)', array_values($groupattributes))) {
         $ldapauth->ldap_close();
         return false;
     }
 
-    $groupentry = ldap_get_entries_moodle($ldapconnection, $group_info_result);
+    $groupentry = ldap_get_entries_moodle($ldapconnection, $groupinforesult);
     if (empty($groupentry)) {
         $ldapauth->ldap_close();
         return false; // Entry not found.
@@ -685,9 +685,9 @@ function local_ent_installer_ldap_find_group_dn($ldapconnection, $extgroupdn) {
         $config = get_config('local_ent_installer');
     }
 
-    $ldap_contexts = explode(';', $config->group_contexts);
+    $ldapcontexts = explode(';', $config->group_contexts);
 
-    return ldap_find_groupdn($ldapconnection, $extgroupdn, $ldap_contexts, $config->group_objectclass,
+    return ldap_find_groupdn($ldapconnection, $extgroupdn, $ldapcontexts, $config->group_objectclass,
                             $config->group_id_attribute);
 }
 
