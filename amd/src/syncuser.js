@@ -23,8 +23,6 @@
 // jshint unused: true, undef:true
 define(['jquery', 'core/config', 'core/log'], function($, config, log) {
 
-    var currentcourseid;
-
     /**
      * SectionControl class.
      *
@@ -39,23 +37,23 @@ define(['jquery', 'core/config', 'core/log'], function($, config, log) {
             log.debug('AMD ent installer syncuser initialized');
         },
 
-        refreshlist: function(e) {
+        refreshlist: function() {
 
             var params = "filter=" + $('#id_filter').val();
 
             var url = M.cfg.wwwroot + "/local/ent_installer/ajax/get_users.php?" + params;
 
-            $.get(url, function(data, textStatus) {
+            $.get(url, function(data) {
 
-                select = document.getElementById('id_uid');
+                var select = document.getElementById('id_uid');
 
                 // Clear the old options.
                 select.options.length = 0;
 
                 // Load the new options.
-                index = 0;
+                var index = 0;
 
-                options = $.parseJSON(data);
+                var options = $.parseJSON(data);
 
                 for (name in options) {
                     select.options[index] = new Option(options[name], name);

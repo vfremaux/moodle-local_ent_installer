@@ -152,7 +152,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                 }
                 if ($ldapauth->config->search_sub) {
                     // Use ldap_search to find first user from subtree.
-                    mtrace("ldapsearch $context, $filter for attributes ".implode(', ',$grouprecordattribs));
+                    mtrace("ldapsearch $context, $filter for attributes ".implode(', ', $grouprecordattribs));
                     $ldapresult = ldap_search($ldapconnection, $context, $filter, $grouprecordattribs);
                 } else {
                     // Search only in this context.
@@ -408,7 +408,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                     // Need reset register of ids after all updated have been cleaned out.
                     $oldmemberids = array_keys($oldmembers);
 
-                    // remains only old ids in members. Remove them.
+                    // Remains only old ids in members. Remove them.
                     if (!empty($oldmemberids)) {
                         foreach ($oldmemberids as $userid) {
                             $e = new StdClass;

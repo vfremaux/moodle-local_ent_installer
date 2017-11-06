@@ -74,9 +74,7 @@ function xmldb_local_ent_installer_install() {
 
     }
 
-    // Sharedresource.
-
-    // activate filters
+    // Activate filters.
     if (is_dir($CFG->dirroot.'/filter/multilangenhanced')) {
         $lastorder = $DB->get_field('filter_active' , 'MAX(sortorder)', array('contextid' => 1));
         $filteractive = new StdClass;
@@ -98,7 +96,8 @@ function xmldb_local_ent_installer_install() {
         $cap->permission = 1;
         $cap->timemodified = time();
         $cap->modifierid = 2;
-        if (!$DB->record_exists('role_capabilities', array('contextid' => $contextsystemid, 'roleid' => 7, 'capability' => 'moodle/site:mnetlogintoremote'))) {
+        $params = array('contextid' => $contextsystemid, 'roleid' => 7, 'capability' => 'moodle/site:mnetlogintoremote');
+        if (!$DB->record_exists('role_capabilities', $params)) {
             $DB->insert_record('role_capabilities', $cap);
         }
     }
