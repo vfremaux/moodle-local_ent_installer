@@ -7,4 +7,11 @@
     <version></version>
     <licenseversion></licenseversion>
   </library>
+  <library>
+    <location>js/jqplot</location>
+    <name>JQplot graphers</name>
+    <license>MIT</license>
+    <version></version>
+    <licenseversion></licenseversion>
+  </library>
 </libraries>

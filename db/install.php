@@ -24,6 +24,8 @@
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
+
 require_once($CFG->dirroot.'/mnet/lib.php');
 require_once($CFG->dirroot.'/local/vmoodle/plugins/plugins/pluginscontrolslib.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
@@ -38,7 +40,7 @@ function xmldb_local_ent_installer_install() {
     mtrace("Installing local distribution configurations");
 
     if (is_dir($CFG->dirroot.'/local/vmoodle')) {
-        /**
+        /*
          * initalize MNET and ensure providing a first key
          * Unfortunately, during initial install, a suitable key pair WILL NOT be generated.
          * This will be fixed by further fix_config.php script.
@@ -66,7 +68,6 @@ function xmldb_local_ent_installer_install() {
     if (is_dir($CFG->dirroot.'/local/ent_access_point')) {
 
         // Marks academic platforms.
-
         // Initial categories.
 
         local_ent_installer_install_categories();
@@ -88,7 +89,7 @@ function xmldb_local_ent_installer_install() {
     }
 
     if (is_dir($CFG->dirroot.'/blocks/user_mnet_hosts')) {
-        // Adding remote login capability to authenticated user
+        // Adding remote login capability to authenticated user.
         $contextsystemid = context_system::instance()->id;
         $cap = new StdClass();
         $cap->contextid = $contextsystemid;
@@ -102,7 +103,7 @@ function xmldb_local_ent_installer_install() {
         }
     }
 
-    // ## Adjust some fields length
+    // Adjust some fields length.
 
     $dbman = $DB->get_manager();
 
@@ -111,14 +112,14 @@ function xmldb_local_ent_installer_install() {
     $field->set_attributes(XMLDB_TYPE_CHAR, '126', null, null, null, null, 'institution');
     $dbman->change_field_precision($table, $field);
 
-    // ## Adding student role as default role for home pages
+    // Adding student role as default role for home pages.
 
     if (is_dir($CFG->dirroot.'/local/ent_access_point')) {
         $studentrole = $DB->get_record('role', array('shortname' => 'student'));
         set_config('defaultfrontpageroleid', $studentrole->id);
     }
 
-    // ## Adding usertypes categorization
+    // Adding usertypes categorization.
 
     if (is_dir($CFG->dirroot.'/local/ent_access_point')) {
 
@@ -132,7 +133,7 @@ function xmldb_local_ent_installer_install() {
             $usertypecategoryid = $oldcat->id;
         }
 
-        // ## Adding usertypes for ENT model
+        // Adding usertypes for ENT model.
 
         $i = 0;
         $userfield = new StdClass;
@@ -224,7 +225,7 @@ function xmldb_local_ent_installer_install() {
             $DB->insert_record('user_info_field', $userfield);
         }
 
-        // ## Adding academic information
+        // Adding academic information.
 
         $categoryrec = new StdClass;
         $categoryrec->name = ent_installer_string('academicinfocategoryname');
@@ -290,7 +291,7 @@ function xmldb_local_ent_installer_install() {
             $DB->insert_record('user_info_field', $userfield);
         }
 
-        // Add fullage
+        // Add fullage.
 
         $i++;
 
@@ -314,8 +315,10 @@ function xmldb_local_ent_installer_install() {
         }
 
         // Adding primary assignation.
-        // Primary assignation should be marked if the Moodle node
-        // matches the registered primary facility of the user in ldap attributes.
+        /*
+         * Primary assignation should be marked if the Moodle node
+         * matches the registered primary facility of the user in ldap attributes.
+         */
         $i++;
 
         $userfield = new StdClass;
@@ -335,7 +338,7 @@ function xmldb_local_ent_installer_install() {
             $DB->insert_record('user_info_field', $userfield);
         }
 
-        // Adding personaltitle
+        // Adding personaltitle.
         $i++;
 
         $userfield = new StdClass;

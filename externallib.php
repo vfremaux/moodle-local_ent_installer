@@ -58,8 +58,8 @@ class local_ent_installer_external extends external_api {
     public static function check_runtime_dates($setting, $allhosts = false, $dateformat = 1) {
         global $CFG, $DB, $USER;
 
-        $params = self::validate_parameters(self::check_runtime_dates_parameters(), array('setting' => $setting, 'allhosts' => $allhosts, 'dateformat' => $dateformat));
-        // $params['allhosts'] = $allhosts;
+        $parameters = array('setting' => $setting, 'allhosts' => $allhosts, 'dateformat' => $dateformat);
+        $params = self::validate_parameters(self::check_runtime_dates_parameters(), $parameters);
 
         $arrdates = array();
         if (empty($params['allhosts'])) {
@@ -77,8 +77,8 @@ class local_ent_installer_external extends external_api {
             if (is_dir($CFG->dirroot.'/local/vmoodle')) {
                 $fields = 'id,name,vhostname,vdbhost,vdbname,vdbprefix';
                 $vmoodles = $DB->get_records('local_vmoodle', array('enabled' => 1), 'name', $fields);
-    
-                foreach($vmoodles as $vm) {
+
+                foreach ($vmoodles as $vm) {
                     if ($vm->vdbhost == $CFG->dbhost) {
                         // Databases on same host so use direct query.
                         // Note we DO NOT use moodle query format as using a cross base extension.
@@ -115,8 +115,11 @@ class local_ent_installer_external extends external_api {
                             $arrdates[] = $resultarr;
                         }
                     } else {
-                        // TODO : implement a mnet call using vmoodle generic config fetch function.
-                        // this was not needed yet
+                        /*
+                         * TODO : implement a mnet call using vmoodle generic config fetch function.
+                         * this was not needed yet
+                         */
+                         assert(1);
                     }
                 }
             } else {
@@ -136,7 +139,7 @@ class local_ent_installer_external extends external_api {
      * @return external_single_structure
      * @since Moodle 2.5
      */
-     public static function check_runtime_dates_returns() {
+    public static function check_runtime_dates_returns() {
         return new external_multiple_structure(
             new external_single_structure(
                 array(
@@ -147,6 +150,11 @@ class local_ent_installer_external extends external_api {
         );
     }
 
+    /**
+     * Local date formatting function.
+     * @param int $datevalue a unix timestamp
+     * @param string $dateformat
+     */
     private static function format_date($datevalue, $dateformat) {
         switch ($dateformat) {
             case 1:

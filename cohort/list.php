@@ -45,7 +45,7 @@ if ($context->contextlevel != CONTEXT_COURSECAT and $context->contextlevel != CO
 
 $category = null;
 if ($context->contextlevel == CONTEXT_COURSECAT) {
-    $category = $DB->get_record('course_categories', array('id'=>$context->instanceid), '*', MUST_EXIST);
+    $category = $DB->get_record('course_categories', array('id' => $context->instanceid), '*', MUST_EXIST);
 }
 
 $manager = has_capability('moodle/cohort:manage', $context);
@@ -59,7 +59,7 @@ if ($category) {
     $PAGE->set_pagelayout('admin');
     $PAGE->set_context($context);
     $PAGE->set_url('/local/ent_installer/cohort/list.php', array('id' => $cohortid, 'contextid' => $contextid));
-    $PAGE->navbar->add(new moodle_url('/cohort/index.php', array('contextid' => $contextid)), get_string('cohorts','cohort'));
+    $PAGE->navbar->add(new moodle_url('/cohort/index.php', array('contextid' => $contextid)), get_string('cohorts', 'cohort'));
     $PAGE->set_url('/cohort/index.php', array('contextid' => $context->id));
     $PAGE->set_title($strcohorts);
     $PAGE->set_heading($COURSE->fullname);
