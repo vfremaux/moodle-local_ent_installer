@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -22,6 +21,7 @@
  * @copyright  2015 Valery Fremaux (valery.fremaux@gmail.com)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+defined('MOODLE_INTERNAL') || die();
 
 $functions = array(
 
@@ -30,7 +30,8 @@ $functions = array(
         'methodname' => 'check_runtime_dates',
         'classpath' => 'local/ent_installer/externallib.php',
         'testclientpath' => 'local/ent_installer/testclient_forms.php',
-        'description' => 'Returns the last known runtime date for a given setting, or alternatively all the vmoodle dates in a known network.',
+        'description' => 'Returns the last known runtime date for a given setting, or
+            alternatively all the vmoodle dates in a known network.',
         'type' => 'read',
         'capabilities' => ''
     ),

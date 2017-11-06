@@ -99,6 +99,7 @@ $string['enrolled'] = 'Enrolled with method {$a}';
 $string['enrolmethod'] = 'Enrol plugin';
 $string['entities'] = 'Entities';
 $string['entupdate'] = 'Update ENT definitions';
+$string['filter'] = 'Filter';
 $string['finaloperations'] = 'Final cleanup operations';
 $string['force'] = 'Force updating all entries (even unmodified since last reference)';
 $string['getinstitutionidservice'] = 'Structure ID Search';
@@ -145,6 +146,7 @@ $string['syncdisabled'] = 'ENT Data sync is disabled on this site';
 $string['syncgroupsdisabled'] = 'ENT Course Groups sync is disabled on this site';
 $string['synchronisemoodle'] = 'Synchronize moodle';
 $string['syncroleassignsdisabled'] = 'ENT Role Assignments sync is disabled on this site';
+$string['syncsingle'] = 'Sync single user';
 $string['synctime'] = 'Sync time';
 $string['synctimes'] = 'Sync times';
 $string['synctimetitle'] = 'User Sync Time Measurement';
@@ -213,7 +215,7 @@ $string['configuserpictureurlpattern_desc'] = 'An pattern for producing an URL u
 $string['configprotectcategoriesfromrelocate'] = 'Protected categories';
 $string['configprotectcategoriesfromrelocate_desc'] = 'Give a coma separated list of ids of moodle course categories in which courses MUST NOT be moved to teacher standard category.';
 
-// Cohorts
+// Cohorts.
 
 $string['cohortsfilters'] = 'Cohort LDAP filters';
 
@@ -380,7 +382,8 @@ $string['skipmembership'] = 'Skip membership';
 $string['skippingmembership'] = 'Skipping membership';
 $string['skipmembership_help'] = 'If set, only group info is updated. No members are moved from groups.';
 
-// Structures
+// Structures.
+
 $string['configstructurecity'] = 'Structure city';
 $string['configstructurecity_desc'] = 'LDAP attribute holding the structure city';
 $string['configstructurecityfilter'] = 'LDAP filter for current city';

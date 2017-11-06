@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-defined('MOODLE_INTERNAL') || die();
-
 /**
  * This file keeps track of upgrades to the ltiprovider plugin
  *
@@ -24,6 +22,8 @@ defined('MOODLE_INTERNAL') || die();
  * @copyright  2015 Valery Fremaux <valery.fremaux@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+defined('MOODLE_INTERNAL') || die();
+
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 function xmldb_local_ent_installer_upgrade($oldversion) {
