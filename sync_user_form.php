@@ -41,7 +41,7 @@ class SyncUserForm extends moodleform {
         $mform->addElement('html', '<h3>'.get_string('entities', 'local_ent_installer').'</h3>');
 
         $params = array('auth' => $config->real_used_auth, 'mnethostid' => $CFG->mnet_localhost_id, 'deleted' => 0);
-        $usersopts = $DB->get_records_menu('user', $params, 'lastname, firstname', 'id, CONCAT(firstname, \'\', lastname)', 0, 200);
+        $usersopts = $DB->get_records_menu('user', $params, 'lastname, firstname', 'id, CONCAT(firstname, " ", lastname, " (", username, ")")', 0, 200);
 
         if (!empty($config->sync_users_enable)) {
             $attrs = array('size' => 15);

@@ -31,14 +31,14 @@ $config = get_config('local_ent_installer');
 
 $filter = optional_param('filter', '', PARAM_TEXT);
 
-$filterclause = (!empty($filter)) ? " AND (lastname LIKE '%$filter%' OR firstname LIKE '%$filter%')  " : '';
+$filterclause = (!empty($filter)) ? " AND (lastname LIKE '%$filter%' OR firstname LIKE '%$filter%' OR username LIKE '%$filter%')  " : '';
 
 $select = " auth = ? AND deleted = 0 AND mnethostid = ? $filterclause";
 $params = array($config->real_used_auth, $CFG->mnet_localhost_id);
 
-if ($users = $DB->get_records_select('user', $select, $params, 'username', 'id, '.get_all_user_name_fields(true, ''))) {
+if ($users = $DB->get_records_select('user', $select, $params, 'lastname, firstname', 'id, '.get_all_user_name_fields(true, ''))) {
     foreach ($users as $user) {
-        $useropts[$user->id] = fullname($user);
+        $useropts[$user->id] = fullname($user). ' ('.$user->username.')';
     }
 } else {
     $useropts = array();
