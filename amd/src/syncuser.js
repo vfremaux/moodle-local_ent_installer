@@ -55,7 +55,7 @@ define(['jquery', 'core/config', 'core/log'], function($, config, log) {
 
                 var options = $.parseJSON(data);
 
-                for (name in options) {
+                for (var name in options) {
                     select.options[index] = new Option(options[name], name);
                     index++;
                 }
