@@ -56,7 +56,7 @@ class local_ent_installer_external extends external_api {
      * @since Moodle 2.5
      */
     public static function check_runtime_dates($setting, $allhosts = false, $dateformat = 1) {
-        global $CFG, $DB, $USER;
+        global $CFG, $DB;
 
         $parameters = array('setting' => $setting, 'allhosts' => $allhosts, 'dateformat' => $dateformat);
         $params = self::validate_parameters(self::check_runtime_dates_parameters(), $parameters);

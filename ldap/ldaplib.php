@@ -154,8 +154,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     $filters = array();
 
-    list($institutionidlist, $institutionalias) = local_ent_installer_strip_alias($config->institution_id);
-    $institutionids = explode(',', $institutionidlist);
+    $list = local_ent_installer_strip_alias($config->institution_id);
+    $institutionids = explode(',', $list[0]);
 
     // Generic.
 
@@ -578,7 +578,6 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
             $transaction = $DB->start_delegated_transaction();
             $xcount = 0;
-            $maxxcount = 100;
 
             foreach ($users as $user) {
                 echo "\t";
@@ -1009,10 +1008,14 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 }
 
                 if (!empty($user->userpicture)) {
+                    // We are simulating. euser could not be really created.
                     mtrace('Getting/updating user picture');
                     // Could we get some info about a user picture url ?
                     local_installer_get_user_picture($euser->id, $user, $options);
                 }
+            } else {
+                mtrace('SIMULATION : Getting/updating user picture');
+                local_installer_get_user_picture(0, $user, $options);
             }
         }
         unset($assusers); // Free mem.
@@ -1154,8 +1157,6 @@ function local_ent_installer_user_add_info(&$user, $role, $info) {
  */
 function local_ent_installer_guess_old_record($newuser, &$status) {
     global $DB;
-
-    $config = get_config('local_ent_installer');
 
     // If all ID parts match, we are sure (usual case when regular updating).
     $select = " username = ? AND idnumber = ? AND LOWER(firstname) = ? AND LOWER(lastname) = ? ";
@@ -1656,7 +1657,7 @@ function local_ent_installer_release_old_cohorts() {
 function ent_installer_check_archive_category_exists() {
     global $DB;
 
-    if (!$archive = $DB->get_record('course_categories', array('idnumber' => 'ARCHIVE'))) {
+    if (!$DB->get_record('course_categories', array('idnumber' => 'ARCHIVE'))) {
         $archcat = new StdClass();
         $archcat->name = get_string('defaultarchivecatname', 'local_ent_installer');
         $archcat->idnumber = 'ARCHIVE';
@@ -1773,7 +1774,8 @@ function local_ent_installer_ensure_global_cohort_exists($type, $options) {
 
     if (!empty($config->$key)) {
 
-        list($institutionidlist, $institutionalias) = local_ent_installer_strip_alias($config->institution_id);
+        $list = local_ent_installer_strip_alias($config->institution_id);
+        $institutionalias = @$list[1];
         if (empty($institutionalias)) {
             $idnumber = $config->cohort_ix.'_'.$config->institution_id.'_'.$defaultidnums[$type];
         } else {
@@ -1805,6 +1807,12 @@ function local_ent_installer_ensure_global_cohort_exists($type, $options) {
     }
 }
 
+/**
+ * Get a remote picture for a user using a provied URL and save it as internal userpicture.
+ * @param int $userid Effective user id ofr storing. Can be 0 when simulating.
+ * @param object $user a user record being imported.
+ * @param array $options Processing options
+ */
 function local_installer_get_user_picture($userid, &$user, $options = array()) {
     global $CFG;
 
@@ -1887,7 +1895,6 @@ function local_installer_get_user_picture($userid, &$user, $options = array()) {
             $raw = curl_exec($ch);
 
             $error = curl_error($ch);
-            $info = curl_getinfo($ch);
 
             $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
@@ -1904,10 +1911,12 @@ function local_installer_get_user_picture($userid, &$user, $options = array()) {
                 fputs($userpicturefile, $raw);
                 fclose($userpicturefile);
 
-                ent_installer_save_profile_image($userid, $imagefile, $options);
+                if (empty($options['simulate'])) {
+                    ent_installer_save_profile_image($userid, $imagefile, $options);
+                }
             } else {
                 if (!empty($options['verbose'])) {
-                    mtrace("No image found");
+                    mtrace("No image found: $error ");
                 }
             }
         } else {
