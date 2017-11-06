@@ -58,7 +58,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     $dbman = $DB->get_manager();
 
-    list($usec, $sec) = explode(' ',microtime());
+    list($usec, $sec) = explode(' ', microtime());
     $starttick = (float)$sec + (float)$usec;
 
     mtrace(get_string('lastrun', 'local_ent_installer', userdate(@$config->last_sync_date_cohort)));
@@ -82,8 +82,8 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
     list($institutionidlist, $institutionalias) = local_ent_installer_strip_alias($config->institution_id);
     $institutionids = explode(',', $institutionidlist);
 
-    $ldap_pagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
-    if ($ldap_pagedresults) {
+    $ldappagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
+    if ($ldappagedresults) {
         mtrace("Paging results...\n");
     } else {
         mtrace("Paging not supported...\n");
@@ -109,25 +109,27 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
             }
 
             do {
-                if ($ldap_pagedresults) {
+                if ($ldappagedresults) {
                     ldap_control_paged_result($ldapconnection, $ldapauth->config->pagesize, true, $ldapcookie);
                 }
                 if ($ldapauth->config->search_sub) {
                     // Use ldap_search to find first user from subtree.
                     mtrace("ldapsearch $context, $filter for ".$config->cohort_idnumber_attribute);
-                    $ldap_result = ldap_search($ldapconnection, $context, $filter, array($config->cohort_idnumber_attribute, $config->record_date_fieldname));
+                    $params = array($config->cohort_idnumber_attribute, $config->record_date_fieldname);
+                    $ldapresult = ldap_search($ldapconnection, $context, $filter, $params);
                 } else {
                     // Search only in this context.
                     mtrace("ldaplist $context, $filter for ".$config->cohort_idnumber_attribute);
-                    $ldap_result = ldap_list($ldapconnection, $context, $filter, array($config->cohort_idnumber_attribute, $config->record_date_fieldname));
+                    $params = array($config->cohort_idnumber_attribute, $config->record_date_fieldname);
+                    $ldapresult = ldap_list($ldapconnection, $context, $filter, $params);
                 }
-                if (!$ldap_result) {
+                if (!$ldapresult) {
                     continue;
                 }
-                if ($ldap_pagedresults) {
-                    ldap_control_paged_result_response($ldapconnection, $ldap_result, $ldapcookie);
+                if ($ldappagedresults) {
+                    ldap_control_paged_result_response($ldapconnection, $ldapresult, $ldapcookie);
                 }
-                if ($entry = @ldap_first_entry($ldapconnection, $ldap_result)) {
+                if ($entry = @ldap_first_entry($ldapconnection, $ldapresult)) {
                     do {
                         $value = ldap_get_values_len($ldapconnection, $entry, $config->cohort_idnumber_attribute);
                         $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
@@ -150,8 +152,8 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                     } while ($entry = ldap_next_entry($ldapconnection, $entry));
                 }
                 echo "\n";
-                unset($ldap_result); // Free mem.
-            } while ($ldap_pagedresults && !empty($ldapcookie));
+                unset($ldapresult); // Free mem.
+            } while ($ldappagedresults && !empty($ldapcookie));
         }
     }
 
@@ -159,7 +161,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
      * If LDAP paged results were used, the current connection must be completely
      * closed and a new one created, to work without paged results from here on.
      */
-    if ($ldap_pagedresults) {
+    if ($ldappagedresults) {
         $ldapauth->ldap_close(true);
         $ldapconnection = $ldapauth->ldap_connect();
     }
@@ -238,7 +240,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
             foreach ($deleted as $dl) {
                 if (empty($options['simulate'])) {
                     if ($members = $DB->get_records('cohort_members', array('cohortid' => $dl->cid))) {
-                        foreach($members as $m) {
+                        foreach ($members as $m) {
                             // This will trigger cascade events to get everything clean.
                             \cohort_remove_member($dl->cid, $m->userid);
                         }
@@ -294,7 +296,8 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
             if (!empty($cohortinfo->members)) {
 
-                if ($oldmembers = $DB->get_records_menu('cohort_members', array('cohortid' => $oldrec->id), 'userid', 'userid,userid')) {
+                $params = array('cohortid' => $oldrec->id), 'userid', 'userid,userid');
+                if ($oldmembers = $DB->get_records_menu('cohort_members', $params) {
                     $oldmemberids = array_keys($oldmembers);
                 } else {
                     $oldmemberids = array();
@@ -320,7 +323,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 // Need reset register of ids after all updated have been cleaned out.
                 $oldmemberids = array_keys($oldmembers);
 
-                // remains only old ids in members. Remove them.
+                // Remains only old ids in members. Remove them.
                 if (!empty($oldmemberids)) {
                     foreach ($oldmemberids as $userid) {
                         $e = new StdClass;
@@ -346,7 +349,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
         if ($created) {
             foreach ($created as $cr) {
 
-                // Build an external pattern
+                // Build an external pattern.
                 $cohortldapidentifier = $config->cohort_id_pattern;
                 $cidnumber = preg_replace('/^'.$config->cohort_ix.'_/', '', $cr->idnumber); // Unprefix the cohort idnumber.
                 $cohortldapidentifier = str_replace('%CID%', $cidnumber, $cohortldapidentifier);
@@ -442,7 +445,7 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
 
     // Load some cached static data.
     if (!isset($cohortattributes)) {
-        // aggregate additional ent specific attributes that hold interesting information
+        // Aggregate additional ent specific attributes that hold interesting information.
         $cohortattributes = array(
             'name' => core_text::strtolower($config->cohort_name_attribute),
             'description' => core_text::strtolower($config->cohort_description_attribute),
@@ -569,9 +572,9 @@ function local_ent_installer_ldap_find_cohort_dn($ldapconnection, $extcohortdn) 
         $config = get_config('local_ent_installer');
     }
 
-    $ldap_contexts = explode(';', $config->cohort_contexts);
+    $ldapcontexts = explode(';', $config->cohort_contexts);
 
-    return ldap_find_cohortdn($ldapconnection, $extcohortdn, $ldap_contexts, $config->cohort_objectclass,
+    return ldap_find_cohortdn($ldapconnection, $extcohortdn, $ldapcontexts, $config->cohort_objectclass,
                             $config->cohort_id_attribute);
 }
 
@@ -583,41 +586,41 @@ function local_ent_installer_ldap_find_cohort_dn($ldapconnection, $extcohortdn) 
  * @param mixed $cohortidentifier external cohort identifier (external LDAP encoding, no db slashes).
  * @param array $contexts contexts to look for the cohort.
  * @param string $objectclass objectlass of the cohorts (in LDAP filter syntax).
- * @param string $search_attrib the attribute use to look for the cohort.
+ * @param string $searchattrib the attribute use to look for the cohort.
  * @return mixed the cohort dn (external LDAP encoding, no db slashes) or false
  *
  */
-function ldap_find_cohortdn($ldapconnection, $cohortidentifier, $contexts, $objectclass, $search_attrib) {
-    if (empty($ldapconnection) || empty($cohortidentifier) || empty($contexts) || empty($objectclass) || empty($search_attrib)) {
+function ldap_find_cohortdn($ldapconnection, $cohortidentifier, $contexts, $objectclass, $searchattrib) {
+    if (empty($ldapconnection) || empty($cohortidentifier) || empty($contexts) || empty($objectclass) || empty($searchattrib)) {
         return false;
     }
 
-    // Default return value
-    $ldap_cohort_dn = false;
+    // Default return value.
+    $ldapcohortdn = false;
 
-    // Get all contexts and look for first matching user
+    // Get all contexts and look for first matching user.
     foreach ($contexts as $context) {
         $context = trim($context);
         if (empty($context)) {
             continue;
         }
 
-        $ldap_result = @ldap_list($ldapconnection, $context,
-                                  '(&'.$objectclass.'('.$search_attrib.'='.$cohortidentifier.'))',
-                                  array($search_attrib));
+        $ldapresult = @ldap_list($ldapconnection, $context,
+                                  '(&'.$objectclass.'('.$searchattrib.'='.$cohortidentifier.'))',
+                                  array($searchattrib));
 
-        if (!$ldap_result) {
+        if (!$ldapresult) {
             continue; // Not found in this context.
         }
 
-        $entry = ldap_first_entry($ldapconnection, $ldap_result);
+        $entry = ldap_first_entry($ldapconnection, $ldapresult);
         if ($entry) {
-            $ldap_cohort_dn = ldap_get_dn($ldapconnection, $entry);
+            $ldapcohortdn = ldap_get_dn($ldapconnection, $entry);
             break;
         }
     }
 
-    return $ldap_cohort_dn;
+    return $ldapcohortdn;
 }
 
 /**
@@ -629,15 +632,15 @@ function ldap_find_cohortdn($ldapconnection, $cohortidentifier, $contexts, $obje
  */
 function local_ent_installer_get_cohortinfo_asobj($ldapauth, $cohortidentifier, $options = array()) {
 
-    $cohort_array = local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $options);
+    $cohortarr = local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $options);
 
-    if ($cohort_array == false) {
-        return false; //error or not found
+    if ($cohortarr == false) {
+        return false; // Error or not found.
     }
 
-    $cohort_array = truncate_userinfo($cohort_array);
+    $cohortarr = truncate_userinfo($cohortarr);
     $cohort = new stdClass();
-    foreach ($cohort_array as $key => $value) {
+    foreach ($cohortarr as $key => $value) {
         $cohort->{$key} = $value;
     }
     return $cohort;
