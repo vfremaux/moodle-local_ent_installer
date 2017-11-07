@@ -100,6 +100,7 @@ $string['enrolled'] = 'Inscrit par la méthode {$a}';
 $string['enrolmethod'] = 'Méthode d\'inscription';
 $string['entities'] = 'Entités';
 $string['entupdate'] = 'Réalimenter les données d\'établissement';
+$string['filter'] = 'Filtrer';
 $string['finaloperations'] = 'Opérations finales';
 $string['force'] = 'Forcer la mise à jour de toutes les entrées (y compris celles non modifiées dans la période de référence)';
 $string['getinstitutionidservice'] = 'Recherche d\'identifiants d\'établissements';
@@ -143,6 +144,7 @@ $string['syncdisabled'] = 'La synchro est désactivée sur ce site';
 $string['syncgroupsdisabled'] = 'La synchro des groupes de cours est désactivée sur ce site';
 $string['synchronisemoodle'] = 'Synchroniser les données de moodle';
 $string['syncroleassignsdisabled'] = 'La synchro des associations de rôle est désactivée sur ce site';
+$string['syncsingle'] = 'Synchroniser un utilisateur unique';
 $string['synctime'] = 'Temps de syncro';
 $string['synctimes'] = 'Temps de synchro';
 $string['synctimetitle'] = 'Mesure des temps de chargement/mise à jour utilisateurs';
@@ -209,7 +211,7 @@ $string['configuserpicturefilter_desc'] = 'Une expression régulière appliquée
 $string['configuserpictureurlpattern'] = 'Motif de constrution de l\'url d\'avatar';
 $string['configuserpictureurlpattern_desc'] = 'Un motif de construction d\'une URL acceptant la valeur %PICTURE% extraite du champ d\'avatar';
 
-// Cohortes
+// Cohortes.
 
 $string['cohortsfilters'] = 'Filtres LDAP pour les cohortes';
 $string['configcohortcontexts'] = 'Contextes des cohortes';
@@ -253,7 +255,7 @@ $string['cohortmemberremoved'] = 'Membre {$a->username} supprimé de la cohorte 
 $string['disableautocohortscheck'] = 'Désactiver le verrou de cohortes automatiques';
 $string['removingoldcohorts'] = 'Suppression des cohortes obsolètes';
 
-// Associations de rôles.
+// Role assigns.
 
 $string['roleassignsfilters'] = 'Filtres pour l\'association de rôles';
 
@@ -312,7 +314,7 @@ $string['roleassigned'] = 'Rôle {$a->roleinfo} ajouté pour  {$a->userinfo} dan
 $string['roleunassigned'] = 'Rôle {$a->roleinfo} supprimé pour {$a->userinfo} dans {$a->contextinfo}';
 $string['norolechange'] = '{$a->roleinfo} maintenu pour {$a->userinfo} dans {$a->contextinfo}';
 
-// Groupes
+// Groups.
 
 $string['groupsfilters'] = 'Filtres LDAP pour les groupes';
 $string['configgroupcontexts'] = 'Contextes des groupes';
@@ -374,7 +376,8 @@ $string['skipmembership'] = 'Ignorer les membres';
 $string['skipmembership'] = 'Membres ignorés.';
 $string['skipmembership_help'] = 'Si actif, seules les définitions du groupe sont mises à jour. Les inscriptions au groupes ne sont pas modifiées.';
 
-// Structures
+// Structures.
+
 $string['configstructurecity'] = 'Ville';
 $string['configstructurecity_desc'] = 'Attribut LDAP de la ville';
 $string['configstructurecityfilter'] = 'Filtre LDAP pour la ville';

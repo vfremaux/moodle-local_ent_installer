@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * this function schedules the user synchronisation updates
  *
@@ -53,9 +55,9 @@ function local_ent_installer_cron() {
 
         // Get ldap params from real ldap plugin.
         $ldapauth = get_auth_plugin('ldap');
-    
+
         $options = array('host' => $CFG->wwwroot);
-    
+
         // Run the customised synchro.
         local_ent_installer_sync_users($ldapauth, $options);
 

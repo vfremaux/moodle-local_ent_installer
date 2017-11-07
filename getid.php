@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * An accessory script allowing to query the ENT annuary 
+ * An accessory script allowing to query the ENT annuary
  * for school IDs
  *
  * Implementation Specific : ATOS / ENT Atrium Paca, Toutatice ENT Bretagne
@@ -85,11 +85,6 @@ if (!empty($results)) {
     echo html_writer::table($table);
 } else {
     echo $OUTPUT->box(get_string('noresults', 'local_ent_installer'));
-}
-
-if (get_config('showbenches', 'local_ent_installer')) {
-    global $LDAPQUERYTRACE;
-    echo $OUTPUT->box($LDAPQUERYTRACE, 'technical-output');
 }
 
 $form->display();

@@ -49,7 +49,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
         $enrolplugin = enrol_get_plugin($config->roleassign_enrol_method);
     }
 
-     if (!empty($enrolplugin)) {
+    if (!empty($enrolplugin)) {
         mtrace("Enrol plugin : $config->roleassign_enrol_method");
     } else {
         mtrace("No enrol plugin in config. Only assign roles\n");
@@ -80,7 +80,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
     $dbman = $DB->get_manager();
 
-    list($usec, $sec) = explode(' ',microtime());
+    list($usec, $sec) = explode(' ', microtime());
     $starttick = (float)$sec + (float)$usec;
 
     mtrace(get_string('lastrun', 'local_ent_installer', userdate(@$config->last_sync_date_roles)));
@@ -93,7 +93,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     $table->add_field('context', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
     $table->add_field('user', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
 
-    // those fields will be used for avoiding querying the db again and again to get displayable info for reports.
+    // Those fields will be used for avoiding querying the db again and again to get displayable info for reports.
     $table->add_field('userinfo', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, null);
     $table->add_field('roleinfo', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, null);
     $table->add_field('contextinfo', XMLDB_TYPE_CHAR, '50', null, XMLDB_NOTNULL, null, null);
@@ -122,7 +122,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
          $institutionids = array($institutionalias);
     }
 
-    $ldap_pagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
+    $ldappagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
     $ldapcookie = '';
 
     /*
@@ -160,7 +160,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
             }
 
             do {
-                if ($ldap_pagedresults) {
+                if ($ldappagedresults) {
                     ldap_control_paged_result($ldapconnection, $ldapauth->config->pagesize, true, $ldapcookie);
                 }
                 if ($ldapauth->config->search_sub) {
@@ -168,29 +168,29 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                     if (!empty($options['verbose'])) {
                         mtrace("ldapsearch $context, $filter for ".implode(',', $rarecordfields));
                     }
-                    $ldap_result = ldap_search($ldapconnection, $context, $filter, $rarecordfields);
+                    $ldapresult = ldap_search($ldapconnection, $context, $filter, $rarecordfields);
                 } else {
                     // Search only in this context.
                     if (!empty($options['verbose'])) {
                         mtrace("ldaplist $context, $filter for ".implode(',', $rarecordfields));
                     }
-                    $ldap_result = ldap_list($ldapconnection, $context, $filter, $rarecordfields);
+                    $ldapresult = ldap_list($ldapconnection, $context, $filter, $rarecordfields);
                 }
-                if (!$ldap_result) {
+                if (!$ldapresult) {
                     continue;
                 }
-                if ($ldap_pagedresults) {
-                    ldap_control_paged_result_response($ldapconnection, $ldap_result, $ldapcookie);
+                if ($ldappagedresults) {
+                    ldap_control_paged_result_response($ldapconnection, $ldapresult, $ldapcookie);
                 }
-                if ($entry = @ldap_first_entry($ldapconnection, $ldap_result)) {
+                if ($entry = @ldap_first_entry($ldapconnection, $ldapresult)) {
                     do {
                         // Rebuild composite role assign key from attributes.
                         /*
-                         * The composite key get info about role, application level and 
+                         * The composite key get info about role, application level and
                          * an eventual context object id or reference.
                          *
                          * Any part is then filtered to extract clean value, then mapped
-                         * to an value crossmapping (roles and contextlevels). 
+                         * to an value crossmapping (roles and contextlevels).
                          */
 
                         // Get primary cn value.
@@ -220,7 +220,8 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                          * possible.
                          */
                         $cidvalue = 0;
-                        if (($config->roleassign_context_attribute != $config->roleassign_membership_attribute) && isset($clevelvalue)) {
+                        if (($config->roleassign_context_attribute != $config->roleassign_membership_attribute) &&
+                                isset($clevelvalue)) {
                             if (!empty($config->roleassign_context_attribute)) {
                                 if (!empty($options['verbose'])) {
                                     mtrace("Searching context identifier value in {$config->roleassign_context_attribute}");
@@ -263,11 +264,11 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                                     }
 
                                     if ($config->roleassign_contextlevel_attribute == $config->roleassign_membership_attribute) {
-                                        $clevelvalue = local_ent_installer_get_clevel_from_value($m-memberdn, $ldapauth, $config);
+                                        $clevelvalue = local_ent_installer_get_clevel_from_value($m->memberdn, $ldapauth, $config);
                                     }
 
                                     if (($config->roleassign_context_attribute == $config->roleassign_membership_attribute)) {
-                                        $cidvalue = local_ent_installer_get_from_value('context', $m-memberdn, $ldapauth, $config);
+                                        $cidvalue = local_ent_installer_get_from_value('context', $m->memberdn, $ldapauth, $config);
                                         if (!empty($options['verbose'])) {
                                             mtrace("Searching context level in membership $clevelvalue for identifier $cidvalue ");
                                         }
@@ -300,8 +301,8 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                 }
 
                 echo "\n";
-                unset($ldap_result); // Free mem.
-            } while ($ldap_pagedresults && !empty($ldapcookie));
+                unset($ldapresult); // Free mem.
+            } while ($ldappagedresults && !empty($ldapcookie));
         }
     }
 
@@ -309,7 +310,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
      * If LDAP paged results were used, the current connection must be completely
      * closed and a new one created, to work without paged results from here on.
      */
-    if ($ldap_pagedresults) {
+    if ($ldappagedresults) {
         $ldapauth->ldap_close(true);
         $ldapconnection = $ldapauth->ldap_connect();
     }
@@ -418,7 +419,9 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
                     if ($ctx->contextlevel == CONTEXT_COURSE && $enrolplugin) {
 
-                        $params = array('enrol' => $config->roleassign_enrol_method, 'courseid' => $ctx->instanceid, 'status' => ENROL_INSTANCE_ENABLED);
+                        $params = array('enrol' => $config->roleassign_enrol_method,
+                                        'courseid' => $ctx->instanceid,
+                                        'status' => ENROL_INSTANCE_ENABLED);
                         if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
                             mtrace("No enrol instance found in course for this enrol method\n");
                             continue;
@@ -457,10 +460,17 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                 role_unassign($cr->roleid, $cr->userid, $cr->contextid);
                 role_assign($cr->roleid, $cr->userid, $cr->contextid, 'local_ent_installer');
                 mtrace(get_string('roleassigned', 'local_ent_installer', $cr));
+                if ($options['verbose']) {
+                    foreach ($cr as $key => $value) {
+                        mtrace("\t- $key: $value");
+                    }
+                }
                 if (($cr->contextlevel == 'course') && $enrolplugin) {
                     // Context level comes from temp table.
 
-                    $params = array('enrol' => $config->roleassign_enrol_method, 'courseid' => $ctx->instanceid, 'status' => ENROL_INSTANCE_ENABLED);
+                    $params = array('enrol' => $config->roleassign_enrol_method,
+                                    'courseid' => $ctx->instanceid,
+                                    'status' => ENROL_INSTANCE_ENABLED);
                     if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
                         mtrace("No enrol instance found in course for this enrol method\n");
                         continue;
@@ -501,6 +511,8 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     } catch (Exception $e) {
         assert(1);
     }
+
+    $ldapauth->ldap_close();
 
     set_config('last_sync_date_roles', time(), 'local_ent_installer');
 }
@@ -565,18 +577,18 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
 
     $extdn = core_text::convert($dn, 'utf-8', $ldapauth->config->ldapencoding);
 
-    if ($options['debug']) {
+    if (!empty($options['verbose'])) {
         mtrace("\nGetting $dn for ".$config->roleassign_membership_attribute);
     }
-    if (!$roleassign_info_result = ldap_read($ldapconnection, $extdn, '(objectClass=*)', array($config->roleassign_membership_attribute))) {
+    if (!$rainforesult = ldap_read($ldapconnection, $extdn, '(objectClass=*)', array($config->roleassign_membership_attribute))) {
         $ldapauth->ldap_close();
         return false;
     }
 
     $attrmap = array('members' => core_text::strtolower($config->roleassign_membership_attribute));
 
-    $roleassign_entry = ldap_get_entries_moodle($ldapconnection, $roleassign_info_result);
-    if (empty($roleassign_entry)) {
+    $raentry = ldap_get_entries_moodle($ldapconnection, $rainforesult);
+    if (empty($raentry)) {
         $ldapauth->ldap_close();
         return false; // Entry not found.
     }
@@ -586,7 +598,7 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
         // Should only fetch members here. Naything else has no use yet.
 
         // Value is an attribute name.
-        $entry = array_change_key_case($roleassign_entry[0], CASE_LOWER);
+        $entry = array_change_key_case($raentry[0], CASE_LOWER);
 
         if (!array_key_exists($value, $entry)) {
             if ($options['verbose']) {
@@ -604,7 +616,7 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
             }
             foreach ($entry[$value] as $newvalopt) {
                 $newvalopt  = core_text::convert($newvalopt, $ldapauth->config->ldapencoding, 'utf-8');
-                if (!empty($options['debug'])) {
+                if (!empty($options['verbose'])) {
                     mtrace("Extracting from $newvalopt with {$config->roleassign_membership_filter} ");
                 }
                 if (preg_match('/'.$config->roleassign_membership_filter.'/', $newvalopt, $matches)) {
@@ -617,7 +629,8 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
                     if (!empty($options['verbose'])) {
                         mtrace("Getting user record for {$config->roleassign_user_key} = $identifier");
                     }
-                    $user = $DB->get_record('user', array($config->roleassign_user_key => $identifier, 'deleted' => 0), 'id,username,firstname,lastname');
+                    $params = array($config->roleassign_user_key => $identifier, 'deleted' => 0);
+                    $user = $DB->get_record('user', $params, 'id,username,firstname,lastname');
                     if (!$user) {
                         mtrace("Error : User record not found for $identifier. Skipping membership");
                         continue;
@@ -645,15 +658,15 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
  */
 function local_ent_installer_get_roleassigninfo_asobj($ldapauth, $dn, $options = array()) {
 
-    $ra_array = local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options);
+    $raarr = local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options);
 
-    if ($ra_array == false) {
-        return false; //error or not found
+    if ($raarr == false) {
+        return false; // Error or not found.
     }
 
-    $ra_array = truncate_userinfo($ra_array);
+    $raarr = truncate_userinfo($raarr);
     $ra = new stdClass();
-    foreach ($ra_array as $key => $value) {
+    foreach ($raarr as $key => $value) {
         $ra->{$key} = $value;
     }
     return $ra;
@@ -662,7 +675,8 @@ function local_ent_installer_get_roleassigninfo_asobj($ldapauth, $dn, $options =
 /**
  * Bulk insert in SQL's temp table
  */
-function local_ent_installer_ldap_bulk_roleassign_insert($roleid, $contextid, $userid, $roleinfo, $contextinfo, $contextlevel, $userinfo) {
+function local_ent_installer_ldap_bulk_roleassign_insert($roleid, $contextid, $userid, $roleinfo,
+                                                         $contextinfo, $contextlevel, $userinfo) {
     global $DB;
 
     $params = array('role' => $roleid, 'context' => $contextid, 'user' => $userid);

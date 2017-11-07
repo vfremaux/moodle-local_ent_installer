@@ -26,16 +26,19 @@ if (is_dir($CFG->dirroot.'/local/adminsettings')) {
     require_once($CFG->dirroot.'/local/adminsettings/lib.php');
     list($hasconfig, $hassiteconfig, $capability) = local_adminsettings_access();
 } else {
-    // Standard Moodle code
+    // Standard Moodle code.
     $capability = 'moodle/site:config';
     $hasconfig = $hassiteconfig = has_capability($capability, context_system::instance());
 }
 
-require_once $CFG->dirroot.'/local/ent_installer/adminlib.php';
+require_once($CFG->dirroot.'/local/ent_installer/adminlib.php');
 
 if ($hasconfig && is_dir($CFG->dirroot.'/admin/tool/sync')) {
 
     // Add a light weight resync service access to site managers.
+    if (!$ADMIN->locate('automation')) {
+        $ADMIN->add('root', new admin_category('automation', new lang_string('automation', 'tool_sync')));
+    }
 
     $settings = new admin_settingpage('local_ent_installer_light', get_string('entupdate', 'local_ent_installer'));
 
@@ -89,7 +92,7 @@ if ($hassiteconfig) {
         $keymin = 'local_ent_installer/cron_min';
         $label = get_string('configcrontime', 'local_ent_installer');
         $desc = '';
-        $defaults = array('h' => get_config('local_ent_installer','cron_hour'),
+        $defaults = array('h' => get_config('local_ent_installer', 'cron_hour'),
                           'm' => get_config('local_ent_installer', 'cron_min'));
         $settings->add(new admin_setting_configtime($keyhour, $keymin, $label, $desc, $defaults));
 
@@ -238,7 +241,8 @@ if ($hassiteconfig) {
         include($CFG->dirroot.'/local/ent_installer/settings/structures_settings.php');
 
         $installcatsstr = get_string('configinstallcategories', 'local_ent_installer');
-        $html = '<a href="'.$CFG->wwwroot.'/local/ent_installer/installcats.php"><input type="button" class="btn" value="'.$installcatsstr.'" /></a>';
+        $html = '<a href="'.$CFG->wwwroot.'/local/ent_installer/installcats.php">';
+        $html .= '<input type="button" class="btn" value="'.$installcatsstr.'" /></a>';
         $settings->add(new admin_setting_heading('head6', get_string('sitecategories', 'local_ent_installer'), $html));
 
         $key = 'local_ent_installer/initialcategories';
