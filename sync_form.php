@@ -88,11 +88,13 @@ class SyncUsersForm extends moodleform {
             $mform->addElement('checkbox', 'skipmembership', get_string('skipmembership', 'local_ent_installer'));
             $mform->addHelpButton('skipmembership', 'skipmembership', 'local_ent_installer');
 
-            $mform->addElement('checkbox', 'emptygroups', get_string('emptygroups', 'local_ent_installer'), get_string('clear', 'local_ent_installer'));
+            $label = get_string('emptygroups', 'local_ent_installer');
+            $mform->addElement('checkbox', 'emptygroups', $label, get_string('clear', 'local_ent_installer'));
         }
 
         if (!empty($config->sync_cohorts_enable)) {
-            $mform->addElement('checkbox', 'disableautocohortscheck', get_string('disableautocohortscheck', 'local_ent_installer'));
+            $label = get_string('disableautocohortscheck', 'local_ent_installer');
+            $mform->addElement('checkbox', 'disableautocohortscheck', $label);
         }
 
         if ($isent) {
@@ -100,8 +102,10 @@ class SyncUsersForm extends moodleform {
 
             $group = array();
             $group[] = & $mform->createElement('html', '', '');
-            $group[] = & $mform->createElement('submit', 'teachercourserelocatesubmit', get_string('relocateteachercourses', 'local_ent_installer'));
-            $mform->addGroup($group, 'teachercourserelocate', get_string('relocateteachercourses', 'local_ent_installer'), array(), false);
+            $label = get_string('relocateteachercourses', 'local_ent_installer');
+            $group[] = & $mform->createElement('submit', 'teachercourserelocatesubmit', $label);
+            $label = get_string('relocateteachercourses', 'local_ent_installer');
+            $mform->addGroup($group, 'teachercourserelocate', $label, array(), false);
             $mform->addHelpButton('teachercourserelocate', 'relocateteachercourses', 'local_ent_installer');
         }
 

@@ -41,7 +41,8 @@ $titlestr = get_string('synctimetitle', 'local_ent_installer');
 $PAGE->set_context($systemcontext);
 $PAGE->set_heading($titlestr);
 $PAGE->set_pagelayout('admin');
-$PAGE->navbar->add(get_string('pluginname', 'local_ent_installer'), new moodle_url('/admin/settings.php', array('section' => 'local_ent_installer')));
+$murl = new moodle_url('/admin/settings.php', array('section' => 'local_ent_installer'));
+$PAGE->navbar->add(get_string('pluginname', 'local_ent_installer'), $murl);
 $PAGE->navbar->add(get_string('syncbench', 'local_ent_installer'));
 
 echo $OUTPUT->header();
@@ -63,17 +64,21 @@ $meantime = 0;
 $normalmeantime = 0;
 $sumdurationwovertimes = 0;
 
-$timegrid = array(array(array(date('d-M-Y', time()),'0')));
+$timegrid = array(array(array(date('d-M-Y', time()), '0')));
 if ($benchrecs = $DB->get_records_select('local_ent_installer', " timestart > $horizon ")) {
     $i = 0;
     $iwo = 0;
     foreach ($benchrecs as $b) {
         $sumduration += $b->timerun;
-        if ($b->timerun > $maxduration) $maxduration = $b->timerun;
+        if ($b->timerun > $maxduration) {
+            $maxduration = $b->timerun;
+        }
         if (is_null($minduration)) {
             $minduration = $b->timerun;
         } else {
-            if ($b->timerun < $minduration) $minduration = $b->timerun;
+            if ($b->timerun < $minduration) {
+                $minduration = $b->timerun;
+            }
         }
         $suminserts += $b->added;
         $sumupdates += $b->updated;
@@ -132,7 +137,11 @@ $jqplot = array(
     ),
 );
 local_vflibs_jqplot_print_graph('plot1', $jqplot, $timegrid, 750, 250, 'margin:20px;');
-echo '<center><button id="timegraph-zoom-reset" onclick="plot.resetZoom();return true;" value="'.get_string('reset', 'local_ent_installer').'"></center>';
+
+echo '<center>';
+$resetstr = get_string('reset', 'local_ent_installer');
+echo '<button id="timegraph-zoom-reset" onclick="plot.resetZoom();return true;" value="'.$resetstr.'">';
+echo '</center>';
 echo $OUTPUT->box_end();
 
 echo $OUTPUT->box_start('ent-installer-report-globals');

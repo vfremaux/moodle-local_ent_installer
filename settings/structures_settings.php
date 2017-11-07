@@ -22,6 +22,7 @@
  * @copyright   2015 Valery Fremaux (valery.fremaux@gmail.com)
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+defined('MOODLE_INTERNAL') || die();
 
 $settings->add(new admin_setting_heading('head5', get_string('structuresearch', 'local_ent_installer'), ''));
 
@@ -83,6 +84,7 @@ if (is_dir($CFG->dirroot.'/local/vmoodle')) {
     // Add provision to get some instance related metadata.
     if ($DB->record_exists('local_vmoodle', array('vhostname' => $CFG->wwwroot))) {
         $refreshsitemetadatastr = get_string('refreshsitemetadata', 'local_ent_installer');
-        $html = '<a href="'.$CFG->wwwroot.'/local/ent_installer/refreshmetadata.php"><input type="button" class="btn" value="'.$refreshsitemetadatastr.'" /></a>';
+        $html = '<a href="'.$CFG->wwwroot.'/local/ent_installer/refreshmetadata.php">';
+        $html .= '<input type="button" class="btn" value="'.$refreshsitemetadatastr.'" /></a>';
     }
 }

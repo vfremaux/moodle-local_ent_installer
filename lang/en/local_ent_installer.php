@@ -215,7 +215,7 @@ $string['configuserpictureurlpattern_desc'] = 'An pattern for producing an URL u
 $string['configprotectcategoriesfromrelocate'] = 'Protected categories';
 $string['configprotectcategoriesfromrelocate_desc'] = 'Give a coma separated list of ids of moodle course categories in which courses MUST NOT be moved to teacher standard category.';
 
-// Cohorts
+// Cohorts.
 
 $string['cohortsfilters'] = 'Cohort LDAP filters';
 
@@ -382,7 +382,8 @@ $string['skipmembership'] = 'Skip membership';
 $string['skippingmembership'] = 'Skipping membership';
 $string['skipmembership_help'] = 'If set, only group info is updated. No members are moved from groups.';
 
-// Structures
+// Structures.
+
 $string['configstructurecity'] = 'Structure city';
 $string['configstructurecity_desc'] = 'LDAP attribute holding the structure city';
 $string['configstructurecityfilter'] = 'LDAP filter for current city';
