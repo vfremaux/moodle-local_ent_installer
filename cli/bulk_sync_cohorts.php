@@ -43,6 +43,7 @@ list($options, $unrecognized) = cli_get_params(
         'notify'           => false,
         'fullstop'         => false,
         'debug'            => false,
+        'nocheck'          => false,
     ),
     array(
         'h' => 'help',
@@ -56,6 +57,7 @@ list($options, $unrecognized) = cli_get_params(
         'N' => 'notify',
         's' => 'fullstop',
         'd' => 'debug',
+        'x' => 'nocheck',
     )
 );
 
@@ -80,6 +82,7 @@ if ($options['help']) {
     -H, --horodate      If set horodate log files
     -N, --notify        Notifies on failure
     -S, --hardstop      Stops on first failure
+    -x, --nocheck       Do NOT check cohort component origin
 
 "; // TODO: localize - to be translated later when everything is finished.
 
@@ -109,6 +112,11 @@ if (!empty($options['force'])) {
 $notify = '';
 if (!empty($options['notify'])) {
     $notify = ' --notify ';
+}
+
+$nocheck = '';
+if (!empty($options['nocheck'])) {
+    $nocheck = ' --nocheck ';
 }
 
 $horodate = '';
@@ -169,7 +177,7 @@ foreach ($joblist as $jl) {
     if (!empty($jl)) {
         $hids = implode(',', $jl);
         $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts_worker.php {$debug} --nodes=\"$hids\" ";
-        $workercmd .= " {$logroot} {$horodate} {$force} {$verbose} {$empty} {$notify} {$hardstop}";
+        $workercmd .= " {$logroot} {$horodate} {$force} {$verbose} {$empty} {$notify} {$hardstop} {$nocheck}";
         if ($options['distributed']) {
             $workercmd .= ' &';
         }

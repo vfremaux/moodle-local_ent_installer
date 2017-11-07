@@ -22,6 +22,7 @@
  * @copyright   2015 Valery Fremaux (valery.fremaux@gmail.com)
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+defined('MOODLE_INTERNAL') || die();
 
 $settings->add(new admin_setting_heading('head2', get_string('cohortsfilters', 'local_ent_installer'), ''));
 

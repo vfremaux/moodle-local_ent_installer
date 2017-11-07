@@ -100,18 +100,18 @@ function local_ent_installer_get_teacher_cat_idnumber($user) {
  * @return string
  */
 function local_ent_installer_teacher_category_name($user) {
-    static $USERFIELDS;
+    static $userfields;
     global $DB;
 
-    if (empty($USERFIELDS)) {
+    if (empty($userfields)) {
         // Initialise once.
-        $USERFIELDS = local_ent_installer_load_user_fields();
+        $userfields = local_ent_installer_load_user_fields();
     }
 
     $config = get_config('local_ent_installer');
 
     if (!empty($config->teacher_mask_firstname)) {
-        // Initialize firstname
+        // Initialize firstname.
         preg_match_all('/[\wéèöëêôÏîàùç]+/u', $user->firstname, $matches);
         $firstnameinitials = '';
         foreach (array_values($matches) as $res) {
@@ -119,7 +119,8 @@ function local_ent_installer_teacher_category_name($user) {
         }
 
         if (empty($user->personalTitle)) {
-            $personaltitle = $DB->get_field('user_info_data', 'data', array('fieldid' => $USERFIELDS['personaltitle'], 'userid' => $user->id));
+            $params = array('fieldid' => $userfields['personaltitle'], 'userid' => $user->id);
+            $personaltitle = $DB->get_field('user_info_data', 'data', $params);
         }
 
         $name = $personaltitle.' '.$firstnameinitials.' '.$user->lastname;
@@ -153,7 +154,8 @@ function local_ent_installer_fix_teacher_categories() {
         return;
     }
 
-    $allcats = $DB->get_records('course_categories', array('parent' => $config->teacher_stub_category), 'sortorder', 'id,idnumber,sortorder');
+    $params = array('parent' => $config->teacher_stub_category);
+    $allcats = $DB->get_records('course_categories', $params, 'sortorder', 'id,idnumber,sortorder');
     $managerrole = $DB->get_record('role', array('shortname' => 'manager'));
     if ($allcats) {
         foreach ($allcats as $cat) {
@@ -163,12 +165,14 @@ function local_ent_installer_fix_teacher_categories() {
                 mtrace("Warning : More than one in category $cat->id : $cat->name");
             }
             if ($managers) {
-                // We usually expect one manager here
+                // We usually expect one manager here.
                 $first = array_shift($managers);
                 $user = $DB->get_record('user', array('id' => $first->userid));
-                $teachercatidnum = core_text::strtoupper($user->lastname).'_'.core_text::substr(core_text::strtoupper($user->firstname), 0, 1).'$'.$user->idnumber.'$CAT';
+                $teachercatidnum = core_text::strtoupper($user->lastname).'_';
+                $teachercatidnum .= core_text::substr(core_text::strtoupper($user->firstname), 0, 1).'$'.$user->idnumber.'$CAT';
                 $DB->set_field('course_categories', 'idnumber', $teachercatidnum, array('id' => $cat->id));
-                $DB->set_field('course_categories', 'name', local_ent_installer_teacher_category_name($user), array('id' => $cat->id));
+                $namevalue = local_ent_installer_teacher_category_name($user);
+                $DB->set_field('course_categories', 'name', $namevalue, array('id' => $cat->id));
             }
         }
     }
@@ -361,7 +365,7 @@ function local_ent_installer_fix_unprefixed_cohorts() {
     $config = get_config('local_ent_installer');
 
     if (!empty($config->cohort_ix)) {
-        // Remove eventual alias
+        // Remove eventual alias.
         $institutionids = preg_replace('/alias.*$/', '', $config->institution_id);
         $iids = explode(',', $institutionids);
 
@@ -414,6 +418,7 @@ function local_ent_installer_install_categories($simulate = false) {
 
             list($plugin, $settingkey) = explode('/', $setting);
 
+            preg_replace('#^/#', '', $category->name);
             $parts = explode('/', $category->name);
             $maxdepth = count($parts);
             $parentid = 0;
@@ -432,14 +437,18 @@ function local_ent_installer_install_categories($simulate = false) {
              */
             foreach ($parts as $part) {
                 $namepath .= '/'.$part;
+                // Note that initial categories names and parent names should be unique in Moodle. Or this will fail.
                 if (!$thiscat = $DB->get_record('course_categories', array('name' => $part))) {
                     if (!$simulate) {
 
                         if ($depth == $maxdepth) {
+                            // This is the real category name to create.
                             // Pre check idnumber. We may already have one with this IDNum.
                             if (!empty($category->idnumber)) {
                                 if ($oldcategory = $DB->get_record('course_categories', array('idnumber' => $category->idnumber))) {
                                     // Bind this category to plugin before leaving.
+                                    $oldcategory->name = $part;
+                                    $DB->update_record('course_categories', $oldrecord);
                                     local_ent_installer_bind_cat_to_plugin($plugin, $settingkey, $oldcategory, $simulate);
                                     continue 2;
                                 }
@@ -466,10 +475,11 @@ function local_ent_installer_install_categories($simulate = false) {
                         }
                         $depth++;
                     } else {
-                        mtrace("Category $namepath is missing at depth $depth.");
+                        mtrace("Category $namepath is missing at depth $depth. Will be created.");
                         $depth++;
                     }
                 } else {
+                    // We have a category of this name already.
                     $coursecat = coursecat::get($thiscat->id);
                     $parentid = $thiscat->id;
                     if (!$simulate) {
@@ -494,9 +504,6 @@ function local_ent_installer_install_categories($simulate = false) {
                 local_ent_installer_bind_cat_to_plugin($plugin, $settingkey, $category, $simulate);
             };
         }
-    }
-
-    if (!$simulate) {
     }
 }
 

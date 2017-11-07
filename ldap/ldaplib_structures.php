@@ -24,6 +24,8 @@
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * a utility function that explores the ldap ENTEtablissement object list to get proper institution id
  *
@@ -74,21 +76,23 @@ function local_ent_installer_ldap_search_institution_id($ldapauth, $search, $sea
         $structurename = 'ENTStructureNomCourant';
     }
 
-    list($usec, $sec) = explode(' ',microtime());
+    list($usec, $sec) = explode(' ', microtime());
     $pretick = (float)$sec + (float)$usec;
 
     // Search only in this context.
-    echo "Searching in $context where $filter for ($structureid, $structurename, $structurecity, $structuregeoloc, $structureaddress) <br/>";
-    $ldap_result = @ldap_search($ldapconnection, $context, $filter, array($structureid, $structurename, $structurecity, $structuregeoloc, $structureaddress));
-    list($usec, $sec) = explode(' ',microtime()); 
+    echo "Searching in $context where $filter for ($structureid, $structurename, $structurecity, ";
+    echo "$structuregeoloc, $structureaddress) <br/>";
+    $ldapresult = @ldap_search($ldapconnection, $context, $filter, array($structureid, $structurename,
+                               $structurecity, $structuregeoloc, $structureaddress));
+    list($usec, $sec) = explode(' ', microtime());
     $posttick = (float)$sec + (float)$usec;
 
-    if (!$ldap_result) {
+    if (!$ldapresult) {
         return '';
     }
 
     $results = array();
-    if ($entry = @ldap_first_entry($ldapconnection, $ldap_result)) {
+    if ($entry = @ldap_first_entry($ldapconnection, $ldapresult)) {
         do {
             $institution = new StdClass();
 
@@ -111,7 +115,7 @@ function local_ent_installer_ldap_search_institution_id($ldapauth, $search, $sea
 
         } while ($entry = ldap_next_entry($ldapconnection, $entry));
     }
-    unset($ldap_result); // Free mem.
+    unset($ldapresult); // Free mem.
 
     return $results;
 }

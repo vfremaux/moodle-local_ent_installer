@@ -64,6 +64,7 @@ list($options, $unrecognized) = cli_get_params(
         'host'              => false,
         'force'             => false,
         'debug'             => false,
+        'nocheck'           => false,
     ),
     array(
         'h' => 'help',
@@ -73,6 +74,7 @@ list($options, $unrecognized) = cli_get_params(
         's' => 'simulate',
         'H' => 'host',
         'd' => 'debug',
+        'x' => 'nocheck',
     )
 );
 
@@ -94,6 +96,7 @@ if ($options['help']) {
     -e, --empty         Clean out empty cohorts after members deletion.
     -H, --host          Set the host (physical or virtual) to operate on
     -d, --debug         Turns debug on.
+    -x, --nocheck       Do NOT check component origin.
 
     "; // TODO: localize - to be translated later when everything is finished
 
@@ -107,10 +110,9 @@ if (!empty($options['host'])) {
     define('CLI_VMOODLE_OVERRIDE', $options['host']);
 }
 
-// Replay full config whenever (only in vmoodle). If vmoodle switch is armed, will switch now config.
-if (defined('VMOODLE_BOOT')) {
-    require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
-}
+// Replay full config whenever. If vmoodle switch is armed, will switch now config.
+
+require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 echo('Config check : playing for '.$CFG->wwwroot);
 require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // ensure we have coursecat class.
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php'); // Ldap primitives.
@@ -121,9 +123,37 @@ if (!empty($options['debug'])) {
     $CFG->debug = E_ALL;
 }
 
+$options['disableautocohortscheck'] = false;
+if (!empty($options['nocheck'])) {
+    $options['disableautocohortscheck'] = true;
+}
+
 // Fakes an admin identity for all the process.
 global $USER;
-$USER = get_admin();
+
+// Get main siteadmin.
+$USER = $DB->get_record('user', array('username' => $CFG->admin));
+
+// If failed, get first available site admin.
+if (empty($USER)) {
+    $siteadminlist = $CFG->siteadmins;
+    if (empty($siteadminlist)) {
+        echo "No site admins. This is not a normal situation. Quitting.\n";
+        exit(1);
+    }
+    $siteadmins = explode(',', $siteadminlist);
+    foreach ($siteadmins as $uid) {
+        $USER = $DB->get_record('user', array('id' => $uid));
+        if (!empty($USER)) {
+            break;
+        }
+    }
+}
+
+if (empty($USER)) {
+    echo "No site admins at all. This is not a normal situation. Quitting.\n";
+    exit(1);
+}
 
 // Get ldap params from real ldap plugin.
 $ldapauth = get_auth_plugin('ldap');
