@@ -61,6 +61,7 @@ echo $OUTPUT->header();
 echo $OUTPUT->heading($syncstr);
 
 if ($data = $mform->get_data()) {
+
     if (!empty($data->teachercourserelocatesubmit)) {
         echo '<div class="console">';
         echo '<pre>';
@@ -90,31 +91,45 @@ if ($data = $mform->get_data()) {
         $options['updateonly'] = @$data->updateonly;
         $options['skipmembership'] = @$data->skipmembership;
 
-        if (!empty(@$data->users)) {
+        $done = false;
+
+        if (!empty($data->users)) {
             echo '<div class="console">';
             echo '<pre>';
             local_ent_installer_sync_users($ldapauth, $options);
             echo '</pre>';
             echo '</div>';
+            $done = true;
         }
-        if (!empty(@$data->cohorts)) {
+        if (!empty($data->cohorts)) {
             echo '<div class="console">';
             echo '<pre>';
             local_ent_installer_sync_cohorts($ldapauth, $options);
             echo '</pre>';
             echo '</div>';
+            $done = true;
         }
-        if (!empty(@$data->groups)) {
+        if (!empty($data->groups)) {
             echo '<div class="console">';
             echo '<pre>';
             local_ent_installer_sync_groups($ldapauth, $options);
             echo '</pre>';
             echo '</div>';
+            $done = true;
         }
-        if (!empty(@$data->roleassigns)) {
+        if (!empty($data->roleassigns)) {
             echo '<div class="console">';
             echo '<pre>';
             local_ent_installer_sync_roleassigns($ldapauth, $options);
+            echo '</pre>';
+            echo '</div>';
+            $done = true;
+        }
+
+        if (!$done) {
+            echo '<div class="console">';
+            echo '<pre>';
+            echo get_string('nothingdone', 'local_ent_installer');
             echo '</pre>';
             echo '</div>';
         }
