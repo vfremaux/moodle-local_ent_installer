@@ -168,9 +168,15 @@ $string['wsdateformat'] = 'Date format';
 $string['wsentsyncdate'] = 'Users sync last date';
 $string['wslastcron'] = 'Site known last cron time';
 $string['wssetting'] = 'Setting to monitor';
+$string['unalias'] = 'Use individual institution ids';
+$string['usealias'] = 'Use only alias rather than institution ids';
+$string['addalias'] = 'Add alias to institution list';
+$string['nothingdone'] = 'No processing';
 
 $string['personfilters'] = 'LDAP Filters for user profiles';
 $string['configgenericusertypefilter'] = 'Generic user discriminator';
+$string['configinstitutionaliasing'] = 'Institution aliasing';
+$string['configinstitutionaliasing_desc'] = 'Use of the institution alias when scanning for users.';
 $string['configgenericusertypefilter_desc'] = '';
 $string['configgenericinstitutionfilter'] = 'Generic institution discriminator';
 $string['configgenericinstitutionfilter_desc'] = '';

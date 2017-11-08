@@ -26,8 +26,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// This allows 2 minutes synchronisation before trigerring an overtime.
+// This allows 2 minutes synchronisation before trigering an overtime.
 define('OVERTIME_THRESHOLD', 120);
+
+// Alias operation on institution ids.
+define('ALIAS_UNALIAS', 0); // Unalias and use individual institution ids.
+define('ALIAS_USEALIAS', 1); // Use only the alias and forget individual institution ids
+define('ALIAS_ADDALIAS', 2); // Add the alias expression to the scannable contexts
 
 /**
  * get strings from a special install file, whatever

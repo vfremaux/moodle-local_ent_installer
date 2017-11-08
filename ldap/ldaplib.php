@@ -157,6 +157,25 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     $list = local_ent_installer_strip_alias($config->institution_id);
     $institutionids = explode(',', $list[0]);
 
+    switch ($config->users_aliasing) {
+        case ALIAS_ADDALIAS: {
+            if (!empty($list[1])) {
+                $institutionids[] = $list[1];
+            }
+            break;
+        }
+
+        case ALIAS_USEALIAS: {
+            if (!empty($list[1])) {
+                $institutionids = array($list[1]);
+            }
+            break;
+        }
+
+        case ALIAS_UNALIAS:
+        default;
+    }
+
     // Generic.
 
     /*
