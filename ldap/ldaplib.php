@@ -1931,7 +1931,8 @@ function local_installer_get_user_picture($userid, &$user, $options = array()) {
                 fclose($userpicturefile);
 
                 if (empty($options['simulate'])) {
-                    ent_installer_save_profile_image($userid, $imagefile, $options);
+                    $newiconid = ent_installer_save_profile_image($userid, $imagefile, $options);
+                    $DB->set_field('user', 'picture', $newiconid, array('id' => $userid));
                 }
             } else {
                 if (!empty($options['verbose'])) {
