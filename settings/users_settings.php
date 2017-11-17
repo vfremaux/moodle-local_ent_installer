@@ -24,6 +24,8 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
+
 $settings->add(new admin_setting_heading('head1', get_string('personfilters', 'local_ent_installer'), ''));
 
 $key = 'local_ent_installer/sync_users_enable';
@@ -91,6 +93,17 @@ $label = get_string('configsiteadminsinstitutionfilter', 'local_ent_installer');
 $desc = get_string('configsiteadminsinstitutionfilter_desc', 'local_ent_installer');
 $default = '';
 $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
+$key = 'local_ent_installer/users_aliasing';
+$label = get_string('configinstitutionaliasing', 'local_ent_installer');
+$desc = get_string('configinstitutionaliasing_desc', 'local_ent_installer');
+$aliasoptions = array(
+    ALIAS_UNALIAS => get_string('unalias', 'local_ent_installer'),
+    ALIAS_USEALIAS => get_string('usealias', 'local_ent_installer'),
+    ALIAS_ADDALIAS => get_string('addalias', 'local_ent_installer'),
+);
+$default = ALIAS_UNALIAS;
+$settings->add(new admin_setting_configselect($key, $label, $desc, $default, $aliasoptions));
 
 $key = 'local_ent_installer/student_cohort_userfield';
 $label = get_string('configstudentcohortuserfield', 'local_ent_installer');

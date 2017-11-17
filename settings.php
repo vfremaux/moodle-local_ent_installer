@@ -208,6 +208,18 @@ if ($hassiteconfig) {
         $default = '';
         $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
+        $key = 'local_ent_installer/create_adminstaff_site_cohort';
+        $label = get_string('configcreateadminstaffsitecohort', 'local_ent_installer');
+        $desc = get_string('configcreateadminstaffsitecohort_desc', 'local_ent_installer');
+        $default = '';
+        $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
+
+        $key = 'local_ent_installer/staff_site_cohort_name';
+        $label = get_string('configadminstaffsitecohortname', 'local_ent_installer');
+        $desc = get_string('configadminstaffsitecohortname_desc', 'local_ent_installer');
+        $default = '';
+        $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
         $key = 'local_ent_installer/admins_site_cohort_name';
         $label = get_string('configadminssitecohortname', 'local_ent_installer');
         $desc = get_string('configadminssitecohortname_desc', 'local_ent_installer');
