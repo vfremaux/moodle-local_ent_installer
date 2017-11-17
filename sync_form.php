@@ -49,7 +49,7 @@ class SyncUsersForm extends moodleform {
             $attrs = array('href' => $singleuserurl);
             $html = html_writer::tag('a', $button, $attrs);
             $group[] = &$mform->createElement('static', 'singleuser', '', $html);
-            $mform->addGroup($group, 'usersgroup', get_string('users', 'local_ent_installer'), false, array(''), false);
+            $mform->addGroup($group, 'usersgroup', get_string('users', 'local_ent_installer'),array(''), false);
         }
 
         if (!empty($config->sync_cohorts_enable)) {
