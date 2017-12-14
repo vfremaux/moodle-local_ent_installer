@@ -419,19 +419,35 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
                     if ($ctx->contextlevel == CONTEXT_COURSE && $enrolplugin) {
 
-                        $params = array('enrol' => $config->roleassign_enrol_method,
-                                        'courseid' => $ctx->instanceid,
-                                        'status' => ENROL_INSTANCE_ENABLED);
-                        if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
-                            mtrace("No enrol instance found in course for this enrol method\n");
-                            continue;
-                        } else {
-                            $enrol = reset($enrols);
-                        }
+                        if ($config->roleassign_enrol_method != 'sync') {
+                            $params = array('enrol' => $config->roleassign_enrol_method,
+                                            'courseid' => $ctx->instanceid,
+                                            'status' => ENROL_INSTANCE_ENABLED);
+                            if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
+                                mtrace("No enrol instance found in course for this enrol method\n");
+                                continue;
+                            } else {
+                                $enrol = reset($enrols);
+                            }
 
-                        // We only manage in course.
-                        // Unenrol the required plugin.
-                        $enrolplugin->unenrol_user($enrol, $dl->userid);
+                            // We only manage in course.
+                            // Unenrol the required plugin.
+                            $enrolplugin->unenrol_user($enrol, $dl->userid);
+                        } else {
+                            if (!file_exists($CFG->dirroot.'/enrol/sync/lib.php')) {
+                                throw new moodle_exception('Trying to use enrol/sync plugin but not installed here.');
+                            }
+                            include_once($CFG->dirroot.'/enrol/sync/lib.php');
+
+                            // Course id has been already checked.
+                            $course = $DB->get_record('course', array('id' => $ctx->instanceid));
+                            if (!$course) {
+                                mtrace('Missing course for id '.$ctx->instanceid);
+                                continue;
+                            } else {
+                                \enrol_sync_plugin::static_unenrol_user($course, $dl->userid);
+                            }
+                        }
                         mtrace(get_string('unenrolled', 'local_ent_installer', $options['enrol']));
                     }
                 } else {
@@ -468,19 +484,37 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                 if (($cr->contextlevel == 'course') && $enrolplugin) {
                     // Context level comes from temp table.
 
-                    $params = array('enrol' => $config->roleassign_enrol_method,
-                                    'courseid' => $ctx->instanceid,
-                                    'status' => ENROL_INSTANCE_ENABLED);
-                    if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
-                        mtrace("No enrol instance found in course for this enrol method\n");
-                        continue;
-                    } else {
-                        $enrol = reset($enrols);
-                    }
+                    if ($config->roleassign_enrol_method != 'sync') {
+                        $params = array('enrol' => $config->roleassign_enrol_method,
+                                        'courseid' => $ctx->instanceid,
+                                        'status' => ENROL_INSTANCE_ENABLED);
+                        if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
+                            mtrace("No enrol instance found in course for this enrol method\n");
+                            continue;
+                        } else {
+                            $enrol = reset($enrols);
+                        }
 
-                    // We only manage in course.
-                    // Enrol with specified plugin.
-                    $enrolplugin->enrol_user($enrol, $cr->userid);
+                        // We only manage in course.
+                        // Enrol with specified plugin.
+                        $enrolplugin->enrol_user($enrol, $cr->userid);
+                    } else {
+                        if (!file_exists($CFG->dirroot.'/enrol/sync/lib.php')) {
+                            throw new moodle_exception('Trying to use enrol/sync plugin but not installed here.');
+                        }
+
+                        include_once($CFG->dirroot.'/enrol/sync/lib.php');
+
+                        // Course id has been already checked.
+                        $course = $DB->get_record('course', array('id' => $courseid));
+                            if (!$course) {
+                                mtrace('Missing course for id '.$ctx->instanceid);
+                                continue;
+                            } else {
+                                $status = ENROL_USER_ACTIVE;
+                                \enrol_sync_plugin::static_enrol_user($course, $cr->userid, $cr->roleid, time(), 0, $status);
+                            }
+                    }
                     mtrace(get_string('enrolled', 'local_ent_installer', $enrol->enrol.' '.$enrol->id));
                 }
             } else {

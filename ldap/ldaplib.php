@@ -36,6 +36,7 @@ define('ENT_MATCH_ID_NO_USERNAME', 50);
 define('ENT_MATCH_ID_LASTNAME_NO_USERNAME_FIRSTNAME', 20);
 define('ENT_MATCH_NO_ID_NO_USERNAME_LASTNAME_FIRSTNAME', 10);
 define('ENT_MATCH_NO_ID_USERNAME_LASTNAME_FIRSTNAME', 100);
+define('ENT_MATCH_ID_USERNAME_NO_LASTNAME_FIRSTNAME', 100);
 define('ENT_NO_MATCH', 0);
 
 global $matchstatusarr;
@@ -100,6 +101,9 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     if ($config->create_staff_site_cohort) {
         $staffsitecohortid = local_ent_installer_ensure_global_cohort_exists('staff', $options);
     }
+    if ($config->create_adminstaff_site_cohort) {
+        $adminstaffsitecohortid = local_ent_installer_ensure_global_cohort_exists('adminstaff', $options);
+    }
     $adminssitecohortid = local_ent_installer_ensure_global_cohort_exists('admins', $options);
 
     if ($isent) {
@@ -156,6 +160,25 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     $list = local_ent_installer_strip_alias($config->institution_id);
     $institutionids = explode(',', $list[0]);
+
+    switch ($config->users_aliasing) {
+        case ALIAS_ADDALIAS: {
+            if (!empty($list[1])) {
+                $institutionids[] = $list[1];
+            }
+            break;
+        }
+
+        case ALIAS_USEALIAS: {
+            if (!empty($list[1])) {
+                $institutionids = array($list[1]);
+            }
+            break;
+        }
+
+        case ALIAS_UNALIAS:
+        default;
+    }
 
     // Generic.
 
@@ -925,8 +948,18 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         cohort_add_member($studentsitecohortid, $id);
                     }
                 } else {
-                    if (!empty($staffsitecohortid)) {
-                        cohort_add_member($staffsitecohortid, $id);
+                    if ($user->usertype == 'enseignant' || $user->usertype == 'cdt') {
+                        // Teaching crew.
+                        if (!empty($staffsitecohortid)) {
+                            cohort_add_member($staffsitecohortid, $id);
+                            cohort_remove_member($adminstaffsitecohortid, $id);
+                        }
+                    } else {
+                        // Non Teaching crew.
+                        if (!empty($adminstaffsitecohortid)) {
+                            cohort_add_member($adminstaffsitecohortid, $id);
+                            cohort_remove_member($staffsitecohortid, $id);
+                        }
                     }
                 }
 
@@ -1186,6 +1219,17 @@ function local_ent_installer_guess_old_record($newuser, &$status) {
     }
 
     // Failover : IDNumber and last name match, but not firstname. this may occur with misspelling.
+    $params = array($newuser->idnumber, $newuser->username);
+    $oldrec = $DB->get_record_select('user', " idnumber = ? AND username = ? ", $params);
+    if ($oldrec) {
+        $status = ENT_MATCH_ID_USERNAME_NO_LASTNAME_FIRSTNAME;
+        return $oldrec;
+    }
+
+    /*
+     * Failover : IDNumber and username match, but not any other this may occur when pushing a temp fake user in
+     * moodle and syncing.
+     */
     $params = array($newuser->idnumber, strtolower($newuser->lastname));
     $oldrec = $DB->get_record_select('user', " idnumber = ? AND LOWER(lastname) = ? ", $params);
     if ($oldrec) {
@@ -1559,8 +1603,12 @@ function local_ent_installer_check_cohort($userid, $cohortidentifier) {
      * TODO : Reinforce weird cases of collisions with old cohorts if cohort prefix
      * accidentally not set
      */
-    $DB->insert_record('cohort_members', $membership);
-    mtrace('Registering in cohort '.$cohort->idnumber);
+
+    $params = array('cohortid' => $cohort->id, 'userid' => $userid);
+    if (!$oldrecord = $DB->get_record('cohort_members', $params)) {
+        $DB->insert_record('cohort_members', $membership);
+        mtrace('Registering in cohort '.$cohort->idnumber);
+    }
 
     return $cohortname;
 }
@@ -1763,6 +1811,7 @@ function local_ent_installer_ensure_global_cohort_exists($type, $options) {
     $defaultidnums = array(
         'students' => 'ELE',
         'staff' => 'ENS',
+        'adminstaff' => 'NENS',
         'admins' => 'ADM'
     );
 
@@ -1814,7 +1863,7 @@ function local_ent_installer_ensure_global_cohort_exists($type, $options) {
  * @param array $options Processing options
  */
 function local_installer_get_user_picture($userid, &$user, $options = array()) {
-    global $CFG;
+    global $CFG, $DB;
 
     $config = get_config('local_ent_installer');
 
@@ -1912,7 +1961,9 @@ function local_installer_get_user_picture($userid, &$user, $options = array()) {
                 fclose($userpicturefile);
 
                 if (empty($options['simulate'])) {
-                    ent_installer_save_profile_image($userid, $imagefile, $options);
+                    $newiconid = ent_installer_save_profile_image($userid, $imagefile, $options);
+                    $DB->set_field('user', 'picture', $newiconid, array('id' => $userid));
+                    $user->picture = $newiconid;
                 }
             } else {
                 if (!empty($options['verbose'])) {
