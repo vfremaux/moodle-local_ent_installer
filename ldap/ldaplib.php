@@ -1603,8 +1603,12 @@ function local_ent_installer_check_cohort($userid, $cohortidentifier) {
      * TODO : Reinforce weird cases of collisions with old cohorts if cohort prefix
      * accidentally not set
      */
-    $DB->insert_record('cohort_members', $membership);
-    mtrace('Registering in cohort '.$cohort->idnumber);
+
+    $params = array('cohortid' => $cohort->id, 'userid' => $userid);
+    if (!$oldrecord = $DB->get_record('cohort_members', $params)) {
+        $DB->insert_record('cohort_members', $membership);
+        mtrace('Registering in cohort '.$cohort->idnumber);
+    }
 
     return $cohortname;
 }
