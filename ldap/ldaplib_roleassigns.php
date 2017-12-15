@@ -433,6 +433,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                             // We only manage in course.
                             // Unenrol the required plugin.
                             $enrolplugin->unenrol_user($enrol, $dl->userid);
+                            $enrolmessage = $enrol->enrol.' '.$enrol->id;
                         } else {
                             if (!file_exists($CFG->dirroot.'/enrol/sync/lib.php')) {
                                 throw new moodle_exception('Trying to use enrol/sync plugin but not installed here.');
@@ -447,8 +448,9 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                             } else {
                                 \enrol_sync_plugin::static_unenrol_user($course, $dl->userid);
                             }
+                            $enrolmessage = 'sync';
                         }
-                        mtrace(get_string('unenrolled', 'local_ent_installer', $options['enrol']));
+                        mtrace(get_string('unenrolled', 'local_ent_installer', $enrolmessage));
                     }
                 } else {
                     mtrace('[SIMULATION] '.get_string('roleunassigned', 'local_ent_installer', $dl));
