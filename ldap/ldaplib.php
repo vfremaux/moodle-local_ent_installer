@@ -952,13 +952,17 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         // Teaching crew.
                         if (!empty($staffsitecohortid)) {
                             cohort_add_member($staffsitecohortid, $id);
+                        }
+                        if (!empty($adminstaffsitecohortid)) {
                             cohort_remove_member($adminstaffsitecohortid, $id);
                         }
                     } else {
                         // Non Teaching crew.
+                        if (!empty($staffsitecohortid)) {
+                            cohort_remove_member($staffsitecohortid, $id);
+                        }
                         if (!empty($adminstaffsitecohortid)) {
                             cohort_add_member($adminstaffsitecohortid, $id);
-                            cohort_remove_member($staffsitecohortid, $id);
                         }
                     }
                 }
@@ -1802,58 +1806,6 @@ function sortbyidnumber($a, $b) {
         return -1;
     }
     return 0;
-}
-
-function local_ent_installer_ensure_global_cohort_exists($type, $options) {
-    global $DB;
-
-    $config = get_config('local_ent_installer');
-    $defaultidnums = array(
-        'students' => 'ELE',
-        'staff' => 'ENS',
-        'adminstaff' => 'NENS',
-        'admins' => 'ADM'
-    );
-
-    if (!in_array($type, array_keys($defaultidnums))) {
-        return;
-    }
-
-    $key = $type.'_site_cohort_name';
-
-    if (!empty($config->$key)) {
-
-        $list = local_ent_installer_strip_alias($config->institution_id);
-        $institutionalias = @$list[1];
-        if (empty($institutionalias)) {
-            $idnumber = $config->cohort_ix.'_'.$config->institution_id.'_'.$defaultidnums[$type];
-        } else {
-            $idnumber = $config->cohort_ix.'_'.$institutionalias.'_'.$defaultidnums[$type];
-        }
-        if (!$oldcohort = $DB->get_record('cohort', array('idnumber' => $idnumber))) {
-
-            $cohortname = $config->cohort_ix.' '.$config->$key;
-
-            $cohort = new StdClass;
-            $cohort->name = $cohortname;
-            $cohort->idnumber = $idnumber;
-            $cohort->description = '';
-            $cohort->descriptionformat = FORMAT_HTML;
-            $cohort->timecreated = time();
-            $cohort->timemodified = time();
-            // Do not assign this cohort to local_ent_installer component.
-            // We do not want these cohorts being droped by synchronisation.
-            $cohort->component = '';
-            $cohort->contextid = context_system::instance()->id;
-            $cohort->id = $DB->insert_record('cohort', $cohort);
-            if (!empty($options['verbose'])) {
-                mtrace("Creating missing global cohort for $type");
-            }
-            return $cohort->id;
-        } else {
-            return $oldcohort->id;
-        }
-    }
 }
 
 /**

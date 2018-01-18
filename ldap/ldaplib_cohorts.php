@@ -236,8 +236,27 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     if (empty($options['updateonly'])) {
         mtrace("\n>> ".get_string('deletingcohorts', 'local_ent_installer'));
+
+        // Getting site level cohorts ids to protect.
+        $protectids = array();
+        if ($config->create_students_site_cohort) {
+            $protectids[] = local_ent_installer_ensure_global_cohort_exists('students', $options);
+        }
+        if ($config->create_staff_site_cohort) {
+            $protectids[] = local_ent_installer_ensure_global_cohort_exists('staff', $options);
+        }
+        if ($config->create_adminstaff_site_cohort) {
+            $protectids[] = local_ent_installer_ensure_global_cohort_exists('adminstaff', $options);
+        }
+        $protectids[] = local_ent_installer_ensure_global_cohort_exists('admins', $options);
+
         if ($deleted) {
             foreach ($deleted as $dl) {
+
+                if (in_array($dl->cid, $protectids)) {
+                    continue;
+                }
+
                 if (empty($options['simulate'])) {
                     if ($members = $DB->get_records('cohort_members', array('cohortid' => $dl->cid))) {
                         foreach ($members as $m) {

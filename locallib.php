@@ -540,3 +540,75 @@ function local_ent_installer_bind_cat_to_plugin($plugin, $settingkey, &$category
         }
     }
 }
+
+function local_ent_installer_ensure_global_cohort_exists($type, $options) {
+    global $DB;
+
+    $config = get_config('local_ent_installer');
+    $defaultidnums = array(
+        'students' => 'ELE',
+        'staff' => 'ENS',
+        'adminstaff' => 'NENS',
+        'admins' => 'ADM'
+    );
+
+    if (!in_array($type, array_keys($defaultidnums))) {
+        return;
+    }
+
+    $key = $type.'_site_cohort_name';
+
+    if (!empty($config->$key)) {
+
+        // Getting site cohort idnumber.
+        $list = local_ent_installer_strip_alias($config->institution_id);
+        $institutionalias = @$list[1];
+        if (empty($institutionalias)) {
+            $idnumber = $config->cohort_ix.'_'.$config->institution_id.'_'.$defaultidnums[$type];
+        } else {
+            $idnumber = $config->cohort_ix.'_'.$institutionalias.'_'.$defaultidnums[$type];
+        }
+
+        if (!$oldcohort = $DB->get_record('cohort', array('idnumber' => $idnumber))) {
+
+            $cohortname = $config->cohort_ix.' '.$config->$key;
+
+            if (!empty($options['verbose'])) {
+                mtrace("Creating missing site cohort $cohortname ");
+            }
+
+            $cohort = new StdClass;
+            $cohort->name = $cohortname;
+            $cohort->idnumber = $idnumber;
+            $cohort->description = '';
+            $cohort->descriptionformat = FORMAT_HTML;
+            $cohort->timecreated = time();
+            $cohort->timemodified = time();
+            // Do not assign this cohort to local_ent_installer component.
+            // We do not want these cohorts being droped by synchronisation.
+            $cohort->component = 'local_ent_installer';
+            $cohort->contextid = context_system::instance()->id;
+            $cohort->id = $DB->insert_record('cohort', $cohort);
+            if (!empty($options['verbose'])) {
+                mtrace("Creating missing global cohort for $type");
+            }
+            return $cohort->id;
+        } else {
+            // Update site cohort name if name has changed in settings.
+            $cohortname = $config->cohort_ix.' '.$config->$key;
+            $oldname = $oldcohort->name;
+            if ($oldname != $cohortname) {
+                $oldcohort->name = $cohortname;
+
+                if (!empty($options['verbose'])) {
+                    // Only notify when rename.
+                    mtrace("Renaming site cohort from \"$oldname\" to \"$cohortname\" ");
+                }
+            }
+            $oldcohort->component = 'local_ent_installer';
+            $DB->update_record('cohort', $oldcohort);
+
+            return $oldcohort->id;
+        }
+    }
+}

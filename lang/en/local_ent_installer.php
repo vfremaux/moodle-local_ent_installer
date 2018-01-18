@@ -106,6 +106,7 @@ $string['entupdate'] = 'Update ENT definitions';
 $string['filter'] = 'Filter';
 $string['finaloperations'] = 'Final cleanup operations';
 $string['force'] = 'Force updating all entries (even unmodified since last reference)';
+$string['forcedebugwarning'] = 'Vous ne pouvez pas activer la synchronisation complète en mode de déboggage développeur car les informations récupérées du ldap seront incomplète. Seul le traitement différentiel est supporté.';
 $string['getinstitutionidservice'] = 'Structure ID Search';
 $string['id'] = 'Structure Identifier';
 $string['inserterrors'] = 'Insert errors';
