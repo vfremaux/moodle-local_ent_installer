@@ -38,7 +38,7 @@ list($options, $unrecognized) = cli_get_params(
     array(
         'h' => 'help',
         'n' => 'nodes',
-        'l' => 'logfile',
+        'l' => 'logroot',
         'e' => 'empty',
         'm' => 'logmode',
         'v' => 'verbose',
@@ -62,7 +62,7 @@ if ($options['help'] || empty($options['nodes'])) {
     Options:
     -h, --help          Print out this help
     -n, --nodes         Node ids to work with.
-    -l, --logfile       the log file to use. No log if not defined
+    -l, --logroot       the log root where to log
     -e, --empty         propagates a empty option to final workers
     -m, --logmode       'append' or 'overwrite'
     -f, --force         Force updating accounts even if not modified in user sourse.
@@ -84,10 +84,6 @@ if (!empty($options['debug'])) {
 
 if (empty($options['logmode'])) {
     $options['logmode'] = 'w';
-}
-
-if (!empty($options['logfile'])) {
-    $LOG = fopen($options['logfile'], $options['logmode']);
 }
 
 $force = '';
@@ -118,10 +114,25 @@ if (!empty($options['empty'])) {
 
 $nodes = explode(',', $options['nodes']);
 foreach ($nodes as $nodeid) {
-    mtrace("\nStarting process for node $nodeid\n");
+
+    if (!empty($options['logroot'])) {
+        $logfile = $options['logroot'].'/ent_sync_groups_'.$host->shortname;
+        if (!empty($options['horodate'])) {
+            $logfile .= '_'.$runtime;
+        }
+        $logfile .= '.log';
+        $LOG = fopen($logfile, $options['logmode']);
+    }
+
+    if (isset($LOG)) {
+        fputs($LOG, "Starting Groups worker for nodes {$options['nodes']}\n");
+    };
+
+    mtrace("\nStarting process for node $nodeid");
+
     $host = $DB->get_record('local_vmoodle', array('id' => $nodeid));
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts.php {$debug} --host={$host->vhostname} ";
-    $cmd .= " {$force} {$role} {$empty}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_groups.php {$debug} --host={$host->vhostname} ";
+    $cmd .= " {$force} {$role} {$empty} {$verbose}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);

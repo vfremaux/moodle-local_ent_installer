@@ -109,6 +109,7 @@ $string['entupdate'] = 'Réalimenter les données d\'établissement';
 $string['filter'] = 'Filtrer';
 $string['finaloperations'] = 'Opérations finales';
 $string['force'] = 'Forcer la mise à jour de toutes les entrées (y compris celles non modifiées dans la période de référence)';
+$string['forcedebugwarning'] = 'You cannot enable forced mode when being in developer debug mode as this will get partial info from ldap';
 $string['getinstitutionidservice'] = 'Recherche d\'identifiants d\'établissements';
 $string['id'] = 'Identifiant RNE';
 $string['inserterrors'] = 'Erreurs d\'insertion';
