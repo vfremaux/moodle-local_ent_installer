@@ -214,7 +214,7 @@ if ($hassiteconfig) {
         $default = '';
         $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
 
-        $key = 'local_ent_installer/staff_site_cohort_name';
+        $key = 'local_ent_installer/adminstaff_site_cohort_name';
         $label = get_string('configadminstaffsitecohortname', 'local_ent_installer');
         $desc = get_string('configadminstaffsitecohortname_desc', 'local_ent_installer');
         $default = '';

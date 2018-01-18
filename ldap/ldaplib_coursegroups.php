@@ -381,7 +381,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
             if (empty($options['skipmembership'])) {
                 if (!empty($groupinfo->members)) {
 
-                    if ($oldmembers = $DB->get_records_menu('groups_members', array('groupid' => $oldrec->id), 'userid,userid')) {
+                    if ($oldmembers = $DB->get_records_menu('groups_members', array('groupid' => $oldrec->id), 'userid', 'userid,userid')) {
                         $oldmemberids = array_keys($oldmembers);
                     } else {
                         $oldmemberids = array();
@@ -400,7 +400,6 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                                 mtrace('[SIMULATION] '.get_string('groupmemberadded', 'local_ent_installer', $e));
                             }
                         } else {
-                            unset($oldmemberids[$m->id]);
                             unset($oldmembers[$m->id]);
                         }
                     }
@@ -413,6 +412,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                         foreach ($oldmemberids as $userid) {
                             $e = new StdClass;
                             $e->username = $DB->get_field('user', 'username', array('id' => $userid));
+                            $e->id = $userid;
                             $e->idnumber = $oldrec->idnumber;
                             $e->course = $oldrec->courseid;
                             if (empty($options['simulate'])) {

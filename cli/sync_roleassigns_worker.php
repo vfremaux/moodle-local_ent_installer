@@ -110,9 +110,13 @@ if (!empty($options['level'])) {
     $level = ' --level ';
 }
 
+$verbose = '';
+if (!empty($options['verbose'])) {
+    $verbose = ' --verbose ';
+}
+
 $nodes = explode(',', $options['nodes']);
 foreach ($nodes as $nodeid) {
-    mtrace("\nStarting rolassign process for node $nodeid\n");
 
     if (!empty($options['logroot'])) {
         $logfile = $options['logroot'].'/ent_sync_roles_'.$host->shortname;
@@ -123,9 +127,15 @@ foreach ($nodes as $nodeid) {
         $LOG = fopen($logfile, $options['logmode']);
     }
 
+    if (isset($LOG)) {
+        fputs($LOG, "Starting Role Assignations worker for nodes {$options['nodes']}\n");
+    };
+
+    mtrace("Starting Role Assign process for node $nodeid");
+
     $host = $DB->get_record('local_vmoodle', array('id' => $nodeid));
     $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_roleassigns.php {$debug} --host={$host->vhostname} ";
-    $cmd .= " {$force} {$level}";
+    $cmd .= " {$force} {$level} {$verbose}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
