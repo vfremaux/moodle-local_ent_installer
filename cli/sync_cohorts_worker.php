@@ -128,13 +128,14 @@ foreach ($nodes as $nodeid) {
     }
 
     if (isset($LOG)) {
-        fputs($LOG, "Starting worker for nodes {$options['nodes']}\n");
+        fputs($LOG, "Starting Cohorts worker for nodes {$options['nodes']}\n");
     };
 
-    mtrace("\nStarting process for node $nodeid\n");
+    mtrace("\nStarting process for node $nodeid");
+
     $host = $DB->get_record('local_vmoodle', array('id' => $nodeid));
     $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts.php {$debug} --host={$host->vhostname} ";
-    $cmd .= "{$force} {$empty} {$nocheck}";
+    $cmd .= "{$force} {$empty} {$nocheck} {$verbose}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
