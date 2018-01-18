@@ -127,12 +127,14 @@ foreach ($nodes as $nodeid) {
     }
 
     if (isset($LOG)) {
-        fputs($LOG, "Starting worker for nodes {$options['nodes']}\n");
+        fputs($LOG, "Starting Users worker for nodes {$options['nodes']}\n");
     };
 
-    mtrace("\nStarting process for node $nodeid\n");
+    mtrace("\nStarting Users process for node $nodeid");
+
     $host = $DB->get_record('local_vmoodle', array('id' => $nodeid));
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users.php {$debug} {$force} {$role} {$fulldelete}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users.php {$debug} ";
+    $cmd .= "{$force} {$role} {$fulldelete} {$verbose}";
     $cmd .= " --host={$host->vhostname}";
     $return = 0;
     $output = array();

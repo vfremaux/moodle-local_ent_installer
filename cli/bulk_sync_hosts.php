@@ -183,16 +183,21 @@ if (!empty($options['fulldelete'])) {
 $i = 1;
 foreach ($joblist as $jl) {
     $jobids = array();
+
     if (!empty($jl)) {
         $hids = implode(',', $jl);
         $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_hosts_worker.php --nodes=\"$hids\" ";
         $workercmd .= "{$debug} {$logroot} {$horodate} {$force} {$role} {$empty} {$verbose} {$fulldelete} {$notify} {$fullstop}";
+
         if ($options['distributed']) {
             $workercmd .= ' &';
         }
+
         mtrace("Executing $workercmd\n######################################################\n");
+
         $output = array();
         exec($workercmd, $output, $return);
+
         if ($return) {
             if (!empty($options['fullstop'])) {
                 echo implode("\n", $output)."\n";
@@ -202,6 +207,7 @@ foreach ($joblist as $jl) {
                 echo implode("\n", $output)."\n";
             }
         }
+
         if (!$options['distributed'] && !empty($options['verbose'])) {
             echo implode("\n", $output)."\n";
         }
