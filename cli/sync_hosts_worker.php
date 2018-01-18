@@ -142,13 +142,16 @@ foreach ($nodes as $nodeid) {
     }
 
     if ($LOG) {
-        fputs($LOG, "Starting worker for node {$host->shortname}\n");
+        fputs($LOG, "Starting Host (all syncs) worker for node {$host->shortname}\n");
     };
+
+    mtrace("Starting Users process for node $nodeid");
 
     if ($LOG) {
         fputs($LOG, "\nStarting user process for node $nodeid\n");
     }
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users.php {$debug} --host={$host->vhostname} {$force} {$role} {$fulldelete}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users.php {$debug} --host={$host->vhostname}";
+    $cmd .= " {$force} {$role} {$fulldelete} {$verbose}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -159,20 +162,21 @@ foreach ($nodes as $nodeid) {
     };
     if ($return) {
         if ($LOG) {
-            fputs($LOG, 'Process failure. No output of user feeder.');
+            fputs($LOG, "Process failure. No output of user feeder.\n");
         }
         if (!empty($options['fullstop'])) {
             echo implode("\n", $output)."\n";
             die ("User Worker failed");
         } else {
-            echo "Cohort Worker execution error on {$host->vhostname}... Continuing anyway\n";
+            echo "Users Worker execution error on {$host->vhostname}... Continuing anyway\n";
         }
     }
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
 
-    mtrace("\nStarting cohort process for node $nodeid\n");
+    mtrace("Starting Cohorts process for node $nodeid");
 
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts.php {$debug} --host={$host->vhostname} {$force} {$empty}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts.php {$debug} --host={$host->vhostname}";
+    $cmd .= " {$verbose} {$force} {$empty}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -200,9 +204,10 @@ foreach ($nodes as $nodeid) {
 
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
 
-    mtrace("\nStarting role assignments process for node $nodeid\n");
+    mtrace("Starting Role assignments process for node $nodeid");
 
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_roleassigns.php {$debug} --host={$host->vhostname} {$force}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_roleassigns.php {$debug} --host={$host->vhostname}";
+    $cmd .= " {$verbose} {$force}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -229,9 +234,10 @@ foreach ($nodes as $nodeid) {
     }
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
 
-    mtrace("\nStarting coursegroup process for node $nodeid\n");
+    mtrace("Starting Course group process for node $nodeid");
 
-    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_groups.php {$debug} --host={$host->vhostname} {$force} {$empty}";
+    $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_groups.php {$debug} --host={$host->vhostname}";
+    $cmd .= " {$force} {$empty} {$verbose}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);

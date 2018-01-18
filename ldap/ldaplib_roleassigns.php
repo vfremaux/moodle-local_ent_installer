@@ -416,38 +416,23 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                 if (empty($options['simulate'])) {
                     role_unassign($dl->roleid, $dl->userid, $dl->contextid, 'local_ent_installer');
                     mtrace(get_string('roleunassigned', 'local_ent_installer', $dl));
+                    local_ent_installer_check_site_admin_cohort($dl, 'remove', $options);
 
                     if ($ctx->contextlevel == CONTEXT_COURSE && $enrolplugin) {
 
-                        if ($config->roleassign_enrol_method != 'sync') {
-                            $params = array('enrol' => $config->roleassign_enrol_method,
-                                            'courseid' => $ctx->instanceid,
-                                            'status' => ENROL_INSTANCE_ENABLED);
-                            if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
-                                mtrace("No enrol instance found in course for this enrol method\n");
-                                continue;
-                            } else {
-                                $enrol = reset($enrols);
-                            }
-
-                            // We only manage in course.
-                            // Unenrol the required plugin.
-                            $enrolplugin->unenrol_user($enrol, $dl->userid);
+                        $params = array('enrol' => $config->roleassign_enrol_method,
+                                        'courseid' => $ctx->instanceid,
+                                        'status' => ENROL_INSTANCE_ENABLED);
+                        if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
+                            mtrace("No enrol instance found in course for this enrol method\n");
+                            continue;
                         } else {
-                            if (!file_exists($CFG->dirroot.'/enrol/sync/lib.php')) {
-                                throw new moodle_exception('Trying to use enrol/sync plugin but not installed here.');
-                            }
-                            include_once($CFG->dirroot.'/enrol/sync/lib.php');
-
-                            // Course id has been already checked.
-                            $course = $DB->get_record('course', array('id' => $ctx->instanceid));
-                            if (!$course) {
-                                mtrace('Missing course for id '.$ctx->instanceid);
-                                continue;
-                            } else {
-                                \enrol_sync_plugin::static_unenrol_user($course, $dl->userid);
-                            }
+                            $enrol = reset($enrols);
                         }
+
+                        // We only manage in course.
+                        // Unenrol the required plugin.
+                        $enrolplugin->unenrol_user($enrol, $dl->userid);
                         mtrace(get_string('unenrolled', 'local_ent_installer', $options['enrol']));
                     }
                 } else {
@@ -475,6 +460,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                 $ctx = $DB->get_record('context', array('id' => $cr->contextid));
                 role_unassign($cr->roleid, $cr->userid, $cr->contextid);
                 role_assign($cr->roleid, $cr->userid, $cr->contextid, 'local_ent_installer');
+                local_ent_installer_check_site_admin_cohort($cr, '', $options);
                 mtrace(get_string('roleassigned', 'local_ent_installer', $cr));
                 if ($options['verbose']) {
                     foreach ($cr as $key => $value) {
@@ -484,37 +470,19 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                 if (($cr->contextlevel == 'course') && $enrolplugin) {
                     // Context level comes from temp table.
 
-                    if ($config->roleassign_enrol_method != 'sync') {
-                        $params = array('enrol' => $config->roleassign_enrol_method,
-                                        'courseid' => $ctx->instanceid,
-                                        'status' => ENROL_INSTANCE_ENABLED);
-                        if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
-                            mtrace("No enrol instance found in course for this enrol method\n");
-                            continue;
-                        } else {
-                            $enrol = reset($enrols);
-                        }
-
-                        // We only manage in course.
-                        // Enrol with specified plugin.
-                        $enrolplugin->enrol_user($enrol, $cr->userid);
+                    $params = array('enrol' => $config->roleassign_enrol_method,
+                                    'courseid' => $ctx->instanceid,
+                                    'status' => ENROL_INSTANCE_ENABLED);
+                    if (!$enrols = $DB->get_records('enrol', $params, 'sortorder ASC')) {
+                        mtrace("No enrol instance found in course for this enrol method\n");
+                        continue;
                     } else {
-                        if (!file_exists($CFG->dirroot.'/enrol/sync/lib.php')) {
-                            throw new moodle_exception('Trying to use enrol/sync plugin but not installed here.');
-                        }
-
-                        include_once($CFG->dirroot.'/enrol/sync/lib.php');
-
-                        // Course id has been already checked.
-                        $course = $DB->get_record('course', array('id' => $courseid));
-                            if (!$course) {
-                                mtrace('Missing course for id '.$ctx->instanceid);
-                                continue;
-                            } else {
-                                $status = ENROL_USER_ACTIVE;
-                                \enrol_sync_plugin::static_enrol_user($course, $cr->userid, $cr->roleid, time(), 0, $status);
-                            }
+                        $enrol = reset($enrols);
                     }
+
+                    // We only manage in course.
+                    // Enrol with specified plugin.
+                    $enrolplugin->enrol_user($enrol, $cr->userid);
                     mtrace(get_string('enrolled', 'local_ent_installer', $enrol->enrol.' '.$enrol->id));
                 }
             } else {
@@ -527,9 +495,10 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
         }
     }
 
-    mtrace("\n>> ".get_string('unchangedroleassigns', 'local_ent_installer'));
+    mtrace("\n>> ".get_string('unchangedroleassigns', 'local_ent_installer').' : '.count($nochange).' recs');
     if ($nochange) {
         foreach ($nochange as $ra) {
+            local_ent_installer_check_site_admin_cohort($ra, '', $options);
             mtrace(get_string('norolechange', 'local_ent_installer', $ra));
         }
     } else {
@@ -839,4 +808,50 @@ function local_ent_installer_find_context($clevelvalue, $cidvalue = 0) {
     }
 
     return $contextcache[$clevelvalue][$cidvalue];
+}
+
+/**
+ * Chcks if assigning site manager like role on system and adds/remove
+ * to admins site level cohort.
+ *
+ */
+function local_ent_installer_check_site_admin_cohort($ra, $remove = '', $options) {
+
+    $config = get_config('local_ent_intaller');
+
+    $systemcontext = context_system::instance();
+
+    if ($ra->contextid != $systemcontext->id) {
+        // Filters out when not system context.
+        return;
+    }
+
+    if (!$adminssitecohortid = local_ent_installer_ensure_global_cohort_exists('admins', $options)) {
+        // Could not create cohort and cohort does not exist.
+        if (!empty($options['debug'])) {
+            mtrace("ERROR : Site admin cohort not found");
+        }
+        return;
+    }
+
+    $managerroleids = array_keys(get_roles_with_capability('local/ent_installer:sync', CAP_ALLOW, $systemcontext));
+    if (!empty($managerroleids)) {
+        if (in_array($ra->roleid, $managerroleids)) {
+            if ($remove == 'remove') {
+                if (!empty($options['verbose'])) {
+                    mtrace("\tRemoving user $ra->userid from cohort $adminssitecohortid");
+                }
+                cohort_remove_member($adminssitecohortid, $ra->userid);
+            } else {
+                if (!empty($options['verbose'])) {
+                    mtrace("\tAdding (or maintaining) user $ra->userid to cohort $adminssitecohortid");
+                }
+                cohort_add_member($adminssitecohortid, $ra->userid);
+            }
+        }
+    } else {
+        if (!empty($options['debug'])) {
+            mtrace("ERROR : No roles with admin related capability.");
+        }
+    }
 }
