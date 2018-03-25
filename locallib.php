@@ -87,13 +87,19 @@ function local_ent_installer_strip_alias($data) {
     return array($data, $alias);
 }
 
-
 /**
  * Provides an uniform scheme for a teacher category identifier.
- * @param object $user a user object
+ * @param object $user a user object. If user is not given will return the cat identifier of
+ * the current user.
  * @return string
  */
-function local_ent_installer_get_teacher_cat_idnumber($user) {
+function local_ent_installer_get_teacher_cat_idnumber($user = null) {
+    global $USER;
+
+    if (is_null($user)) {
+        $user = $USER;
+    }
+
     $teachercatidnum = strtoupper($user->lastname).'_'.substr(strtoupper($user->firstname), 0, 1).'$'.$user->idnumber.'$CAT';
 
     return $teachercatidnum;
