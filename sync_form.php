@@ -82,6 +82,7 @@ class SyncUsersForm extends moodleform {
             $desc = get_string('forcedebugwarning', 'local_ent_installer');
             $mform->addElement('static', 'forcehtml', get_string('force', 'local_ent_installer'), $desc);
             $mform->addElement('hidden', 'force', 0);
+            $mform->setType('force', PARAM_BOOL);
         }
 
         $mform->addElement('checkbox', 'updateonly', get_string('updateonly', 'local_ent_installer'));
