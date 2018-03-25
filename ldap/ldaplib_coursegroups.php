@@ -400,6 +400,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                                 mtrace('[SIMULATION] '.get_string('groupmemberadded', 'local_ent_installer', $e));
                             }
                         } else {
+                            unset($oldmemberids[$m->id]);
                             unset($oldmembers[$m->id]);
                         }
                     }

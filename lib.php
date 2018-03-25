@@ -17,6 +17,14 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
+ * This function is not implemented in thos plugin, but is needed to mark
+ * the vf documentation custom volume availability.
+ */
+function local_ent_installer_supports_feature() {
+    assert(1);
+}
+
+/**
  * this function schedules the user synchronisation updates
  *
  * Implementation specific : Generic
