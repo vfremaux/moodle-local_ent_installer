@@ -46,7 +46,7 @@ $PAGE->set_context($systemcontext);
 $PAGE->set_heading($getidstr);
 $PAGE->set_pagelayout('admin');
 
-echo $OUTPUT->header(;
+echo $OUTPUT->header();
 
 echo $OUTPUT->heading(get_string('sitemetadata', 'local_ent_installer'));
 
