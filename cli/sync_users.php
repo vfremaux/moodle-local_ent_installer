@@ -111,13 +111,19 @@ if (!empty($options['host'])) {
 }
 
 // Replay full config whenever. If vmoodle switch is armed, will switch now config.
-if (defined('VMOODLE_BOOT')) {
-    require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
+if (!defined('MOODLE_INTERNAL')) {
+    // If we are still in precheck, this means this is NOT a VMoodle install and full setup has already run.
+    // Otherwise we only have a tiny config at this location, sso run full config again forcing playing host if required.
+    include(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 }
 echo('Config check : playing for '.$CFG->wwwroot."\n");
 
+if (!defined('MOODLE_INTERNAL')) {
+    die ("Somethying has gone wrong when loading configuration");
+}
+
 if (!empty($options['debug'])) {
-    $CFG->debug = DEBUG_NORMAL;
+    $CFG->debug = E_ALL & ~E_STRICT; // We cannot rely on Moodle defined yet.
 }
 
 require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // ensure we have coursecat class.
@@ -130,7 +136,7 @@ require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // general prim
 global $USER;
 
 // Get main siteadmin.
-$USER = $DB->get_record('user', array('username' => $CFG->admin));
+$USER = $DB->get_record('user', array('username' => 'admin', 'mnethostid' => $CFG->mnet_localhost_id));
 
 // If failed, get first available site admin.
 if (empty($USER)) {
