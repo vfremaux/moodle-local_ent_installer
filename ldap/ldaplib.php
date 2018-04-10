@@ -1404,7 +1404,8 @@ function local_ent_installer_get_userinfo($ldapauth, $username, $options = array
     $ldapmap = $attrmap = $ldapauth->ldap_attributes();
 
     // Add provision for external user pictures.
-    if (!empty($userpicattr = get_config('local_ent_installer', 'user_picture_field'))) {
+    $userpicattr = get_config('local_ent_installer', 'user_picture_field');
+    if (!empty($userpicattr)) {
         $attrmap['userpicture'] = core_text::strtolower($userpicattr);
     }
 
