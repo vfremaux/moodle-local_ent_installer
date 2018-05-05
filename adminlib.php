@@ -105,3 +105,62 @@ class admin_setting_configdatetime extends admin_setting {
     }
 
 }
+
+/**
+ * Static setting - Has just a fixed value given by default. Non mutable.
+ *
+ * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+class admin_setting_static extends admin_setting {
+
+    protected $staticvalue;
+
+    /**
+     * not a setting, just text
+     * @param string $name unique ascii name, either 'mysetting' for settings that in config, or 'myplugin/mysetting' for ones in config_plugins.
+     * @param string $heading heading
+     * @param string $information text in box
+     */
+    public function __construct($key, $visiblename, $description, $staticvalue) {
+        $this->staticvalue = $staticvalue;
+        parent::__construct($key, $visiblename, $description, $staticvalue);
+    }
+
+    /**
+     * Return the setting
+     *
+     * @return mixed returns config if successful else null
+     */
+    public function get_setting() {
+        return $this->config_read($this->name);
+    }
+
+    /**
+     * Always returns true
+     * @return bool Always returns true
+     */
+    public function get_defaultsetting() {
+        return $this->staticvalue;
+    }
+
+    /**
+     * Never write settings
+     * @return string Always returns an empty string
+     */
+    public function write_setting($data) {
+        // Write the forced static value.
+        return ($this->config_write($this->name, $this->staticvalue) ? '' : get_string('errorsetting', 'admin'));
+    }
+
+    /**
+     * Returns an HTML string
+     * @return string Returns an HTML string
+     */
+    public function output_html($data /* unused */, $query='') {
+        $default = $this->get_defaultsetting();
+
+        return format_admin_setting($this, $this->visiblename,
+        '<div class="form-static defaultsnext"><input type="text" disabled="disabled" name="'.$this->name.'" value="'.s($this->staticvalue).'" /></div>',
+        $this->description, true, '', null, $query);
+    }
+}

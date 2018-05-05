@@ -26,11 +26,11 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Synchronizes cohorts by getting records from a group holding ldap context.
+ * Synchronizes courses categories by scanning group records in a OU.
  * @param array $options an array of options
  */
-function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
-    global $DB;
+function local_ent_installer_sync_coursecats($ldapauth, $options = array()) {
+    global $DB, $SITE;
 
     $config = get_config('local_ent_installer');
 
@@ -41,8 +41,8 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
         return;
     }
 
-    if (empty($config->sync_cohorts_enable)) {
-        mtrace(get_string('synccohortsdisabled', 'local_ent_installer'));
+    if (empty($config->sync_coursecat_enable)) {
+        mtrace(get_string('synccoursecatsdisabled', 'local_ent_installer'));
         return;
     }
 
@@ -61,26 +61,30 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
     list($usec, $sec) = explode(' ', microtime());
     $starttick = (float)$sec + (float)$usec;
 
-    mtrace(get_string('lastrun', 'local_ent_installer', userdate(@$config->last_sync_date_cohort)));
+    mtrace(get_string('lastrun', 'local_ent_installer', userdate(@$config->last_sync_date_coursecats)));
 
     // Define table user to be created.
 
-    $table = new xmldb_table('tmp_extcohort');
+    $table = new xmldb_table('tmp_extcoursecats');
     $table->add_field('id', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
     $table->add_field('idnumber', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
     $table->add_field('lastmodified', XMLDB_TYPE_INTEGER, '11', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null);
     $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
 
-    mtrace("\n>> ".get_string('creatingtemptable', 'auth_ldap', 'tmp_extcohort'));
+    mtrace("\n>> ".get_string('creatingtemptable', 'auth_ldap', 'tmp_extcoursecats'));
 
     if ($dbman->table_exists($table)) {
         $dbman->drop_table($table);
     }
     $dbman->create_temp_table($table);
 
-    $contexts = explode(';', $config->cohort_contexts);
+    $contexts = explode(';', $config->coursecat_contexts);
     list($institutionidlist, $institutionalias) = local_ent_installer_strip_alias($config->institution_id);
     $institutionids = explode(',', $institutionidlist);
+    if (empty($institutionids)) {
+        // Defaults to the current site name as unique institution to process.
+        $institutionids = array($SITE->shortname);
+    }
 
     $ldappagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
     if ($ldappagedresults) {
@@ -91,16 +95,96 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     $ldapcookie = '';
 
-    $cohortrecordfields = array($config->cohort_idnumber_attribute,
-                                $config->cohort_name_attribute,
-                                $config->cohort_description_attribute,
-                                $config->cohort_membership_attribute,
+    $coursecatrecordfields = array($config->coursecat_idnumber_attribute,
+                                $config->coursecat_name_attribute,
+                                'modifyTimestamp');
+    if (!empty($config->coursecat_is_full_path) && !empty($config->coursecat_parent_attribute)) {
+        // Optional parent 
+        $coursecatrecordfields[] = $config->coursecat_parent_attribute;
+    }
+}
+
+/**
+ * Synchronizes courses by getting records from a group holding ldap context.
+ * @param array $options an array of options
+ */
+function local_ent_installer_sync_courses($ldapauth, $options = array()) {
+    global $DB, $SITE;
+
+    $config = get_config('local_ent_installer');
+
+    mtrace('');
+
+    if (empty($config->sync_enable)) {
+        mtrace(get_string('syncdisabled', 'local_ent_installer'));
+        return;
+    }
+
+    if (empty($config->sync_course_enable)) {
+        mtrace(get_string('synccoursedisabled', 'local_ent_installer'));
+        return;
+    }
+
+    $systemcontext = context_system::instance();
+
+    core_php_time_limit::raise(600);
+
+    $ldapconnection = $ldapauth->ldap_connect();
+    // Ensure an explicit limit, or some defaults may  cur some results.
+    ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 100000);
+    ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
+    mtrace("Ldap opened with sizelimit $retvalue");
+
+    $dbman = $DB->get_manager();
+
+    list($usec, $sec) = explode(' ', microtime());
+    $starttick = (float)$sec + (float)$usec;
+
+    mtrace(get_string('lastrun', 'local_ent_installer', userdate(@$config->last_sync_date_course)));
+
+    // Define table user to be created.
+
+    $table = new xmldb_table('tmp_extcourse');
+    $table->add_field('id', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+    $table->add_field('idnumber', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('shortname', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, null);
+    $table->add_field('lastmodified', XMLDB_TYPE_INTEGER, '11', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null);
+    $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+
+    mtrace("\n>> ".get_string('creatingtemptable', 'auth_ldap', 'tmp_extcourse'));
+
+    if ($dbman->table_exists($table)) {
+        $dbman->drop_table($table);
+    }
+    $dbman->create_temp_table($table);
+
+    $contexts = explode(';', $config->course_contexts);
+    list($institutionidlist, $institutionalias) = local_ent_installer_strip_alias($config->institution_id);
+    $institutionids = explode(',', $institutionidlist);
+    if (empty($institutionids)) {
+        // Defaults to the current site name as unique institution to process.
+        $institutionids = array($SITE->shortname);
+    }
+
+    $ldappagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
+    if ($ldappagedresults) {
+        mtrace("Paging results...\n");
+    } else {
+        mtrace("Paging not supported...\n");
+    }
+
+    $ldapcookie = '';
+
+    $courserecordfields = array($config->course_idnumber_attribute,
+                                $config->course_fullname_attribute,
+                                $config->course_summary_attribute,
+                                $config->course_shortname_attribute,
                                 'modifyTimestamp');
 
-    // First fetch idnnumbers to compare.
+    // First fetch idnumbers to compare.
     foreach ($institutionids as $institutionid) {
 
-        $filter = str_replace('%ID%', $institutionid, $config->cohort_selector_filter);
+        $filter = str_replace('%ID%', $institutionid, $config->course_selector_filter);
 
         foreach ($contexts as $context) {
             $context = trim($context);
@@ -114,13 +198,13 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 }
                 if ($ldapauth->config->search_sub) {
                     // Use ldap_search to find first user from subtree.
-                    mtrace("ldapsearch $context, $filter for ".$config->cohort_idnumber_attribute);
-                    $params = array($config->cohort_idnumber_attribute, $config->record_date_fieldname);
+                    mtrace("ldapsearch $context, $filter for ".$config->course_idnumber_attribute);
+                    $params = array($config->course_idnumber_attribute, $config->record_date_fieldname);
                     $ldapresult = ldap_search($ldapconnection, $context, $filter, $params);
                 } else {
                     // Search only in this context.
-                    mtrace("ldaplist $context, $filter for ".$config->cohort_idnumber_attribute);
-                    $params = array($config->cohort_idnumber_attribute, $config->record_date_fieldname);
+                    mtrace("ldaplist $context, $filter for ".$config->course_idnumber_attribute);
+                    $params = array($config->course_idnumber_attribute, $config->record_date_fieldname);
                     $ldapresult = ldap_list($ldapconnection, $context, $filter, $params);
                 }
                 if (!$ldapresult) {
@@ -131,9 +215,9 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 }
                 if ($entry = @ldap_first_entry($ldapconnection, $ldapresult)) {
                     do {
-                        $value = ldap_get_values_len($ldapconnection, $entry, $config->cohort_idnumber_attribute);
+                        $value = ldap_get_values_len($ldapconnection, $entry, $config->course_idnumber_attribute);
                         $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
-                        if (preg_match('/'.$config->cohort_idnumber_filter.'/', $value, $matches)) {
+                        if (preg_match('/'.$config->course_idnumber_filter.'/', $value, $matches)) {
                             $value = $matches[1];
                         }
 
@@ -148,7 +232,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                             $modify = time();
                         }
 
-                        local_ent_installer_ldap_bulk_cohort_insert($value, $modify, $options);
+                        local_ent_installer_ldap_bulk_course_insert($value, $modify, $options);
                     } while ($entry = ldap_next_entry($ldapconnection, $entry));
                 }
                 echo "\n";
@@ -453,9 +537,9 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
  *
  * @return mixed array with no magic quotes or false on error
  */
-function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $options = array()) {
+function local_ent_installer_get_courseinfo($ldapauth, $courseidentifier, $options = array()) {
     global $DB;
-    static $cohortattributes;
+    static $courseattributes;
     static $config;
 
     if (!isset($config)) {
@@ -463,46 +547,46 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
     }
 
     // Load some cached static data.
-    if (!isset($cohortattributes)) {
+    if (!isset($courseattributes)) {
         // Aggregate additional ent specific attributes that hold interesting information.
         $cohortattributes = array(
-            'name' => core_text::strtolower($config->cohort_name_attribute),
-            'description' => core_text::strtolower($config->cohort_description_attribute),
-            'idnumber' => core_text::strtolower($config->cohort_idnumber_attribute),
-            'members' => core_text::strtolower($config->cohort_membership_attribute),
+            'fullname' => core_text::strtolower($config->course_fullname_attribute),
+            'shortname' => core_text::strtolower($config->course_shortname_attribute),
+            'summary' => core_text::strtolower($config->course_summary_attribute),
+            'idnumber' => core_text::strtolower($config->course_idnumber_attribute),
         );
     }
 
     $extcohortidentifier = core_text::convert($cohortidentifier, 'utf-8', $ldapauth->config->ldapencoding);
 
     $ldapconnection = $ldapauth->ldap_connect();
-    if (!($cohortdn = local_ent_installer_ldap_find_cohort_dn($ldapconnection, $extcohortidentifier))) {
+    if (!($cohortdn = local_ent_installer_ldap_find_course_dn($ldapconnection, $extcourseidentifier))) {
         $ldapauth->ldap_close();
         if ($options['verbose']) {
-            mtrace("Internal Error : Could not locate $extcohortidentifier ");
+            mtrace("Internal Error : Could not locate $extcourseidentifier ");
         }
         return false;
     }
 
     if ($options['verbose']) {
-        mtrace("Getting $cohortdn for ".implode(',', array_values($cohortattributes)));
+        mtrace("Getting $coursedn for ".implode(',', array_values($courseattributes)));
     }
-    if (!$cohortinforesult = ldap_read($ldapconnection, $cohortdn, '(objectClass=*)', array_values($cohortattributes))) {
+    if (!$courseinforesult = ldap_read($ldapconnection, $coursedn, '(objectClass=*)', array_values($courseattributes))) {
         $ldapauth->ldap_close();
         return false;
     }
 
-    $cohortentry = ldap_get_entries_moodle($ldapconnection, $cohortinforesult);
-    if (empty($cohortentry)) {
+    $courseentry = ldap_get_entries_moodle($ldapconnection, $courseinforesult);
+    if (empty($courseentry)) {
         $ldapauth->ldap_close();
         return false; // Entry not found.
     }
 
     $result = array();
-    foreach ($cohortattributes as $key => $value) {
+    foreach ($courseattributes as $key => $value) {
 
         // Value is an attribute name.
-        $entry = array_change_key_case($cohortentry[0], CASE_LOWER);
+        $entry = array_change_key_case($courseentry[0], CASE_LOWER);
 
         if (!array_key_exists($value, $entry)) {
             if ($options['verbose']) {
@@ -515,43 +599,20 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
             // Get the full array of values.
             $newval = array();
             foreach ($entry[$value] as $newvalopt) {
-                // For each member extract identifier.
                 $newvalopt  = core_text::convert($newvalopt, $ldapauth->config->ldapencoding, 'utf-8');
-                if (!$ldapauth->config->memberattribute_isdn) {
+                if (!empty($options['verbose'])) {
+                    mtrace("Extracting from $newvalopt with {$config->cohort_membership_filter} ");
+                }
+                if (preg_match('/'.$config->course_membership_filter.'/', $newvalopt, $matches)) {
+                    // Exclude potential arity count that comes at end of multivalued entries.
+                    $identifier = core_text::strtolower($matches[1]);
                     if (!empty($options['verbose'])) {
-                        mtrace("Extracting from $newvalopt with {$config->cohort_membership_filter} ");
+                        mtrace("Getting user record for {$config->cohort_user_identifier} = $identifier");
                     }
-                    // Member attribute contains value from where the user identifier can be directly extracted.
-                    if (preg_match('/'.$config->cohort_membership_filter.'/', $newvalopt, $matches)) {
-                        // Exclude potential arity count that comes at end of multivalued entries.
-                        $identifier = core_text::strtolower($matches[1]);
-                        if (!empty($options['verbose'])) {
-                            mtrace("Getting user record for {$config->cohort_user_identifier} = $identifier");
-                        }
-                        $fields = 'id,username,firstname,lastname';
-                        $user = $DB->get_record('user', array($config->cohort_user_identifier => $identifier), $fields);
-                        if (!$user) {
-                            mtrace("Error : User record not found for $identifier. Skipping membership");
-                            continue;
-                        }
-                        $user->userid = $user->id;
-                        $newval[] = $user;
-                    }
-                } else {
-                    /*
-                     * Member attribute contains a true user DN. This may, but MAY NOT contain direct
-                     * reference to a moodle user identifier. In this case, for more stability, we
-                     * fetch the associated username known by LDAP in user ldap main username attribute.
-                     */
-                    if (!empty($options['verbose'])) {
-                        mtrace("Extracting from $newvalopt as DN ");
-                    }
-                    $username = local_ent_installer_get_username_from_dn($ldapauth, $newvalopt, $options, $ldapconnection);
-                    $fields = 'id, username, firstname, lastname';
-                    // 'username' is the static value of configroleasignuseridentifier.
-                    $user = $DB->get_record('user', array('username' => $username), $fields);
+                    $fields = 'id,username,firstname,lastname';
+                    $user = $DB->get_record('user', array($config->course_user_identifier => $identifier), $fields);
                     if (!$user) {
-                        mtrace("Error : User record not found for $username. Skipping membership");
+                        mtrace("Error : User record not found for $identifier. Skipping membership");
                         continue;
                     }
                     $user->userid = $user->id;
@@ -585,8 +646,7 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
             $newval = $matches[1];
         }
 
-        if (!empty($newval)) {
-            // Favour ldap entries that are set.
+        if (!empty($newval)) { // Favour ldap entries that are set.
             $ldapval = $newval;
         }
 
@@ -608,7 +668,7 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
  * @param string $extcohortdn the username to search (in external LDAP encoding, no db slashes)
  * @return mixed the user dn (external LDAP encoding) or false
  */
-function local_ent_installer_ldap_find_cohort_dn($ldapconnection, $extcohortdn) {
+function local_ent_installer_ldap_find_course_dn($ldapconnection, $extcoursedn) {
     static $config;
 
     if (!isset($config)) {
@@ -616,10 +676,10 @@ function local_ent_installer_ldap_find_cohort_dn($ldapconnection, $extcohortdn) 
         $config = get_config('local_ent_installer');
     }
 
-    $ldapcontexts = explode(';', $config->cohort_contexts);
+    $ldapcontexts = explode(';', $config->course_contexts);
 
-    return ldap_find_cohortdn($ldapconnection, $extcohortdn, $ldapcontexts, $config->cohort_objectclass,
-                            $config->cohort_id_attribute);
+    return ldap_find_coursedn($ldapconnection, $extcoursedn, $ldapcontexts, $config->course_objectclass,
+                            $config->course_id_attribute);
 }
 
 /**

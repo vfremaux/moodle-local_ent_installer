@@ -24,6 +24,8 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->dirroot.'/local/ent_installer/adminlib.php');
+
 $settings->add(new admin_setting_heading('head2', get_string('cohortsfilters', 'local_ent_installer'), ''));
 
 $key = 'local_ent_installer/sync_cohorts_enable';
@@ -104,15 +106,22 @@ $desc = get_string('configcohortdescriptionattribute_desc', 'local_ent_installer
 $default = '';
 $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
+$ldapauth = get_auth_plugin('ldap');
+
 $key = 'local_ent_installer/cohort_user_identifier';
 $label = get_string('configcohortuseridentifier', 'local_ent_installer');
-$desc = get_string('configcohortuseridentifier_desc', 'local_ent_installer');
-$default = 'username';
-$options = array('username' => get_string('username'),
-                 'id' => get_string('id', 'local_ent_installer'),
-                 'idnumber' => get_string('idnumber'),
-                 'email' => get_string('email'));
-$settings->add(new admin_setting_configselect($key, $label, $desc, $default, $options));
+if (empty($ldapauth->config->memberattribute_isdn)) {
+    $desc = get_string('configcohortuseridentifier_desc', 'local_ent_installer');
+    $default = 'username';
+    $options = array('username' => get_string('username'),
+                     'id' => get_string('id', 'local_ent_installer'),
+                     'idnumber' => get_string('idnumber'),
+                     'email' => get_string('email'));
+    $settings->add(new admin_setting_configselect($key, $label, $desc, $default, $options));
+} else {
+    $desclocked = get_string('configcohortuseridentifierlocked_desc', 'local_ent_installer');
+    $settings->add(new admin_setting_static($key, $label, $desclocked, 'username'));
+}
 
 $key = 'local_ent_installer/cohort_old_prefixes';
 $label = get_string('configcohortoldprefixes', 'local_ent_installer');

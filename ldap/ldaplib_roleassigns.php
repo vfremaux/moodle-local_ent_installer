@@ -619,26 +619,48 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
             }
             foreach ($entry[$value] as $newvalopt) {
                 $newvalopt  = core_text::convert($newvalopt, $ldapauth->config->ldapencoding, 'utf-8');
-                if (!empty($options['verbose'])) {
-                    mtrace("Extracting from $newvalopt with {$config->roleassign_membership_filter} ");
-                }
-                if (preg_match('/'.$config->roleassign_membership_filter.'/', $newvalopt, $matches)) {
-                    // Exclude potential arity count that comes at end of multivalued entries.
-                    if ($config->roleassign_user_key == 'username') {
-                        $identifier = core_text::strtolower($matches[1]);
-                    } else {
-                        $identifier = $matches[1];
-                    }
+                if (!$ldapauth->config->memberattribute_isdn) {
                     if (!empty($options['verbose'])) {
-                        mtrace("Getting user record for {$config->roleassign_user_key} = $identifier");
+                        mtrace("Extracting from $newvalopt with {$config->roleassign_membership_filter} ");
                     }
-                    $params = array($config->roleassign_user_key => $identifier, 'deleted' => 0);
-                    $user = $DB->get_record('user', $params, 'id,username,firstname,lastname');
+                    // Member attribute contains value from where the user identifier can be directly extracted.
+                    if (preg_match('/'.$config->roleassign_membership_filter.'/', $newvalopt, $matches)) {
+                        // Exclude potential arity count that comes at end of multivalued entries.
+                        if ($config->roleassign_user_key == 'username') {
+                            $identifier = core_text::strtolower($matches[1]);
+                        } else {
+                            $identifier = $matches[1];
+                        }
+                        if (!empty($options['verbose'])) {
+                            mtrace("Getting user record for {$config->roleassign_user_key} = $identifier");
+                        }
+                        $params = array($config->roleassign_user_key => $identifier, 'deleted' => 0);
+                        $user = $DB->get_record('user', $params, 'id,username,firstname,lastname');
+                        if (!$user) {
+                            mtrace("Error : User record not found for $identifier. Skipping membership");
+                            continue;
+                        }
+                        $user->memberdn = $newvalopt; // Store original ldap record value into user.
+                        $newval[] = $user;
+                    }
+                } else {
+                    /*
+                     * Member attribute contains a true user DN. This may, but MAY NOT contain direct
+                     * reference to a moodle user identifier. In this case, for more stability, we
+                     * fetch the associated username known by LDAP in user ldap main username attribute.
+                     */
+                    if (!empty($options['verbose'])) {
+                        mtrace("Extracting from $newvalopt as DN ");
+                    }
+                    $username = local_ent_installer_get_username_from_dn($ldapauth, $newvalopt, $options, $ldapconnection);
+                    $fields = 'id, username, firstname, lastname';
+                    // 'username' is the static value of configroleasignuseridentifier.
+                    $user = $DB->get_record('user', array('username' => $username), $fields);
                     if (!$user) {
-                        mtrace("Error : User record not found for $identifier. Skipping membership");
+                        mtrace("Error : User record not found for $username. Skipping membership");
                         continue;
                     }
-                    $user->memberdn = $newvalopt; // Store original ldap record value into user.
+                    $user->userid = $user->id;
                     $newval[] = $user;
                 }
             }
