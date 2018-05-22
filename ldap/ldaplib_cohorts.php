@@ -515,43 +515,20 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
             // Get the full array of values.
             $newval = array();
             foreach ($entry[$value] as $newvalopt) {
-                // For each member extract identifier.
                 $newvalopt  = core_text::convert($newvalopt, $ldapauth->config->ldapencoding, 'utf-8');
-                if (!$ldapauth->config->memberattribute_isdn) {
+                if (!empty($options['verbose'])) {
+                    mtrace("Extracting from $newvalopt with {$config->cohort_membership_filter} ");
+                }
+                if (preg_match('/'.$config->cohort_membership_filter.'/', $newvalopt, $matches)) {
+                    // Exclude potential arity count that comes at end of multivalued entries.
+                    $identifier = core_text::strtolower($matches[1]);
                     if (!empty($options['verbose'])) {
-                        mtrace("Extracting from $newvalopt with {$config->cohort_membership_filter} ");
+                        mtrace("Getting user record for {$config->cohort_user_identifier} = $identifier");
                     }
-                    // Member attribute contains value from where the user identifier can be directly extracted.
-                    if (preg_match('/'.$config->cohort_membership_filter.'/', $newvalopt, $matches)) {
-                        // Exclude potential arity count that comes at end of multivalued entries.
-                        $identifier = core_text::strtolower($matches[1]);
-                        if (!empty($options['verbose'])) {
-                            mtrace("Getting user record for {$config->cohort_user_identifier} = $identifier");
-                        }
-                        $fields = 'id,username,firstname,lastname';
-                        $user = $DB->get_record('user', array($config->cohort_user_identifier => $identifier), $fields);
-                        if (!$user) {
-                            mtrace("Error : User record not found for $identifier. Skipping membership");
-                            continue;
-                        }
-                        $user->userid = $user->id;
-                        $newval[] = $user;
-                    }
-                } else {
-                    /*
-                     * Member attribute contains a true user DN. This may, but MAY NOT contain direct
-                     * reference to a moodle user identifier. In this case, for more stability, we
-                     * fetch the associated username known by LDAP in user ldap main username attribute.
-                     */
-                    if (!empty($options['verbose'])) {
-                        mtrace("Extracting from $newvalopt as DN ");
-                    }
-                    $username = local_ent_installer_get_username_from_dn($ldapauth, $newvalopt, $options, $ldapconnection);
-                    $fields = 'id, username, firstname, lastname';
-                    // 'username' is the static value of configroleasignuseridentifier.
-                    $user = $DB->get_record('user', array('username' => $username), $fields);
+                    $fields = 'id,username,firstname,lastname';
+                    $user = $DB->get_record('user', array($config->cohort_user_identifier => $identifier), $fields);
                     if (!$user) {
-                        mtrace("Error : User record not found for $username. Skipping membership");
+                        mtrace("Error : User record not found for $identifier. Skipping membership");
                         continue;
                     }
                     $user->userid = $user->id;
@@ -585,8 +562,7 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
             $newval = $matches[1];
         }
 
-        if (!empty($newval)) {
-            // Favour ldap entries that are set.
+        if (!empty($newval)) { // Favour ldap entries that are set.
             $ldapval = $newval;
         }
 

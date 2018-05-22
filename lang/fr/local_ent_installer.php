@@ -233,7 +233,7 @@ $string['configcohortselectorfilter'] = 'Filtre de sélection des cohortes';
 $string['configcohortselectorfilter_desc'] = 'Filtre en syntaxe LDAP pour extraire les identifiants de cohortes. Admet un remplacement %ID% pour le Rne. Si plusieurs Rne sont associés à l\'établissement, le filtre sera activé pour chaque établissement';
 $string['configcohortidattribute'] = 'Attribut identifiant LDAP de cohorte';
 $string['configcohortidattribute_desc'] = 'Attribut pour rechercher un enregistrement unique de cohorte';
-$string['configcohortidpattern'] = 'Motif d\'identifiant de cohorte';
+$string['configcohortidpattern'] = 'Motif d\'identifant de cohorte';
 $string['configcohortidpattern_desc'] = 'Un motif à remplacements pour construire la valeur de l\'identifiant. Accepte les emplacements %ID% (Rne) et %CID% (identifiant interne de cohorte).';
 $string['configcohortidnumberattribute'] = 'Attribut du numéro d\'identification';
 $string['configcohortidnumberattribute_desc'] = 'Attribut LDAP pour extraire le numéro d\'identification de cohorte';
@@ -248,19 +248,12 @@ $string['configcohortdescriptionattribute_desc'] = 'Attribut LDAP pour extraire 
 $string['configcohortmembershipattribute'] = 'Attribut d\'appartenance à la cohorte';
 $string['configcohortmembershipattribute_desc'] = 'Attribut LDAP pour désigner les membres de la cohorte';
 $string['configcohortmembershipfilter'] = 'Filtre d\'appartenance à la cohorte';
+$string['configcohortmembershipfilter_desc'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier sous-motif disponible';
 $string['configcohortuseridentifier'] = 'Identifiant interne d\'appartenance à la cohorte';
+$string['configcohortuseridentifier_desc'] = '';
 $string['configcohortoldprefixes'] = 'Anciens prefixes';
-$string['id'] = 'Id primaire';
-
-$string['configcohortuseridentifier_desc'] = 'Champ interne d\'identifiant utilisateur utilisé pour trouver l\'ID utilisateur';
-
-$string['configcohortmembershipfilter_desc'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier
-sous-motif disponible';
-
-$string['configcohortuseridentifierlocked_desc'] = 'Champ interne d\'identifiant utilisateur utilisé pour trouver l\'ID utilisateur.
-La valeur est forcée par la configuration "L\'attribut appartenance utilise dn" actuelle du plugin d\'authentification LDAP.';
-
 $string['configcohortoldprefixes_desc'] = 'Prefixes (liste à virgule) des cohortes obsolètes à supprimer';
+$string['id'] = 'Id primaire';
 
 $string['deletingcohorts'] = 'Suppression des cohortes';
 $string['creatingcohorts'] = 'Création des nouvelles cohortes';
@@ -317,8 +310,6 @@ $string['configroleassigntargetuserkey'] = 'Clef primaire de l\'utilisateur obje
 $string['configroleassigntargetuserkey_desc'] = 'Le champ Moodle pour identifier l\'utilisateur objet de l\'attribution de rôle (celui sur lequel agit le rôle).';
 $string['configroleassignuserkey'] = 'Clef primaire de l\'utilisateur sujet';
 $string['configroleassignuserkey_desc'] = 'Le champ Moodle pour identifier l\'utilisateur sujet de l\'attribution de rôle (celui qui reçoit l\'attribution).';
-$string['configroleassignuserkeylocked_desc'] = 'Le champ Moodle pour identifier l\'utilisateur sujet de l\'attribution de rôle (celui qui reçoit l\'attribution).
-La valeur est forcée par la configuration "L\'attribut appartenance utilise dn" actuelle du plugin d\'authentification LDAP.';
 $string['configroleassignmembershipattribute'] = 'Attribut des éléments d\'association';
 $string['configroleassignmembershipattribute_desc'] = 'L\'attribut LDAP permettant de lister les bénéficiares de l\'attribution';
 $string['configroleassignmembershipfilter'] = 'Filtre des éléments d\'association';
@@ -379,8 +370,6 @@ $string['configgroupmembershipfilter'] = 'Filtre d\'appartenance au groupe';
 $string['configgroupmembershipfilter_desc'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier sous-motif disponible';
 $string['configgroupuseridentifier'] = 'Identifiant interne d\'appartenance au groupe';
 $string['configgroupuseridentifier_desc'] = 'L\'identifiant utilisateur moodle de référence pour l\'attribution des groupes';
-$string['configgroupuseridentifierlocked_desc'] = 'L\'identifiant utilisateur moodle de référence pour l\'attribution des groupes.
-La valeur est forcée par la configuration "L\'attribut appartenance utilise dn" actuelle du plugin d\'authentification LDAP.';
 $string['configgroupsprotectformdeletion'] = 'Protection';
 $string['configgroupsprotectformdeletion_desc'] = 'Si elle est activée, les groupes ne peuvent pas être supprimés par la synchronisation';
 
@@ -398,39 +387,12 @@ $string['skipmembership'] = 'Ignorer les membres';
 $string['skipmembership'] = 'Membres ignorés.';
 $string['skipmembership_help'] = 'Si actif, seules les définitions du groupe sont mises à jour. Les inscriptions au groupes ne sont pas modifiées.';
 
-// courses.
-
-$string['configcoursecatenable'] = 'Activer la synchro des catégories de cours';
-$string['configcoursecatcontexts'] = 'Contextes LDAP pour trouver les catégories de groupes. Plusieurs contextes possibles séparés par des ;';
-$string['configcoursecatselectorfilter'] = 'Filtre LDAP pour la sélection des catégories de cours';
-$string['configcoursecatidnumberattribute'] = 'Attribut LDAP pour l\'identifiant externe de catégorie';
-$string['configcoursecatidnumberfilter'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier sous-motif disponible';
-$string['configcoursecatidnumberpattern'] = 'Moodle pattern for the idnumber. Accepts %CCID% placeholder.';
-$string['configcoursecatnameattribute'] = 'Attribut LDAP pour le nom de la catégorie';
-$string['configcoursecatnameisfullpath'] = 'Le nom de la catégorie est elle un chemin complet ?';
-$string['configcoursecatparentattribute'] = 'Attribut LDAP pour la référence de la catégorie parente';
-$string['configcoursecatparentfilter'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier sous-motif disponible';
-$string['configcoursecatparentpattern'] = 'Moodle pattern for adapting the parent idnumber. Accepts %PCID% placeholder.';
-
-$string['configcourseenable'] = 'Activer la synchro des cours';
-$string['configcoursecontexts'] = 'Contextes LDAP des cours';
-$string['configcourseselectorfilter'] = 'Filtre LDAP pour la sélection des cours';
-$string['configcourseidnumberattribute'] = 'Attribut LDAP de l\'identifiant de cours';
-$string['configcourseidnumberfilter'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier sous-motif disponible';
-$string['configcourseidnumberpattern'] = 'Moodle pattern for the course idnumber. Accepts %CCID% placeholder.';
-$string['configcoursefullnameattribute'] = 'LDAP attribute for course full name';
-$string['configcoursesummaryattribute'] = 'LDAP attribute for course summary';
-$string['configcoursevisibleattribute'] = 'LDAP attribute for course visibility';
-$string['configcourseshortnameattribute'] = 'LDAP attribute for course shortname';
-$string['configcourseshortnamefilter'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier sous-motif disponible';
-$string['configcourseshortnamepattern'] = 'Moodle pattern for the course shortname. Accepts %CCID% placeholder.';
-
 // Structures.
 
 $string['configstructurecity'] = 'Ville';
 $string['configstructurecity_desc'] = 'Attribut LDAP de la ville';
 $string['configstructurecityfilter'] = 'Filtre LDAP pour la ville';
-$string['configstructurecityfilter_desc'] = 'Clause LDAP pour recherche dans le nom de l\'établissement';
+$string['configstructurecityfilter_desc'] = 'Clause LDAP pour recherche dans le nom de l\'tablissement';
 $string['configstructurecontext'] = 'Contexte LDAP';
 $string['configstructurecontext_desc'] = 'contexte(base DN) LDAP où sont stockées les définitions d\'établissement';
 $string['configstructureid'] = 'Identifiant';

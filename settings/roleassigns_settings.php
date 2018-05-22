@@ -62,8 +62,6 @@ $desc = get_string('configroleassignidattribute_desc', 'local_ent_installer');
 $default = 'cn';
 $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
-/* roleassign role */
-
 $key = 'local_ent_installer/roleassign_role_attribute';
 $label = get_string('configroleassignroleattribute', 'local_ent_installer');
 $desc = get_string('configroleassignroleattribute_desc', 'local_ent_installer');
@@ -81,8 +79,6 @@ $label = get_string('configroleassignrolemapping', 'local_ent_installer');
 $desc = get_string('configroleassignrolemapping_desc', 'local_ent_installer');
 $default = '';
 $settings->add(new admin_setting_configtextarea($key, $label, $desc, $default));
-
-/* roleassign contextlevel */
 
 $key = 'local_ent_installer/roleassign_contextlevel_attribute';
 $label = get_string('configroleassigncontextlevelattribute', 'local_ent_installer');
@@ -102,8 +98,6 @@ $desc = get_string('configroleassigncontextlevelmapping_desc', 'local_ent_instal
 $default = '';
 $settings->add(new admin_setting_configtextarea($key, $label, $desc, $default));
 
-/* roleassign context id */
-
 $key = 'local_ent_installer/roleassign_context_attribute';
 $label = get_string('configroleassigncontextattribute', 'local_ent_installer');
 $desc = get_string('configroleassigncontextattribute_desc', 'local_ent_installer');
@@ -115,8 +109,6 @@ $label = get_string('configroleassigncontextfilter', 'local_ent_installer');
 $desc = get_string('configroleassigncontextfilter_desc', 'local_ent_installer');
 $default = '';
 $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
-
-/* targetting the context id */
 
 $key = 'local_ent_installer/roleassign_coursecat_key';
 $label = get_string('configroleassigncoursecatkey', 'local_ent_installer');
@@ -187,20 +179,15 @@ $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
 $key = 'local_ent_installer/roleassign_user_key';
 $label = get_string('configroleassignuserkey', 'local_ent_installer');
-if (empty($ldapauth->config->memberattribute_isdn)) {
-    $desc = get_string('configroleassignuserkey_desc', 'local_ent_installer');
-    $default = 'username';
-    $options = array(
-        'username' => get_string('username'),
-        'id' => get_string('id', 'local_ent_installer'),
-        'idnumber' => get_string('idnumber'),
-        'email' => get_string('email')
-    );
-    $settings->add(new admin_setting_configselect($key, $label, $desc, $default, $options));
-} else {
-    $desclocked = get_string('configroleassignuserkeylocked_desc', 'local_ent_installer');
-    $settings->add(new admin_setting_static($key, $label, $desclocked, 'username'));
-}
+$desc = get_string('configroleassignuserkey_desc', 'local_ent_installer');
+$default = 'username';
+$options = array(
+    'username' => get_string('username'),
+    'id' => get_string('id', 'local_ent_installer'),
+    'idnumber' => get_string('idnumber'),
+    'email' => get_string('email')
+);
+$settings->add(new admin_setting_configselect($key, $label, $desc, $default, $options));
 
 $key = 'local_ent_installer/roleassign_enrol_method';
 $label = get_string('configroleassignenrolmethod', 'local_ent_installer');

@@ -1356,38 +1356,6 @@ function local_ent_installer_load_user_fields() {
     return $userfields;
 }
 
-/**
- * Getting a full LDAP user DN value, gets from LDAP the associated username. This is
- * used when the user DN do NOT contain the username as part of it, and must indirectly 
- * be retrieved from an entry attribute.
- */
-function local_ent_installer_get_username_from_dn($ldapauth, $userdn, $options = array(), $ldapconnection = null) {
-
-    $localconnection = false;
-    if (is_null($ldapconnection)) {
-        $ldapconnection = $ldapauth->ldap_connect();
-        $localconnection = true;
-    }
-
-    if ($options['verbose']) {
-        mtrace("Getting $userdn for ".implode(',', $searchattribs));
-    }
-    if (!$userinforesult = ldap_read($ldapconnection, $userdn, $ldapauth->config->objectclass, $ldapauth->config->user_attribute)) {
-        if ($localconnection) {
-            $ldapauth->ldap_close();
-        }
-        return false;
-    }
-
-    $userentry = ldap_get_entries_moodle($ldapconnection, $userinforesult);
-    if (empty($userentry)) {
-        if ($localconnection) {
-            $ldapauth->ldap_close();
-        }
-        return false; // Entry not found.
-    }
-    return $userentry[$ldapauth->config->user_attribute];
-}
 
 /**
  * Reads user information from ldap and returns it in array()

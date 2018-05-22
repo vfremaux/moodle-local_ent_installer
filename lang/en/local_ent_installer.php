@@ -255,9 +255,7 @@ $string['configcohortmembershipattribute_desc'] = 'Ldap field for finding users 
 $string['configcohortmembershipfilter'] = 'Filter for membership';
 $string['configcohortmembershipfilter_desc'] = 'A regex that applies to value and catches the first available subpattern';
 $string['configcohortuseridentifier'] = 'Internal cohort user identifier';
-$string['configcohortuseridentifier_desc'] = 'Internal user field used as user identifier reference for finding user ID';
-$string['configcohortuseridentifierlocked_desc'] = 'Internal user field used as user identifier reference for finding user ID.
-The value is locked by the auth/ldap configuration current choice for "membership as DN".';
+$string['configcohortuseridentifier_desc'] = '';
 $string['configcohortoldprefixes'] = 'Old prefixes';
 $string['configcohortoldprefixes_desc'] = 'Prefixes (coma separated) of cohorts to delete by idnumber';
 $string['id'] = 'Primary id';
@@ -317,8 +315,6 @@ $string['configroleassigntargetuserkey'] = 'Target user key';
 $string['configroleassigntargetuserkey_desc'] = 'Moodle field for finding the target user context.';
 $string['configroleassignuserkey'] = 'Assigned user key';
 $string['configroleassignuserkey_desc'] = 'Moodle field that identifies user for assignment';
-$string['configroleassignuserkeylocked_desc'] = 'Internal user field used as user identifier reference for finding user ID.
-The value is locked by the auth/ldap configuration current choice for "membership as DN".';
 $string['configroleassignmembershipattribute'] = 'Attribute for assigned users';
 $string['configroleassignmembershipattribute_desc'] = 'Ldap field for finding users in role assignment';
 $string['configroleassignmembershipfilter'] = 'Filter for membership';
@@ -373,15 +369,13 @@ $string['configgroupnameattribute_desc'] = 'Ldap field for the group name';
 $string['configgroupnamefilter'] = 'Filter to extract group name';
 $string['configgroupnamefilter_desc'] = 'A regex that applies to value and catches the first available subpattern';
 $string['configgroupdescriptionattribute'] = 'Attribute for description';
-$string['configgroupdescriptionattribute_desc'] = 'LDAP field for the group description';
+$string['configgroupdescriptionattribute_desc'] = 'Ldap field for the group description';
 $string['configgroupmembershipattribute'] = 'Attribute for membership';
 $string['configgroupmembershipattribute_desc'] = 'Ldap field for finding users in group';
 $string['configgroupmembershipfilter'] = 'Filter for membership';
 $string['configgroupmembershipfilter_desc'] = 'A regex that applies to value and catches the first available subpattern';
 $string['configgroupuseridentifier'] = 'Internal group user identifier';
 $string['configgroupuseridentifier_desc'] = '';
-$string['configgroupuseridentifierlocked_desc'] = 'Internal user field used as user identifier reference for finding user ID for the group membership.
-The value is locked by the auth/ldap configuration current choice for "membership as DN".';
 $string['configgroupsprotectformdeletion'] = 'Delete protection';
 $string['configgroupsprotectformdeletion_desc'] = 'If enabled, no groups can be deleted using the groups synchronisation';
 
@@ -398,55 +392,6 @@ $string['disableautogroupscheck'] = 'Disable auto group check';
 $string['skipmembership'] = 'Skip membership';
 $string['skippingmembership'] = 'Skipping membership';
 $string['skipmembership_help'] = 'If set, only group info is updated. No members are moved from groups.';
-
-// courses.
-
-$string['configcoursecatenable'] = 'Enable course categories sync';
-$string['configcoursecatcontexts'] = 'Contexts for coursecats';
-$string['configcoursecatcontexts_desc'] = 'LDAP contexts where to find course category representation. You can give several contexts separated by semi-colons (;)';
-$string['configcoursecatselectorfilter'] = 'LDAP filter for course categories';
-$string['configcoursecatselectorfilter_desc'] = 'A LDAP filtering expression';
-$string['configcoursecatidnumberattribute'] = 'Attribute for category idnumber';
-$string['configcoursecatidnumberattribute_desc'] = 'LDAP attribute for course category idnumber';
-$string['configcoursecatidnumberfilter'] = 'Filter for idnumber';
-$string['configcoursecatidnumberfilter_desc'] = 'Regexp filter for extracting the idnumber (as the first regexp capture pattern).';
-$string['configcoursecatidnumberpattern'] = 'Pattern for the idnumber';
-$string['configcoursecatidnumberpattern_desc'] = 'Moodle pattern for the idnumber. Accepts %CCID% placeholder.';
-$string['configcoursecatnameattribute'] = 'Attribute for category name';
-$string['configcoursecatnameattribute_desc'] = 'LDAP attribute for course category name';
-$string['configcoursecatnameisfullpath'] = 'Is the name a full category path ?';
-$string['configcoursecatnameisfullpath_desc'] = 'Set this to checked if the LDAP contains full specified category paths separated by slashes.';
-$string['configcoursecatparentattribute'] = 'Attribute for category parent identifier';
-$string['configcoursecatparentattribute_desc'] = 'LDAP attribute for course category parent idnumber';
-$string['configcoursecatparentfilter'] = 'Filter for parent idnumber';
-$string['configcoursecatparentfilter_desc'] = 'Regexp filter for extracting the parent idnumber (as the first regexp capture pattern).';
-$string['configcoursecatparentpattern'] = 'Pattern for the parent idnumber';
-$string['configcoursecatparentpattern_desc'] = 'Moodle pattern for adapting the parent idnumber. Accepts %PCID% placeholder.';
-
-$string['configcourseenable'] = 'Enable course sync';
-$string['configcoursecontexts'] = 'Contexts for courses';
-$string['configcoursecontexts_desc'] = 'LDAP context for courses. You can give several contexts separated by semi-colons (;).';
-$string['configcourseselectorfilter'] = 'LDAP filter for courses';
-$string['configcourseselectorfilter_desc'] = 'A LDAP filter for selecting courses';
-$string['configcourseidnumberattribute'] = 'Attribute for course idnumber';
-$string['configcourseidnumberattribute_desc'] = 'LDAP attribute for course idnumber';
-$string['configcourseidnumberfilter'] = 'Filter for course idnumber';
-$string['configcourseidnumberfilter_desc'] = 'Regexp filter for extracting the course idnumber (as the first regexp capture pattern).';
-$string['configcourseidnumberpattern'] = 'Pattern for course idnumber';
-$string['configcourseidnumberpattern_desc'] = 'Moodle pattern for the course idnumber. Accepts %CCID% placeholder.';
-$string['configcoursefullnameattribute'] = 'Attribute for course full name';
-$string['configcoursefullnameattribute_desc'] = 'LDAP attribute for course full name';
-$string['configcoursesummaryattribute'] = 'Attribute for course summary';
-$string['configcoursesummaryattribute_desc'] = 'LDAP attribute for course summary';
-$string['configcoursevisibleattribute'] = 'Attribute for course visibility';
-$string['configcoursevisibleattribute_desc'] = 'LDAP attribute for course visibility. Explicit 0 or false value stands for hidden.';
-$string['configcourseshortnameattribute'] = 'Attribute for course shortname';
-$string['configcourseshortnameattribute_desc'] = 'LDAP attribute for course shortname';
-$string['configcourseshortnamefilter'] = 'Filter for course shortname';
-$string['configcourseshortnamefilter_desc'] = 'Regexp filter for extracting the course shortname (as the first regexp capture pattern).';
-$string['configcourseshortnamepattern'] = 'Pattern for course shortname';
-$string['configcourseshortnamepattern_desc'] = 'Moodle pattern for the course shortname. Accepts %CCID% placeholder.';
-
 
 // Structures.
 
