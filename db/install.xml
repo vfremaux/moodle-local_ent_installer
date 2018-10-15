@@ -4,15 +4,18 @@
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
   <TABLES>
-    <TABLE NAME="local_ent_installer" COMMENT="Table to store user sync stats data">
+    <TABLE NAME="local_ent_installer" COMMENT="Table to store sync stats data">
       <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="timestart"/>
-        <FIELD NAME="timestart" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false" PREVIOUS="id" NEXT="timerun"/>
-        <FIELD NAME="timerun" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false" PREVIOUS="timestart" NEXT="added"/>
-        <FIELD NAME="added" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false" PREVIOUS="timerun" NEXT="updated" />
-        <FIELD NAME="updated" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false" PREVIOUS="added" NEXT="inserterrors" />
-        <FIELD NAME="inserterrors" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false" PREVIOUS="updated" NEXT="updateerrors" />
-        <FIELD NAME="updateerrors" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false" PREVIOUS="inserterrors" />
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true"/>
+        <FIELD NAME="synctype" TYPE="char" LENGTH="16" NOTNULL="true" UNSIGNED="true" SEQUENCE="false"/>
+        <FIELD NAME="timestart" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="timerun" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="added" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false" />
+        <FIELD NAME="updated" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="deleted" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="inserterrors" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="updateerrors" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false"/>
+        <FIELD NAME="deleteerrors" TYPE="int" LENGTH="11" NOTNULL="false" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

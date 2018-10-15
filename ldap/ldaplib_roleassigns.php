@@ -36,7 +36,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     $config = get_config('local_ent_installer');
 
     $debughardlimit = '';
-    if ($CFG->debug == DEBUG_DEVELOPER) {
+    if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
         $debughardlimit = ' LIMIT 30 ';
         echo '<span style="font-size:2.5em">';
         mtrace('RUNNING WITH HARD LIMIT OF 30 OBJECTS');
@@ -70,11 +70,12 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
     $ldapconnection = $ldapauth->ldap_connect();
     // Ensure an explicit limit, or some defaults may  cut some results.
-    if ($CFG->debug == DEBUG_DEVELOPER) {
+    if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 30);
     } else {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 500000);
     }
+    // Read the effective limit in a variable.
     ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
     mtrace("Ldap opened with sizelimit $retvalue");
 
@@ -243,8 +244,16 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                             }
                         }
 
-                        $modify = ldap_get_values_len($ldapconnection, $entry, 'modifyTimestamp');
-                        $modify = strtotime($modify[0]);
+                        $modify = ldap_get_values_len($ldapconnection, $entry, $config->record_date_fieldname);
+                        if (!empty($modify[0])) {
+                            if ($config->timestamp_format == 'ad') {
+                                $modify = convert_from_ad_timestamp($modify[0]);
+                            } else {
+                                $modify = strtotime($modify[0]);
+                            }
+                        } else {
+                            $modify = time();
+                        }
 
                         if (!empty($options['force']) || ($modify > 0 + $config->last_sync_date_roles)) {
 
@@ -619,26 +628,48 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
             }
             foreach ($entry[$value] as $newvalopt) {
                 $newvalopt  = core_text::convert($newvalopt, $ldapauth->config->ldapencoding, 'utf-8');
-                if (!empty($options['verbose'])) {
-                    mtrace("Extracting from $newvalopt with {$config->roleassign_membership_filter} ");
-                }
-                if (preg_match('/'.$config->roleassign_membership_filter.'/', $newvalopt, $matches)) {
-                    // Exclude potential arity count that comes at end of multivalued entries.
-                    if ($config->roleassign_user_key == 'username') {
-                        $identifier = core_text::strtolower($matches[1]);
-                    } else {
-                        $identifier = $matches[1];
-                    }
+                if (!$ldapauth->config->memberattribute_isdn) {
                     if (!empty($options['verbose'])) {
-                        mtrace("Getting user record for {$config->roleassign_user_key} = $identifier");
+                        mtrace("Extracting from $newvalopt with {$config->roleassign_membership_filter} ");
                     }
-                    $params = array($config->roleassign_user_key => $identifier, 'deleted' => 0);
-                    $user = $DB->get_record('user', $params, 'id,username,firstname,lastname');
+                    // Member attribute contains value from where the user identifier can be directly extracted.
+                    if (preg_match('/'.$config->roleassign_membership_filter.'/', $newvalopt, $matches)) {
+                        // Exclude potential arity count that comes at end of multivalued entries.
+                        if ($config->roleassign_user_key == 'username') {
+                            $identifier = core_text::strtolower($matches[1]);
+                        } else {
+                            $identifier = $matches[1];
+                        }
+                        if (!empty($options['verbose'])) {
+                            mtrace("Getting user record for {$config->roleassign_user_key} = $identifier");
+                        }
+                        $params = array($config->roleassign_user_key => $identifier, 'deleted' => 0);
+                        $user = $DB->get_record('user', $params, 'id,username,firstname,lastname');
+                        if (!$user) {
+                            mtrace("Error : User record not found for $identifier. Skipping membership");
+                            continue;
+                        }
+                        $user->memberdn = $newvalopt; // Store original ldap record value into user.
+                        $newval[] = $user;
+                    }
+                } else {
+                    /*
+                     * Member attribute contains a true user DN. This may, but MAY NOT contain direct
+                     * reference to a moodle user identifier. In this case, for more stability, we
+                     * fetch the associated username known by LDAP in user ldap main username attribute.
+                     */
+                    if (!empty($options['verbose'])) {
+                        mtrace("Extracting from $newvalopt as DN ");
+                    }
+                    $username = local_ent_installer_get_username_from_dn($ldapauth, $newvalopt, $options, $ldapconnection);
+                    $fields = 'id, username, firstname, lastname';
+                    // 'username' is the static value of configroleasignuseridentifier.
+                    $user = $DB->get_record('user', array('username' => $username), $fields);
                     if (!$user) {
-                        mtrace("Error : User record not found for $identifier. Skipping membership");
+                        mtrace("Error : User record not found for $username. Skipping membership");
                         continue;
                     }
-                    $user->memberdn = $newvalopt; // Store original ldap record value into user.
+                    $user->userid = $user->id;
                     $newval[] = $user;
                 }
             }
