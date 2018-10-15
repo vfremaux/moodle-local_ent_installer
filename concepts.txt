@@ -1,0 +1,49 @@
+Here come a set of common concepts for all models : 
+
+#####################
+
+## Contexts (ldap) :
+
+Usually designates a location in the LDAP tree from where to start search for target directory entities.
+
+## Selector filter:
+
+Designates a LDAP filter that selects and reduce the available directory entities to consider.
+
+## Attribute :
+
+Usually designates a LDAP attribute of the targtted entity.
+
+## Filter (attribute) :
+
+Usually designates a Regex pattern extracting part of the attribute data as the useful payload.
+
+## Pattern (attribute) :
+
+Usually designates an injection pattern (glue with placeholders) to generate the final moodle side data value. This is applied
+only to data that must be stored into moodle.
+
+## Target (attribute) :
+
+If present, may designate the moodle target field to feed, in case there can be
+some ambiguity. Usually implicit in setting name.
+
+## Mapping (attribute) :
+
+If present, will proceed to a value input => output mapping in case the LDAP value encoding is not straight away usable
+in moodle.
+
+##############
+
+Processing chain
+
+##############
+
+    1. Collect all required fields from settings.
+    2. Get selected entities in contexts with filter
+    3. foreach result :
+        foreach attribute :
+            case attribute : Get the attribute value as is with UTF-8 filtering
+            case attribute + filter : Get the attribute value, apply regexp and get the first capturing subpattern
+            case attribute + pattern : Get the attribute value and inject result in pattern
+            case attribute + filter + pattern : Get the attribute value get the first capturing subpattern and inject it in pattern for the final value.

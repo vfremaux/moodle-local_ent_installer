@@ -28,7 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/lib/formslib.php');
 
-class SyncUsersForm extends moodleform {
+class SyncForm extends moodleform {
 
     public function definition() {
         global $CFG;
@@ -43,13 +43,30 @@ class SyncUsersForm extends moodleform {
         if (!empty($config->sync_users_enable)) {
             $group = array();
             $group[] = &$mform->createElement('checkbox', 'users', '');
-            $attrs = array('type' => 'button', 'value' => get_string('syncsingle', 'local_ent_installer'));
+            $attrs = array('type' => 'button', 'value' => get_string('syncsingleuser', 'local_ent_installer'));
             $button = html_writer::tag('input', '', $attrs);
             $singleuserurl = new moodle_url('/local/ent_installer/syncuser.php');
             $attrs = array('href' => $singleuserurl);
             $html = html_writer::tag('a', $button, $attrs);
             $group[] = &$mform->createElement('static', 'singleuser', '', $html);
-            $mform->addGroup($group, 'usersgroup', get_string('users', 'local_ent_installer'),array(''), false);
+            $mform->addGroup($group, 'usersgroup', get_string('users', 'local_ent_installer'), array(''), false);
+        }
+
+        if (!empty($config->sync_coursecat_enable)) {
+            $mform->addElement('checkbox', 'coursecats', get_string('coursecats', 'local_ent_installer'));
+        }
+
+        if (!empty($config->sync_course_enable)) {
+            // $mform->addElement('checkbox', 'courses', get_string('courses', 'local_ent_installer'));
+            $group = array();
+            $group[] = &$mform->createElement('checkbox', 'courses', '');
+            $attrs = array('type' => 'button', 'value' => get_string('syncsinglecourse', 'local_ent_installer'));
+            $button = html_writer::tag('input', '', $attrs);
+            $singlecourseurl = new moodle_url('/local/ent_installer/synccourse.php');
+            $attrs = array('href' => $singlecourseurl);
+            $html = html_writer::tag('a', $button, $attrs);
+            $group[] = &$mform->createElement('static', 'singlecourse', '', $html);
+            $mform->addGroup($group, 'coursesgroup', get_string('courses', 'local_ent_installer'), array(''), false);
         }
 
         if (!empty($config->sync_cohorts_enable)) {
@@ -76,7 +93,7 @@ class SyncUsersForm extends moodleform {
 
         $mform->addElement('html', '<h3>'.get_string('options', 'local_ent_installer').'</h3>');
 
-        if ($CFG->debug < DEBUG_DEVELOPER) {
+        if ($CFG->debug < DEBUG_DEVELOPER || empty($CFG->usedebughardlimit)) {
             $mform->addElement('checkbox', 'force', get_string('force', 'local_ent_installer'));
         } else {
             $desc = get_string('forcedebugwarning', 'local_ent_installer');
@@ -85,7 +102,12 @@ class SyncUsersForm extends moodleform {
             $mform->setType('force', PARAM_BOOL);
         }
 
-        $mform->addElement('checkbox', 'updateonly', get_string('updateonly', 'local_ent_installer'));
+        $radioarr = array();
+        $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('doall', 'local_ent_installer'), 0);
+        $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('createonly', 'local_ent_installer'), 'create');
+        $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('updateonly', 'local_ent_installer'), 'update');
+        $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('deleteonly', 'local_ent_installer'), 'delete');
+        $mform->addGroup($radioarr, 'operationgroup', '', array(''), false);
 
         $mform->addElement('checkbox', 'simulate', get_string('simulate', 'local_ent_installer'));
 
