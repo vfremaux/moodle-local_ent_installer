@@ -41,7 +41,7 @@ $titlestr = get_string('synctimetitle', 'local_ent_installer');
 $PAGE->set_context($systemcontext);
 $PAGE->set_heading($titlestr);
 $PAGE->set_pagelayout('admin');
-$murl = new moodle_url('/admin/settings.php', array('section' => 'local_ent_installer'));
+$murl = new moodle_url('/admin/category.php', array('category' => 'local_ent_installer'));
 $PAGE->navbar->add(get_string('pluginname', 'local_ent_installer'), $murl);
 $PAGE->navbar->add(get_string('syncbench', 'local_ent_installer'));
 

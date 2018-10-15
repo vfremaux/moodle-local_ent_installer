@@ -22,69 +22,88 @@
  * @copyright   2015 Valery Fremaux (valery.fremaux@gmail.com)
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+namespace local_ent_installer\settings;
+
+use \admin_settingpage;
+use \admin_setting_heading;
+use \admin_setting_configtext;
+
 defined('MOODLE_INTERNAL') || die();
 
-$settings->add(new admin_setting_heading('head5', get_string('structuresearch', 'local_ent_installer'), ''));
+class structure {
 
-$key = 'local_ent_installer/structure_context';
-$label = get_string('configstructurecontext', 'local_ent_installer');
-$desc = get_string('configstructurecontext_desc', 'local_ent_installer');
-$default = '';
-$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+    public static function settings() {
+        global $CFG, $DB;
 
-$key = 'local_ent_installer/structure_id_attribute';
-$label = get_string('configstructureid', 'local_ent_installer');
-$desc = get_string('configstructureid_desc', 'local_ent_installer');
-$default = 'ENTStructureUAI';
-$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+        $settings = new admin_settingpage('local_ent_installer_structures', get_string('settingsstructures', 'local_ent_installer'));
 
-$key = 'local_ent_installer/structure_city_attribute';
-$label = get_string('configstructurecity', 'local_ent_installer');
-$desc = get_string('configstructurecity_desc', 'local_ent_installer');
-$default = 'l';
-$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+        $settings->add(new admin_setting_heading('structureshdr', get_string('structuresearch', 'local_ent_installer'), ''));
 
-$key = 'local_ent_installer/structure_city_filter';
-$label = get_string('configstructurecityfilter', 'local_ent_installer');
-$desc = get_string('configstructurecityfilter_desc', 'local_ent_installer');
-$default = '(&(objectClass=ENTEtablissement)(l=%SEARCH%))';
-$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+        $key = 'local_ent_installer/structure_context';
+        $label = get_string('configstructurecontext', 'local_ent_installer');
+        $desc = get_string('configstructurecontext_desc', 'local_ent_installer');
+        $default = '';
+        $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
-$key = 'local_ent_installer/structure_name_attribute';
-$label = get_string('configstructurename', 'local_ent_installer');
-$desc = get_string('configstructurename_desc', 'local_ent_installer');
-$default = 'ENTDisplayName';
-$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+        $key = 'local_ent_installer/structure_id_attribute';
+        $label = get_string('configstructureid', 'local_ent_installer');
+        $desc = get_string('configstructureid_desc', 'local_ent_installer');
+        $default = 'ENTStructureUAI';
+        $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
-$key = 'local_ent_installer/structure_name_filter';
-$label = get_string('configstructurenamefilter', 'local_ent_installer');
-$desc = get_string('configstructurenamefilter_desc', 'local_ent_installer');
-$default = '(&(objectClass=ENTEtablissement)(ENTDisplayName=%SEARCH%))';
-$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+        $key = 'local_ent_installer/structure_city_attribute';
+        $label = get_string('configstructurecity', 'local_ent_installer');
+        $desc = get_string('configstructurecity_desc', 'local_ent_installer');
+        $default = 'l';
+        $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
-$key = 'local_ent_installer/structure_address_attribute';
-$label = get_string('configstructureaddress', 'local_ent_installer');
-$desc = get_string('configstructureaddress_desc', 'local_ent_installer');
-$default = 'street';
-$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+        $key = 'local_ent_installer/structure_city_filter';
+        $label = get_string('configstructurecityfilter', 'local_ent_installer');
+        $desc = get_string('configstructurecityfilter_desc', 'local_ent_installer');
+        $default = '(&(objectClass=ENTEtablissement)(l=%SEARCH%))';
+        $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
-$key = 'local_ent_installer/structure_geoloc_attribute';
-$label = get_string('configstructuregeoloc', 'local_ent_installer');
-$desc = get_string('configstructuregeoloc_desc', 'local_ent_installer');
-$default = 'ENTStructureGeoLoc';
-$settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+        $key = 'local_ent_installer/structure_name_attribute';
+        $label = get_string('configstructurename', 'local_ent_installer');
+        $desc = get_string('configstructurename_desc', 'local_ent_installer');
+        $default = 'ENTDisplayName';
+        $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
-$key = 'local_ent_installer_getid';
-$label = get_string('configgetid', 'local_ent_installer');
-$getidstr = get_string('configgetinstitutionidservice', 'local_ent_installer');
-$html = '<a href="'.$CFG->wwwroot.'/local/ent_installer/getid.php"><input type="button" class="btn" value="'.$getidstr.'" /></a>';
-$settings->add(new admin_setting_heading($key, $label, $html));
+        $key = 'local_ent_installer/structure_name_filter';
+        $label = get_string('configstructurenamefilter', 'local_ent_installer');
+        $desc = get_string('configstructurenamefilter_desc', 'local_ent_installer');
+        $default = '(&(objectClass=ENTEtablissement)(ENTDisplayName=%SEARCH%))';
+        $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
-if (is_dir($CFG->dirroot.'/local/vmoodle')) {
-    // Add provision to get some instance related metadata.
-    if ($DB->record_exists('local_vmoodle', array('vhostname' => $CFG->wwwroot))) {
-        $refreshsitemetadatastr = get_string('refreshsitemetadata', 'local_ent_installer');
-        $html = '<a href="'.$CFG->wwwroot.'/local/ent_installer/refreshmetadata.php">';
-        $html .= '<input type="button" class="btn" value="'.$refreshsitemetadatastr.'" /></a>';
+        $key = 'local_ent_installer/structure_address_attribute';
+        $label = get_string('configstructureaddress', 'local_ent_installer');
+        $desc = get_string('configstructureaddress_desc', 'local_ent_installer');
+        $default = 'street';
+        $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
+        $key = 'local_ent_installer/structure_geoloc_attribute';
+        $label = get_string('configstructuregeoloc', 'local_ent_installer');
+        $desc = get_string('configstructuregeoloc_desc', 'local_ent_installer');
+        $default = 'ENTStructureGeoLoc';
+        $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
+        $key = 'local_ent_installer_getid';
+        $label = get_string('configgetid', 'local_ent_installer');
+        $getidstr = get_string('configgetinstitutionidservice', 'local_ent_installer');
+        $html = '<a href="'.$CFG->wwwroot.'/local/ent_installer/getid.php"><input type="button" class="btn" value="'.$getidstr.'" /></a>';
+        $settings->add(new admin_setting_heading($key, $label, $html));
+
+        /*
+        if (is_dir($CFG->dirroot.'/local/vmoodle')) {
+            // Add provision to get some instance related metadata.
+            if ($DB->record_exists('local_vmoodle', array('vhostname' => $CFG->wwwroot))) {
+                $refreshsitemetadatastr = get_string('refreshsitemetadata', 'local_ent_installer');
+                $html = '<a href="'.$CFG->wwwroot.'/local/ent_installer/refreshmetadata.php">';
+                $html .= '<input type="button" class="btn" value="'.$refreshsitemetadatastr.'" /></a>';
+            }
+        }
+        */
+
+        return $settings;
     }
 }

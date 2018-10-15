@@ -618,3 +618,21 @@ function local_ent_installer_ensure_global_cohort_exists($type, $options) {
         }
     }
 }
+
+function convert_from_ad_timestamp($timestamp) {
+
+    $config = get_config('local_ent_installer');
+
+    if (preg_match('/^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)/', $timestamp, $matches)) {
+        $y = $matches[1];
+        $m = $matches[2];
+        $d = $matches[3];
+        $h = $matches[4];
+        $i = $matches[5];
+        $s = $matches[6];
+
+        $unixtime = mktime($h, $i, $s, $m, $d, $y);
+        return $unixtime + (0 + @$config->timestamp_shift);
+    }
+    return time();
+}

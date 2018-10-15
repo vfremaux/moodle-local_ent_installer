@@ -27,6 +27,10 @@
 require('../../config.php');
 require_once($CFG->dirroot.'/local/ent_installer/sync_form.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php');
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_courses.php');
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_cohorts.php');
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_roleassigns.php');
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_coursegroups.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 $url = new moodle_url('/local/ent_installer/sync.php');
@@ -44,14 +48,15 @@ $PAGE->set_context($systemcontext);
 $PAGE->set_heading($syncstr);
 $PAGE->set_pagelayout('admin');
 
-$mform = new SyncUsersForm();
+$mform = new SyncForm();
 
 // Get ldap params from real ldap plugin.
 $ldapauth = get_auth_plugin('ldap');
 
 if ($mform->is_cancelled()) {
     if (has_capability('moodle/site:config', $systemcontext)) {
-        redirect(new moodle_url('/admin/settings.php', array('section' => 'local_ent_installer')));
+        $returnurl = new moodle_url('/admin/category.php', array('category' => 'local_ent_installer'));
+        redirect($returnurl);
     } else {
         redirect($CFG->wwwroot);
     }
@@ -88,7 +93,7 @@ if ($data = $mform->get_data()) {
         $options['disableautocohortscheck'] = @$data->disableautocohortscheck;
         $options['empty'] = @$data->clearemptygroups;
         $options['enrol'] = @$data->enrol;
-        $options['updateonly'] = @$data->updateonly;
+        $options['operation'] = @$data->operation;
         $options['skipmembership'] = @$data->skipmembership;
 
         $done = false;
@@ -97,6 +102,22 @@ if ($data = $mform->get_data()) {
             echo '<div class="console">';
             echo '<pre>';
             local_ent_installer_sync_users($ldapauth, $options);
+            echo '</pre>';
+            echo '</div>';
+            $done = true;
+        }
+        if (!empty($data->coursecats)) {
+            echo '<div class="console">';
+            echo '<pre>';
+            local_ent_installer_sync_coursecats($ldapauth, $options);
+            echo '</pre>';
+            echo '</div>';
+            $done = true;
+        }
+        if (!empty($data->courses)) {
+            echo '<div class="console">';
+            echo '<pre>';
+            local_ent_installer_sync_courses($ldapauth, $options);
             echo '</pre>';
             echo '</div>';
             $done = true;
@@ -140,7 +161,7 @@ if ($data = $mform->get_data()) {
 
 echo '<p><center>';
 if (has_capability('moodle/site:config', $systemcontext)) {
-    $buttonurl = new moodle_url('/admin/settings.php', array('section' => 'local_ent_installer'));
+    $buttonurl = new moodle_url('/admin/category.php', array('category' => 'local_ent_installer'));
     echo $OUTPUT->single_button($buttonurl, get_string('backtosettings', 'local_ent_installer'));
 } else {
     echo $OUTPUT->single_button($CFG->wwwroot, get_string('backtosite', 'local_ent_installer'));

@@ -53,6 +53,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
     $ldapconnection = $ldapauth->ldap_connect();
     // Ensure an explicit limit, or some defaults may  cur some results.
     ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 100000);
+    // Read the effective limit in a variable.
     ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
     mtrace("Ldap opened with sizelimit $retvalue");
 
@@ -82,6 +83,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
     list($institutionidlist, $institutionalias) = local_ent_installer_strip_alias($config->institution_id);
     $institutionids = explode(',', $institutionidlist);
 
+    // Ldap paging ?
     $ldappagedresults = ldap_paged_results_supported($ldapauth->config->ldap_version);
     if ($ldappagedresults) {
         mtrace("Paging results...\n");
@@ -95,9 +97,9 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                                 $config->cohort_name_attribute,
                                 $config->cohort_description_attribute,
                                 $config->cohort_membership_attribute,
-                                'modifyTimestamp');
+                                $config->record_date_fieldname);
 
-    // First fetch idnnumbers to compare.
+    // First fetch idnumbers to compare.
     foreach ($institutionids as $institutionid) {
 
         $filter = str_replace('%ID%', $institutionid, $config->cohort_selector_filter);
@@ -114,12 +116,12 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 }
                 if ($ldapauth->config->search_sub) {
                     // Use ldap_search to find first user from subtree.
-                    mtrace("ldapsearch $context, $filter for ".$config->cohort_idnumber_attribute);
+                    mtrace("ldapsearch $context, $filter for ".$config->cohort_idnumber_attribute.". Dated by {$config->record_date_fieldname}");
                     $params = array($config->cohort_idnumber_attribute, $config->record_date_fieldname);
                     $ldapresult = ldap_search($ldapconnection, $context, $filter, $params);
                 } else {
                     // Search only in this context.
-                    mtrace("ldaplist $context, $filter for ".$config->cohort_idnumber_attribute);
+                    mtrace("ldaplist $context, $filter for ".$config->cohort_idnumber_attribute.". Dated by {$config->record_date_fieldname}");
                     $params = array($config->cohort_idnumber_attribute, $config->record_date_fieldname);
                     $ldapresult = ldap_list($ldapconnection, $context, $filter, $params);
                 }
@@ -140,7 +142,11 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                         if (!empty($config->record_date_fieldname)) {
                             $modify = @ldap_get_values_len($ldapconnection, $entry, $config->record_date_fieldname);
                             if (!empty($modify[0])) {
-                                $modify = strtotime($modify[0]);
+                                if ($config->timestamp_format == 'ad') {
+                                    $modify = convert_from_ad_timestamp($modify[0]);
+                                } else {
+                                    $modify = strtotime($modify[0]);
+                                }
                             } else {
                                 $modify = time();
                             }
@@ -172,6 +178,14 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
             c.component = 'local_ent_installer'";
     }
 
+    if (!empty($config->cohort_ix)) {
+        $idnumberclause = "CONCAT('".$config->cohort_ix."_', tc.idnumber) = c.idnumber";
+        $deletionhavingclause = " c.idnumber LIKE '".$config->cohort_ix."_%' ";
+    } else {
+        $idnumberclause = "tc.idnumber = c.idnumber";
+        $deletionhavingclause = " c.idnumber NOT LIKE '_%' ";
+    }
+
     // Deleted cohorts.
     $sql = "
         SELECT
@@ -182,14 +196,17 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
         LEFT JOIN
             {tmp_extcohort} tc
         ON
-            CONCAT('".$config->cohort_ix."_', tc.idnumber) = c.idnumber
+            $idnumberclause
         WHERE
             tc.idnumber IS NULL
             $captureautocohorts
         HAVING
-           c.idnumber LIKE '".$config->cohort_ix."_%'
+           $deletionhavingclause
     ";
-    // HAVING : Only delete cohorts of the same milesim.
+    /*
+     * HAVING : Only delete cohorts of the same milesim. In case cohort_ix is not used,
+     * provides a way to protect some cohorts from deletion, using '_' prefixed idnumbers
+     */
 
     $deleted = $DB->get_records_sql($sql);
 
@@ -202,7 +219,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
         LEFT JOIN
             {cohort} c
         ON
-            CONCAT('".$config->cohort_ix."_', tc.idnumber) = c.idnumber
+            $idnumberclause
         WHERE
             c.idnumber IS NULL
     ";
@@ -227,7 +244,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
             {cohort} c,
             {tmp_extcohort} tc
         WHERE
-            CONCAT('".$config->cohort_ix."_', tc.idnumber) = c.idnumber
+            $idnumberclause
             $lastmodified
             $captureautocohorts
     ";
@@ -265,9 +282,9 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                         }
                     }
                     $DB->delete_records('cohort', array('id' => $dl->cid));
-                    mtrace(get_string('cohortdeleted', 'local_ent_installer', $dl->idnumber));
+                    mtrace(get_string('cohortdeleted', 'local_ent_installer', $dl->idnumber)."\n");
                 } else {
-                    mtrace('[SIMULATION] '.get_string('cohortdeleted', 'local_ent_installer', $dl->idnumber));
+                    mtrace('[SIMULATION] '.get_string('cohortdeleted', 'local_ent_installer', $dl->idnumber)."\n");
                 }
             }
         } else {
@@ -293,12 +310,13 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
             }
 
             $oldrec = $DB->get_record('cohort', array('id' => $up->cid));
-            $oldrec->name = $config->cohort_ix.' '.$cohortinfo->name;
             // Ensure we have a correctly prefixed cohort IDNum and wellformed idnumber.
             if (!empty($config->cohort_ix)) {
                 $oldrec->idnumber = str_replace('__', '_', $config->cohort_ix.'_'.$cidnumber);
+                $oldrec->name = $config->cohort_ix.' '.$cohortinfo->name;
             } else {
                 $oldrec->idnumber = $cidnumber;
+                $oldrec->name = $cohortinfo->name;
             }
             $oldrec->description = $cohortinfo->description;
             $oldrec->descriptionformat = FORMAT_HTML;
@@ -308,9 +326,9 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
             $oldrec->timemodified = time();
             if (empty($options['simulate'])) {
                 $DB->update_record('cohort', $oldrec);
-                mtrace(get_string('cohortupdated', 'local_ent_installer', $oldrec));
+                mtrace(get_string('cohortupdated', 'local_ent_installer', $oldrec)."\n");
             } else {
-                mtrace('[SIMULATION] '.get_string('cohortupdated', 'local_ent_installer', $oldrec));
+                mtrace('[SIMULATION] '.get_string('cohortupdated', 'local_ent_installer', $oldrec)."\n");
             }
 
             if (!empty($cohortinfo->members)) {
@@ -329,9 +347,9 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                         $e->idnumber = $oldrec->idnumber;
                         if (empty($options['simulate'])) {
                             \cohort_add_member($oldrec->id, $m->userid);
-                            mtrace(get_string('cohortmemberadded', 'local_ent_installer', $e));
+                            mtrace(get_string('cohortmemberadded', 'local_ent_installer', $e)."\n");
                         } else {
-                            mtrace('[SIMULATION] '.get_string('cohortmemberadded', 'local_ent_installer', $e));
+                            mtrace('[SIMULATION] '.get_string('cohortmemberadded', 'local_ent_installer', $e)."\n");
                         }
                     } else {
                         unset($oldmemberids[$m->id]);
@@ -351,9 +369,9 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                         if (empty($options['simulate'])) {
                             // This will trigger cascade events to get everything clean.
                             \cohort_remove_member($oldrec->id, $userid);
-                            mtrace(get_string('cohortmemberremoved', 'local_ent_installer', $e));
+                            mtrace(get_string('cohortmemberremoved', 'local_ent_installer', $e)."\n");
                         } else {
-                            mtrace('[SIMULATION] '.get_string('cohortmemberremoved', 'local_ent_installer', $e));
+                            mtrace('[SIMULATION] '.get_string('cohortmemberremoved', 'local_ent_installer', $e)."\n");
                         }
                     }
                 }
@@ -374,34 +392,41 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 $cohortldapidentifier = str_replace('%CID%', $cidnumber, $cohortldapidentifier);
                 $cohortldapidentifier = str_replace('%ID%', $config->institution_id, $cohortldapidentifier);
 
-                $cohortinfo = local_ent_installer_get_cohortinfo_asobj($ldapauth, $cohortldapidentifier, $options);
+                if (!$cohortinfo = local_ent_installer_get_cohortinfo_asobj($ldapauth, $cohortldapidentifier, $options)) {
+                    continue;
+                }
 
                 $cohort = new StdClass;
-                $cohort->name = $config->cohort_ix.'_'.$cohortinfo->name;
                 $cohort->description = $cohortinfo->description;
                 $cohort->descriptionformat = FORMAT_HTML;
-                $cohort->idnumber = $config->cohort_ix.'_'.$cohortinfo->idnumber;
+                if (!empty($config->cohort_ix)) {
+                    $cohort->name = $config->cohort_ix.'_'.$cohortinfo->name;
+                    $cohort->idnumber = $config->cohort_ix.'_'.$cohortinfo->idnumber;
+                } else {
+                    $cohort->name = $cohortinfo->name;
+                    $cohort->idnumber = $cohortinfo->idnumber;
+                }
                 $cohort->contextid = $systemcontext->id;
                 $cohort->component = 'local_ent_installer';
                 $cohort->timecreated = time();
                 $cohort->timemodified = time();
                 if (empty($options['simulate'])) {
                     $cohort->id = $DB->insert_record('cohort', $cohort);
-                    mtrace(get_string('cohortcreated', 'local_ent_installer', $cohort));
+                    mtrace(get_string('cohortcreated', 'local_ent_installer', $cohort)."\n");
                 } else {
-                    mtrace('[SIMULATION] '.get_string('cohortcreated', 'local_ent_installer', $cohort));
+                    mtrace('[SIMULATION] '.get_string('cohortcreated', 'local_ent_installer', $cohort)."\n");
                 }
 
                 if (!empty($cohortinfo->members)) {
                     foreach ($cohortinfo->members as $m) {
                         $e = new StdClass;
-                        $e->username = $DB->get_field('user', 'username', array('id' => $m->username));
+                        $e->username = $DB->get_field('user', 'username', array('id' => $m->userid));
                         $e->idnumber = $cohort->idnumber;
                         if (empty($options['simulate'])) {
                             \cohort_add_member($cohort->id, $m->userid);
-                            mtrace(get_string('cohortmemberadded', 'local_ent_installer', $e));
+                            mtrace(get_string('cohortmemberadded', 'local_ent_installer', $e)."\n");
                         } else {
-                            mtrace('[SIMULATION] '.get_string('cohortmemberadded', 'local_ent_installer', $e));
+                            mtrace('[SIMULATION] '.get_string('cohortmemberadded', 'local_ent_installer', $e)."\n");
                         }
                     }
                 }
@@ -420,9 +445,13 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
             $select = " idnumber LIKE ? ";
             $cohorts = $DB->get_records('cohort', $select, trim($prf).'%');
             if ($cohorts) {
-                mtrace("\n>> ".get_string('removingoldcohorts', 'local_ent_installer'));
                 foreach ($cohorts as $ch) {
-                    cohort_delete_cohort($ch->id);
+                    if (empty($options['simulate'])) {
+                        mtrace(get_string('removingoldcohort', 'local_ent_installer', $ch));
+                        cohort_delete_cohort($ch->id);
+                    } else {
+                        mtrace("[SIMULATION]: ".get_string('removingoldcohorts', 'local_ent_installer'));
+                    }
                 }
             }
         }
@@ -476,7 +505,7 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
     $extcohortidentifier = core_text::convert($cohortidentifier, 'utf-8', $ldapauth->config->ldapencoding);
 
     $ldapconnection = $ldapauth->ldap_connect();
-    if (!($cohortdn = local_ent_installer_ldap_find_cohort_dn($ldapconnection, $extcohortidentifier))) {
+    if (!($cohortdn = local_ent_installer_ldap_find_cohort_dn($ldapauth, $ldapconnection, $extcohortidentifier, $options))) {
         $ldapauth->ldap_close();
         if ($options['verbose']) {
             mtrace("Internal Error : Could not locate $extcohortidentifier ");
@@ -512,23 +541,58 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
         }
 
         if ($key == 'members') {
+            if (!empty($options['verbose'])) {
+                mtrace("\nProcessing membership.");
+            }
             // Get the full array of values.
             $newval = array();
+            $i = 0;
+            $members = count($entry[$value]);
             foreach ($entry[$value] as $newvalopt) {
+                // For each member extract identifier.
+                $i++;
                 $newvalopt  = core_text::convert($newvalopt, $ldapauth->config->ldapencoding, 'utf-8');
-                if (!empty($options['verbose'])) {
-                    mtrace("Extracting from $newvalopt with {$config->cohort_membership_filter} ");
+
+                // Avoid the last record wich is the array count.
+                if ($i == $members) {
+                    continue;
                 }
-                if (preg_match('/'.$config->cohort_membership_filter.'/', $newvalopt, $matches)) {
-                    // Exclude potential arity count that comes at end of multivalued entries.
-                    $identifier = core_text::strtolower($matches[1]);
+
+                if (!$ldapauth->config->memberattribute_isdn) {
                     if (!empty($options['verbose'])) {
-                        mtrace("Getting user record for {$config->cohort_user_identifier} = $identifier");
+                        mtrace("Extracting from $newvalopt with {$config->cohort_membership_filter} ");
                     }
-                    $fields = 'id,username,firstname,lastname';
-                    $user = $DB->get_record('user', array($config->cohort_user_identifier => $identifier), $fields);
+                    // Member attribute contains value from where the user identifier can be directly extracted.
+                    if (preg_match('/'.$config->cohort_membership_filter.'/', $newvalopt, $matches)) {
+                        // Exclude potential arity count that comes at end of multivalued entries.
+                        $identifier = core_text::strtolower($matches[1]);
+                        if (!empty($options['verbose'])) {
+                            mtrace("Getting user record for {$config->cohort_user_identifier} = $identifier");
+                        }
+                        $fields = 'id,username,firstname,lastname';
+                        $user = $DB->get_record('user', array($config->cohort_user_identifier => $identifier), $fields);
+                        if (!$user) {
+                            mtrace("Error : User record not found for $identifier. Skipping membership");
+                            continue;
+                        }
+                        $user->userid = $user->id;
+                        $newval[] = $user;
+                    }
+                } else {
+                    /*
+                     * Member attribute contains a true user DN. This may, but MAY NOT contain direct
+                     * reference to a moodle user identifier. In this case, for more stability, we
+                     * fetch the associated username known by LDAP in user ldap main username attribute.
+                     */
+                    if (!empty($options['verbose'])) {
+                        mtrace("Extracting from $newvalopt as DN ");
+                    }
+                    $username = local_ent_installer_get_username_from_dn($ldapauth, $newvalopt, $options, $ldapconnection);
+                    $fields = 'id, username, firstname, lastname';
+                    // 'username' is the static value of configroleasignuseridentifier.
+                    $user = $DB->get_record('user', array('username' => $username), $fields);
                     if (!$user) {
-                        mtrace("Error : User record not found for $identifier. Skipping membership");
+                        mtrace("Error : User record not found for $username. Skipping membership");
                         continue;
                     }
                     $user->userid = $user->id;
@@ -562,7 +626,8 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
             $newval = $matches[1];
         }
 
-        if (!empty($newval)) { // Favour ldap entries that are set.
+        if (!empty($newval)) {
+            // Favour ldap entries that are set.
             $ldapval = $newval;
         }
 
@@ -582,9 +647,10 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
  *
  * @param resource $ldapconnection a valid LDAP connection
  * @param string $extcohortdn the username to search (in external LDAP encoding, no db slashes)
+ * @param array $options some behaviour options
  * @return mixed the user dn (external LDAP encoding) or false
  */
-function local_ent_installer_ldap_find_cohort_dn($ldapconnection, $extcohortdn) {
+function local_ent_installer_ldap_find_cohort_dn($ldapauth, $ldapconnection, $extcohortdn, $options = null) {
     static $config;
 
     if (!isset($config)) {
@@ -594,8 +660,8 @@ function local_ent_installer_ldap_find_cohort_dn($ldapconnection, $extcohortdn) 
 
     $ldapcontexts = explode(';', $config->cohort_contexts);
 
-    return ldap_find_cohortdn($ldapconnection, $extcohortdn, $ldapcontexts, $config->cohort_objectclass,
-                            $config->cohort_id_attribute);
+    return ldap_find_cohortdn($ldapauth, $ldapconnection, $extcohortdn, $ldapcontexts, $config->cohort_objectclass,
+                            $config->cohort_id_attribute, $options);
 }
 
 /**
@@ -607,11 +673,18 @@ function local_ent_installer_ldap_find_cohort_dn($ldapconnection, $extcohortdn) 
  * @param array $contexts contexts to look for the cohort.
  * @param string $objectclass objectlass of the cohorts (in LDAP filter syntax).
  * @param string $searchattrib the attribute use to look for the cohort.
+ * @param array $options some behavioural options
  * @return mixed the cohort dn (external LDAP encoding, no db slashes) or false
  *
  */
-function ldap_find_cohortdn($ldapconnection, $cohortidentifier, $contexts, $objectclass, $searchattrib) {
+function ldap_find_cohortdn($ldapauth, $ldapconnection, $cohortidentifier, $contexts, $objectclass, $searchattrib, $options = null) {
+
+    $config = get_config('local_ent_installer');
+
     if (empty($ldapconnection) || empty($cohortidentifier) || empty($contexts) || empty($objectclass) || empty($searchattrib)) {
+        if (!empty($options['verbose'])) {
+            mtrace('Missing data at find_cohortdn input');
+        }
         return false;
     }
 
@@ -625,11 +698,23 @@ function ldap_find_cohortdn($ldapconnection, $cohortidentifier, $contexts, $obje
             continue;
         }
 
-        $ldapresult = @ldap_list($ldapconnection, $context,
-                                  '(&'.$objectclass.'('.$searchattrib.'='.$cohortidentifier.'))',
-                                  array($searchattrib));
+        $filter = '(&'.$objectclass.'('.$searchattrib.'='.$cohortidentifier.'))';
+        if (empty($ldapauth->config->search_sub)) {
+            if (!empty($options['verbose'])) {
+                mtrace("List cohort DN in : $context, $filter by $searchattrib ");
+            }
+            $ldapresult = @ldap_list($ldapconnection, $context, $filter, array($searchattrib));
+        } else {
+            if (!empty($options['verbose'])) {
+                mtrace("Search cohort DN in : $context, $filter by $searchattrib ");
+            }
+            $ldapresult = @ldap_search($ldapconnection, $context, $filter, array($searchattrib));
+        }
 
         if (!$ldapresult) {
+            if (!empty($options['verbose'])) {
+                mtrace('find_cohortdn : No results in context '.$context);
+            }
             continue; // Not found in this context.
         }
 
@@ -676,8 +761,8 @@ function local_ent_installer_ldap_bulk_cohort_insert($cohortidentifier, $timemod
 
     if (!$DB->record_exists('tmp_extcohort', array('idnumber' => $cohortidentifier))) {
         $params = array('idnumber' => $cohortidentifier, 'lastmodified' => $timemodified);
-        if (!empty($options['force'])) {
-            mtrace("Inserting $cohortidentifier, $timemodified");
+        if (!empty($options['verbose'])) {
+            mtrace("Inserting $cohortidentifier, ". userdate($timemodified));
         }
         $DB->insert_record_raw('tmp_extcohort', $params, false, true);
     }

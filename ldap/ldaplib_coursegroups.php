@@ -37,7 +37,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
     $config = get_config('local_ent_installer');
 
     $debughardlimit = '';
-    if ($CFG->debug == DEBUG_DEVELOPER) {
+    if (($CFG->debug == DEBUG_DEVELOPER) && !empty($CFG->usedebughardlimit)) {
         $debughardlimit = ' LIMIT 30 ';
         echo '<span style="font-size:2.5em">';
         mtrace('RUNNING WITH HARD LIMIT OF 30 Objets');
@@ -58,13 +58,13 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
 
     $ldapconnection = $ldapauth->ldap_connect();
     // Ensure an explicit limit, or some defaults may  cur some results.
-    if ($CFG->debug == DEBUG_DEVELOPER) {
+    if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 30);
     } else {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 500000);
     }
+    // Read the effective limit in a variable.
     ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
-
     mtrace("Ldap opened with sizelimit $retvalue");
 
     $dbman = $DB->get_manager();
@@ -126,7 +126,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                                $config->group_name_attribute,
                                $config->group_grouping_attribute,
                                $config->group_membership_attribute,
-                               'modifyTimestamp');
+                               $config->record_date_fieldname);
 
     $grouprecordattribs = array();
     foreach ($grouprecordfields as $field) {
@@ -220,8 +220,16 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                             }
                         }
 
-                        $modify = ldap_get_values_len($ldapconnection, $entry, 'modifyTimestamp');
-                        $modify = strtotime($modify[0]);
+                        $modify = ldap_get_values_len($ldapconnection, $entry, $config->record_date_fieldname);
+                        if (!empty($modify[0])) {
+                            if ($config->timestamp_format == 'ad') {
+                                $modify = convert_from_ad_timestamp($modify[0]);
+                            } else {
+                                $modify = strtotime($modify[0]);
+                            }
+                        } else {
+                            $modify = time();
+                        }
 
                         local_ent_installer_ldap_bulk_group_insert($gidnumber, $gcourse, $gname, $modify);
                     } while ($entry = ldap_next_entry($ldapconnection, $entry));
@@ -623,25 +631,48 @@ function local_ent_installer_get_groupinfo($ldapauth, $groupidentifier, $options
             }
             foreach ($entry[$value] as $newvalopt) {
                 $newvalopt  = core_text::convert($newvalopt, $ldapauth->config->ldapencoding, 'utf-8');
-                if (!empty($options['verbose'])) {
-                    mtrace("Extracting from $newvalopt with {$config->group_membership_filter} ");
-                }
-                if (preg_match('/'.$config->group_membership_filter.'/', $newvalopt, $matches)) {
-                    if ($config->group_user_identifier == 'username') {
-                        $identifier = core_text::strtolower($matches[1]);
-                    } else {
-                        $identifier = $matches[1];
-                    }
+
+                if (!$ldapauth->config->memberattribute_isdn) {
                     if (!empty($options['verbose'])) {
-                        mtrace("Getting user record for {$config->group_user_identifier} = $identifier");
+                        mtrace("Extracting from $newvalopt with {$config->group_membership_filter} ");
                     }
-                    $params = array($config->group_user_identifier => $identifier, 'deleted' => 0);
-                    $user = $DB->get_record('user', $params, 'id,username,firstname,lastname');
+                    // Member attribute contains value from where the user identifier can be directly extracted.
+                    if (preg_match('/'.$config->group_membership_filter.'/', $newvalopt, $matches)) {
+                        if ($config->group_user_identifier == 'username') {
+                            $identifier = core_text::strtolower($matches[1]);
+                        } else {
+                            $identifier = $matches[1];
+                        }
+                        if (!empty($options['verbose'])) {
+                            mtrace("Getting user record for {$config->group_user_identifier} = $identifier");
+                        }
+                        $params = array($config->group_user_identifier => $identifier, 'deleted' => 0);
+                        $user = $DB->get_record('user', $params, 'id,username,firstname,lastname');
+                        if (!$user) {
+                            mtrace("Error : User record not found for $identifier. Skipping membership");
+                            continue;
+                        }
+                        // Ensure we have same fields when scaning the tmp table as source.
+                        $user->userid = $user->id;
+                        $newval[] = $user;
+                    }
+                } else {
+                    /*
+                     * Member attribute contains a true user DN. This may, but MAY NOT contain direct
+                     * reference to a moodle user identifier. In this case, for more stability, we
+                     * fetch the associated username known by LDAP in user ldap main username attribute.
+                     */
+                    if (!empty($options['verbose'])) {
+                        mtrace("Extracting from $newvalopt as DN ");
+                    }
+                    $username = local_ent_installer_get_username_from_dn($ldapauth, $newvalopt, $options, $ldapconnection);
+                    $fields = 'id, username, firstname, lastname';
+                    // 'username' is the static value of configcoursegroupuseridentifier.
+                    $user = $DB->get_record('user', array('username' => $username), $fields);
                     if (!$user) {
-                        mtrace("Error : User record not found for $identifier. Skipping membership");
+                        mtrace("Error : User record not found for $username. Skipping membership");
                         continue;
                     }
-                    // Ensure we have same fields when scaning the tmp table as source.
                     $user->userid = $user->id;
                     $newval[] = $user;
                 }
