@@ -37,7 +37,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
     $config = get_config('local_ent_installer');
 
     $debughardlimit = '';
-    if ($CFG->debug == DEBUG_DEVELOPER) {
+    if (($CFG->debug == DEBUG_DEVELOPER) && !empty($CFG->usedebughardlimit)) {
         $debughardlimit = ' LIMIT 30 ';
         echo '<span style="font-size:2.5em">';
         mtrace('RUNNING WITH HARD LIMIT OF 30 Objets');
@@ -58,13 +58,13 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
 
     $ldapconnection = $ldapauth->ldap_connect();
     // Ensure an explicit limit, or some defaults may  cur some results.
-    if ($CFG->debug == DEBUG_DEVELOPER) {
+    if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 30);
     } else {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 500000);
     }
+    // Read the effective limit in a variable.
     ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
-
     mtrace("Ldap opened with sizelimit $retvalue");
 
     $dbman = $DB->get_manager();
@@ -126,7 +126,7 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                                $config->group_name_attribute,
                                $config->group_grouping_attribute,
                                $config->group_membership_attribute,
-                               'modifyTimestamp');
+                               $config->record_date_fieldname);
 
     $grouprecordattribs = array();
     foreach ($grouprecordfields as $field) {
@@ -220,8 +220,16 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
                             }
                         }
 
-                        $modify = ldap_get_values_len($ldapconnection, $entry, 'modifyTimestamp');
-                        $modify = strtotime($modify[0]);
+                        $modify = ldap_get_values_len($ldapconnection, $entry, $config->record_date_fieldname);
+                        if (!empty($modify[0])) {
+                            if ($config->timestamp_format == 'ad') {
+                                $modify = convert_from_ad_timestamp($modify[0]);
+                            } else {
+                                $modify = strtotime($modify[0]);
+                            }
+                        } else {
+                            $modify = time();
+                        }
 
                         local_ent_installer_ldap_bulk_group_insert($gidnumber, $gcourse, $gname, $modify);
                     } while ($entry = ldap_next_entry($ldapconnection, $entry));

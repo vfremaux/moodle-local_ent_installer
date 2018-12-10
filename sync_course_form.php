@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Form for activating manual resync of a single user.
+ * Form for activating manual resync of a single course.
  *
  * @package     local_ent_installer
  * @category    local
@@ -28,7 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/lib/formslib.php');
 
-class SyncUserForm extends moodleform {
+class SyncCourseForm extends moodleform {
 
     public function definition() {
         global $CFG, $DB;
@@ -40,27 +40,28 @@ class SyncUserForm extends moodleform {
 
         $mform->addElement('html', '<h3>'.get_string('entities', 'local_ent_installer').'</h3>');
 
-        $params = array('auth' => $config->real_used_auth, 'mnethostid' => $CFG->mnet_localhost_id, 'deleted' => 0);
-        $fields = 'id, CONCAT(firstname, " ", lastname, " (", username, ")")';
-        $usersopts = $DB->get_records_menu('user', $params, 'lastname, firstname', $fields, 0, 200);
+        $fields = 'id, CONCAT(shortname, " - ", fullname, " (", idnumber, ")")';
+        $coursesopts = $DB->get_records_menu('course', array(), 'shortname', $fields, 0, 200);
 
-        if (!empty($config->sync_users_enable)) {
+        if (!empty($config->sync_course_enable)) {
             $attrs = array('size' => 15);
-            $select = & $mform->addElement('text', 'filter', get_string('filter', 'local_ent_installer'), $attrs);
-            $mform->setType('filter', PARAM_TEXT);
+            $select = & $mform->addElement('text', 'coursefilter', get_string('filter', 'local_ent_installer'), $attrs);
+            $mform->setType('coursefilter', PARAM_TEXT);
 
-            $select = & $mform->addElement('select', 'uid', get_string('user'), $usersopts);
+            $select = & $mform->addElement('select', 'cid', get_string('course'), $coursesopts);
             $select->setMultiple(false); // May become multiple.
         }
 
         $mform->addElement('html', '<h3>'.get_string('options', 'local_ent_installer').'</h3>');
 
+        /*
         $radioarr = array();
         $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('doall', 'local_ent_installer'), 0);
         $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('createonly', 'local_ent_installer'), 'create');
         $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('updateonly', 'local_ent_installer'), 'update');
         $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('deleteonly', 'local_ent_installer'), 'delete');
         $mform->addGroup($radioarr, 'operationgroup', '', array(''), false);
+        */
 
         $mform->addElement('checkbox', 'simulate', get_string('simulate', 'local_ent_installer'));
 

@@ -36,7 +36,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     $config = get_config('local_ent_installer');
 
     $debughardlimit = '';
-    if ($CFG->debug == DEBUG_DEVELOPER) {
+    if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
         $debughardlimit = ' LIMIT 30 ';
         echo '<span style="font-size:2.5em">';
         mtrace('RUNNING WITH HARD LIMIT OF 30 OBJECTS');
@@ -70,11 +70,12 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
     $ldapconnection = $ldapauth->ldap_connect();
     // Ensure an explicit limit, or some defaults may  cut some results.
-    if ($CFG->debug == DEBUG_DEVELOPER) {
+    if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 30);
     } else {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 500000);
     }
+    // Read the effective limit in a variable.
     ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
     mtrace("Ldap opened with sizelimit $retvalue");
 
@@ -243,8 +244,16 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
                             }
                         }
 
-                        $modify = ldap_get_values_len($ldapconnection, $entry, 'modifyTimestamp');
-                        $modify = strtotime($modify[0]);
+                        $modify = ldap_get_values_len($ldapconnection, $entry, $config->record_date_fieldname);
+                        if (!empty($modify[0])) {
+                            if ($config->timestamp_format == 'ad') {
+                                $modify = convert_from_ad_timestamp($modify[0]);
+                            } else {
+                                $modify = strtotime($modify[0]);
+                            }
+                        } else {
+                            $modify = time();
+                        }
 
                         if (!empty($options['force']) || ($modify > 0 + $config->last_sync_date_roles)) {
 

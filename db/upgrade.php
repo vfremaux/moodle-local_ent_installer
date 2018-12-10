@@ -156,5 +156,28 @@ function xmldb_local_ent_installer_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2017062100, 'local', 'ent_installer');
     }
 
+    if ($oldversion < 2018060800) {
+
+        $table = new xmldb_table('local_ent_installer');
+
+        // Launch add field starttime.
+        $field = new xmldb_field('synctype', XMLDB_TYPE_CHAR, '16', null, XMLDB_NOTNULL, null, 'user', 'id');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('deleted', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, 0, 'updated');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $field = new xmldb_field('deleteerrors', XMLDB_TYPE_INTEGER, 10, XMLDB_UNSIGNED, XMLDB_NOTNULL, null, 0, 'updateerrors');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_plugin_savepoint(true, 2018060800, 'local', 'ent_installer');
+    }
+
     return true;
 }
