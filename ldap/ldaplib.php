@@ -33,6 +33,7 @@ require_once($CFG->dirroot.'/lib/coursecatlib.php');
 
 define('ENT_MATCH_FULL', 100);
 define('ENT_MATCH_ID_NO_USERNAME', 50);
+define('ENT_MATCH_USERNAME_EMPTY_ID', 30);
 define('ENT_MATCH_ID_LASTNAME_NO_USERNAME_FIRSTNAME', 20);
 define('ENT_MATCH_NO_ID_NO_USERNAME_LASTNAME_FIRSTNAME', 10);
 define('ENT_MATCH_NO_ID_USERNAME_LASTNAME_FIRSTNAME', 100);
@@ -63,7 +64,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     global $CFG, $DB, $matchstatusarr;
 
     $debughardlimit = '';
-    if ($CFG->debug == DEBUG_DEVELOPER) {
+    if (($CFG->debug == DEBUG_DEVELOPER) && !empty($CFG->usedebughardlimit)) {
         $debughardlimit = ' LIMIT 300 ';
         echo '<span style="font-size:2.5em">';
         mtrace('RUNNING WITH HARD LIMIT OF 300 USERS');
@@ -117,11 +118,12 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     $ldapconnection = $ldapauth->ldap_connect();
     // Ensure an explicit limit, or some defaults may  cut some results.
-    if ($CFG->debug == DEBUG_DEVELOPER) {
+    if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 300);
     } else {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 100000);
     }
+    // Read the effective limit in a variable.
     ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
     mtrace("Ldap opened with sizelimit $retvalue");
 
@@ -329,6 +331,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
         $filter = '(&('.$ldapauth->config->user_attribute.'='.$requid.')'.$filterdef->usertype.$institutions.')';
 
         foreach ($contexts as $context) {
+            $cnt = 0;
+
             $context = trim($context);
             if (empty($context)) {
                 continue;
@@ -340,12 +344,12 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 }
                 if ($ldapauth->config->search_sub) {
                     // Use ldap_search to find first user from subtree.
-                    mtrace("\tldapsearch $context, $filter for ".$ldapauth->config->user_attribute);
+                    mtrace("\tldapsearch $context, $filter for ".$ldapauth->config->user_attribute.". Date by ".$config->record_date_fieldname);
                     $params = array($ldapauth->config->user_attribute, $config->record_date_fieldname);
                     $ldapresult = ldap_search($ldapconnection, $context, $filter, $params);
                 } else {
                     // Search only in this context.
-                    mtrace("\tldaplist $context, $filter for ".$ldapauth->config->user_attribute);
+                    mtrace("\tldaplist $context, $filter for ".$ldapauth->config->user_attribute.". Date by ".$config->record_date_fieldname);
                     $params = array($ldapauth->config->user_attribute, $config->record_date_fieldname);
                     $ldapresult = ldap_list($ldapconnection, $context, $filter, $params);
                 }
@@ -361,14 +365,24 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         $value = core_text::convert($value[0], $ldapauth->config->ldapencoding, 'utf-8');
 
                         $modify = ldap_get_values_len($ldapconnection, $entry, $config->record_date_fieldname);
-                        $modify = strtotime($modify[0]);
+                        if (!empty($modify[0])) {
+                            if ($config->timestamp_format == 'ad') {
+                                $modify = convert_from_ad_timestamp($modify[0]);
+                            } else {
+                                $modify = strtotime($modify[0]);
+                            }
+                        } else {
+                            $modify = time();
+                        }
 
-                        local_ent_installer_ldap_bulk_insert($value, $filterdef->userfield, $modify);
+                        $cnt++;
+                        local_ent_installer_ldap_bulk_insert($value, $filterdef->userfield, $modify, $cnt, $options);
                     } while ($entry = ldap_next_entry($ldapconnection, $entry));
                 }
                 echo "\n";
                 unset($ldapresult); // Free mem.
             } while ($ldappagedresults && !empty($ldapcookie));
+            echo "Got $cnt records in context\n";
         }
     }
 
@@ -552,7 +566,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     // User Updates - time-consuming (optional). ***************************.
 
     // This might be an OBSOLETE code, regarding the update capability of the create process.
-    if (!empty($options['doupdates'])) {
+    if ($options['operation'] == 0 || ($options['operation'] == 'update') && !empty($CFG->ent_installer_hard_updates)) {
 
         mtrace("\n>> ".get_string('updatingusers', 'local_ent_installer'));
 
@@ -586,6 +600,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 u.deleted = 0 AND
                 u.auth = ?
                 AND u.mnethostid = ?'.@$debughardlimit;
+
         $users = $DB->get_records_sql($sql, array($ldapauth->authtype, $CFG->mnet_localhost_id));
         if (!empty($users)) {
             mtrace(get_string('userentriestoupdate', 'auth_ldap', count($users)));
@@ -605,7 +620,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
             foreach ($users as $user) {
                 echo "\t";
                 $tracestr = get_string('auth_dbupdatinguser', 'auth_db', array('name' => $user->username, 'id' => $user->id));
-                if (!$ldapauth->update_user_record($user->username, $updatekeys)) {
+                if (!local_ent_installer_update_user_record($ldapauth, $user->username, $updatekeys)) {
                     $tracestr .= ' - '.get_string('skipped');
                 }
                 mtrace($tracestr);
@@ -773,7 +788,9 @@ function local_ent_installer_sync_users($ldapauth, $options) {
              * Get_userinfo_asobj() might have replaced $user->username with the value.
              * from the LDAP server (which can be mixed-case). Make sure it's lowercase
              */
-            $user->username = trim(core_text::strtolower($user->username));
+            if (empty($CFG->extendedusernamechars)) {
+                $user->username = trim(core_text::strtolower($user->username));
+            }
             if (empty($user->lang)) {
                 $user->lang = get_config('moodle', 'lang');
             }
@@ -863,14 +880,18 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                     }
                 } else {
                     // This is a real new user.
-                    if (empty($options['updateonly'])) {
+                    if (empty($options['operation']) || ($options['operation'] == 'create')) {
                         $user->maildisplay = 0 + $maildisplay;
                         try {
                             $id = $DB->insert_record('user', $user);
                             mtrace(get_string('dbinsertuser', 'local_ent_installer', $a));
                             $insertcount++;
                         } catch (Exception $e) {
-                            mtrace('ERROR : Failed insert '.$user->username);
+                            mtrace('ERROR : Failed insert '.$user->username."\n");
+                            if (!empty($options['debug'])) {
+                                echo $DB->get_last_error();
+                                exit(1);
+                            }
                             $inserterrorcount++;
                             continue;
                         }
@@ -969,20 +990,26 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
                 if ($isent) {
                     // Update primary assignation for all classes of users.
-                    mtrace('Checking user primary assignation in '.$personstructure);
+                    if (!empty($options['verbose'])) {
+                        mtrace('Checking user primary assignation in '.$personstructure);
+                    }
                     $isprimaryassignation = (local_ent_installer_match_structure($personstructure)) ? 1 : 0;
                     local_ent_installer_update_info_data($id, $userfields['isprimaryassignation'], $isprimaryassignation);
                 }
 
                 // Add course creators if needed.
-                mtrace('Checking course creator status');
+                if (!empty($options['verbose'])) {
+                    mtrace('Checking course creator status');
+                }
                 if ($creatorrole !== false and $ldapauth->iscreator($user->username)) {
                     role_assign($creatorrole->id, $id, $sitecontext->id, $ldapauth->roleauth);
                 }
 
                 if ($isent) {
                     // Process user_fields setup.
-                    mtrace('Checking user profile fields');
+                    if (!empty($options['verbose'])) {
+                        mtrace('Checking user profile fields');
+                    }
                     if (preg_match('#\\$CTR\\$#', $personfunction)) {
                         // Special case.
                         local_ent_installer_update_info_data($id, $userfields['cdt'], 1);
@@ -998,7 +1025,9 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 }
 
                 if (file_exists($CFG->dirroot.'/blocks/user_mnet_hosts/xlib.php')) {
-                    mtrace('Checking network accesses');
+                    if (!empty($options['verbose'])) {
+                        mtrace('Checking network accesses');
+                    }
                     require_once($CFG->dirroot.'/blocks/user_mnet_hosts/xlib.php');
                     $user->id = $euser->id;
                     user_mnet_host_update_ldapuser($user, $options);
@@ -1006,7 +1035,9 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
                 // Add a workplace to teachers.
                 if ($user->usertype == 'enseignant') {
-                    mtrace('Checking teacher category creation service');
+                    if (!empty($options['verbose'])) {
+                        mtrace('Checking teacher category creation service');
+                    }
                     if ($config->build_teacher_category) {
                         local_ent_installer_make_teacher_category($euser);
                     }
@@ -1014,7 +1045,9 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
                 if ($isent) {
                     // Identify librarians and give library enabled role at system level.
-                    mtrace('Checking librarian attributes');
+                    if (!empty($options['verbose'])) {
+                        mtrace('Checking librarian attributes');
+                    }
                     if (preg_match('#(\\$DOC\\$|\\$ADOC\\$)#', $personfunction)) {
                         mtrace('Adding librarian attributes');
                         if ($role = $DB->get_record('role', array('shortname' => 'librarian'))) {
@@ -1025,7 +1058,9 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
                     // Identify school deans and give them Manager role.
                     if ($config->enrol_deans) {
-                        mtrace('Checking school dean attributes');
+                        if (!empty($options['verbose'])) {
+                            mtrace('Checking school dean attributes');
+                        }
                         if (preg_match('#\\$DIR\\$#', $personfunction)) {
                             mtrace('Adding school dean attributes');
                             if ($role = $DB->get_record('role', array('shortname' => 'manager'))) {
@@ -1046,7 +1081,9 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
                 if (!empty($user->userpicture)) {
                     // We are simulating. euser could not be really created.
-                    mtrace('Getting/updating user picture');
+                    if (!empty($options['verbose'])) {
+                        mtrace('Getting/updating user picture');
+                    }
                     // Could we get some info about a user picture url ?
                     local_installer_get_user_picture($euser->id, $user, $options);
                 }
@@ -1123,6 +1160,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     mtrace('Update errors : '.$updateerrorcount);
 
     $benchrec = new StdClass();
+    $benchrec->synctype = 'users';
     $benchrec->timestart = floor($starttick);
     $benchrec->timerun = ceil($deltatime);
     $benchrec->added = 0 + @$insertcount;
@@ -1139,6 +1177,80 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     set_config('last_sync_date_user', time(), 'local_ent_installer');
 
     return true;
+}
+
+function local_ent_installer_update_user_record($ldapauth, $username, $updatekeys, $triggerevent = false, $suspenduser = false) {
+    global $CFG, $DB;
+
+    require_once($CFG->dirroot.'/user/profile/lib.php');
+
+    // Just in case check text case.
+    $username = trim(core_text::strtolower($username));
+
+    // Get the current user record.
+    $user = $DB->get_record('user', array('username' => $username, 'mnethostid' => $CFG->mnet_localhost_id));
+    if (empty($user)) { // Trouble.
+        error_log($ldapauth->errorlogtag . get_string('auth_usernotexist', 'auth', $username));
+        print_error('auth_usernotexist', 'auth', '', $username);
+        return false;
+    }
+
+    // Protect the userid from being overwritten.
+    $userid = $user->id;
+
+    $needsupdate = false;
+
+    if ($newinfo = $ldapauth->get_userinfo($username)) {
+        $newinfo = truncate_userinfo($newinfo);
+
+        if (empty($updatekeys)) { // All keys? this does not support removing values.
+            $updatekeys = array_keys($newinfo);
+        }
+
+        if (!empty($updatekeys)) {
+            $newuser = new stdClass();
+            $newuser->id = $userid;
+            // The cast to int is a workaround for MDL-53959.
+            $newuser->suspended = (int) $suspenduser;
+            // Load all custom fields.
+            $profilefields = (array) profile_user_record($user->id, false);
+            $newprofilefields = [];
+
+            foreach ($updatekeys as $key) {
+                if (isset($newinfo[$key])) {
+                    $value = $newinfo[$key];
+                } else {
+                    $value = '';
+                }
+
+                if (!empty($ldapauth->config->{'field_updatelocal_' . $key})) {
+                    if (preg_match('/^profile_field_(.*)$/', $key, $match)) {
+                        // Custom field.
+                        $field = $match[1];
+                        $currentvalue = isset($profilefields[$field]) ? $profilefields[$field] : null;
+                        $newprofilefields[$field] = $value;
+                    } else {
+                        // Standard field.
+                        $currentvalue = isset($user->$key) ? $user->$key : null;
+                        $newuser->$key = $value;
+                    }
+
+                    // Only update if it's changed.
+                    if ($currentvalue !== $value) {
+                        $needsupdate = true;
+                    }
+                }
+            }
+        }
+
+        if ($needsupdate) {
+            user_update_user($newuser, false, $triggerevent);
+            profile_save_custom_fields($newuser->id, $newprofilefields);
+            return $DB->get_record('user', array('id' => $userid, 'deleted' => 0));
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -1230,15 +1342,25 @@ function local_ent_installer_guess_old_record($newuser, &$status) {
         return $oldrec;
     }
 
+    // Failover : IDNumber empty in base and username match, 
+    $params = array($newuser->username);
+    $oldrec = $DB->get_record_select('user', " (idnumber = '' OR idnumber IS NULL) AND username = ? ", $params);
+    if ($oldrec) {
+        $status = ENT_MATCH_USERNAME_EMPTY_ID;
+        return $oldrec;
+    }
+
     /*
-     * Failover : IDNumber and username match, but not any other this may occur when pushing a temp fake user in
+     * Failover : IDNumber and user lastname match, but not any other this may occur when pushing a temp fake user in
      * moodle and syncing.
      */
-    $params = array($newuser->idnumber, strtolower($newuser->lastname));
-    $oldrec = $DB->get_record_select('user', " idnumber = ? AND LOWER(lastname) = ? ", $params);
-    if ($oldrec) {
-        $status = ENT_MATCH_ID_LASTNAME_NO_USERNAME_FIRSTNAME;
-        return $oldrec;
+     if (!empty($newuser->idnumber)) {
+        $params = array($newuser->idnumber, strtolower($newuser->lastname));
+        $oldrec = $DB->get_record_select('user', " idnumber = ? AND LOWER(lastname) = ? ", $params);
+        if ($oldrec) {
+            $status = ENT_MATCH_ID_LASTNAME_NO_USERNAME_FIRSTNAME;
+            return $oldrec;
+        }
     }
 
     $status = ENT_NO_MATCH;
@@ -1248,14 +1370,19 @@ function local_ent_installer_guess_old_record($newuser, &$status) {
 /**
  * Bulk insert in SQL's temp table
  */
-function local_ent_installer_ldap_bulk_insert($username, $usertype, $timemodified) {
+function local_ent_installer_ldap_bulk_insert($username, $usertype, $timemodified, $cnt, $options = null) {
     global $DB, $CFG;
 
     if (empty($CFG->mnet_localhost_id)) {
         $CFG->mnet_localhost_id = 1;
     }
 
-    $username = core_text::strtolower($username); // Usernames are __always__ lowercase.
+    if (!empty($CFG->extendedusernamechars)) {
+        $username = core_text::strtolower($username); // Usernames are __always__ lowercase.
+    }
+    if (!empty($options['verbose'])) {
+        mtrace("Inserting $username by {$usertype}, ".userdate($timemodified));
+    }
     if (!$DB->record_exists('tmp_extuser', array('username' => $username,
                                                 'mnethostid' => $CFG->mnet_localhost_id,
                                                 'usertype' => $usertype))) {
@@ -1265,6 +1392,9 @@ function local_ent_installer_ldap_bulk_insert($username, $usertype, $timemodifie
                                                     'lastmodified' => $timemodified), false, true);
     }
     echo '.';
+    if (($cnt > 0) && ($cnt % 50 == 0)) {
+        echo "\n";
+    }
 }
 
 /**
@@ -1356,6 +1486,45 @@ function local_ent_installer_load_user_fields() {
     return $userfields;
 }
 
+/**
+ * Getting a full LDAP user DN value, gets from LDAP the associated username. This is
+ * used when the user DN do NOT contain the username as part of it, and must indirectly 
+ * be retrieved from an entry attribute.
+ */
+function local_ent_installer_get_username_from_dn($ldapauth, $userdn, $options = array(), $ldapconnection = null) {
+
+    $localconnection = false;
+    if (is_null($ldapconnection)) {
+        $ldapconnection = $ldapauth->ldap_connect();
+        $localconnection = true;
+    }
+
+    if ($options['verbose']) {
+        mtrace("Getting $userdn for ".$ldapauth->config->user_attribute);
+    }
+    if (!$userinforesult = ldap_read($ldapconnection, $userdn, $ldapauth->config->objectclass, array($ldapauth->config->user_attribute))) {
+        if ($localconnection) {
+            $ldapauth->ldap_close();
+        }
+        return false;
+    }
+
+    $results = ldap_get_entries_moodle($ldapconnection, $userinforesult);
+    $firstrecord = array_shift($results);
+    $userentry = array_change_key_case($firstrecord, CASE_LOWER);
+    if (empty($userentry)) {
+        if ($localconnection) {
+            $ldapauth->ldap_close();
+        }
+        return false; // Entry not found.
+    }
+
+    if (is_array($userentry[$ldapauth->config->user_attribute])) {
+        return $userentry[$ldapauth->config->user_attribute][0];
+    } else {
+        return $userentry[$ldapauth->config->user_attribute];
+    }
+}
 
 /**
  * Reads user information from ldap and returns it in array()

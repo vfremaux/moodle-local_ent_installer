@@ -618,3 +618,48 @@ function local_ent_installer_ensure_global_cohort_exists($type, $options) {
         }
     }
 }
+
+function convert_from_ad_timestamp($timestamp) {
+
+    $config = get_config('local_ent_installer');
+
+    if (preg_match('/^(\d\d\d\d)(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)/', $timestamp, $matches)) {
+        $y = $matches[1];
+        $m = $matches[2];
+        $d = $matches[3];
+        $h = $matches[4];
+        $i = $matches[5];
+        $s = $matches[6];
+
+        $unixtime = mktime($h, $i, $s, $m, $d, $y);
+        return $unixtime + (0 + @$config->timestamp_shift);
+    }
+    return time();
+}
+
+/**
+ * BACKPORTS from 3.5
+ * Save custom profile fields for a user.
+ *
+ * @param int $userid The user id
+ * @param array $profilefields The fields to save
+ */
+function profile_save_custom_fields($userid, $profilefields) {
+    global $DB;
+
+    if ($fields = $DB->get_records('user_info_field')) {
+        foreach ($fields as $field) {
+            if (isset($profilefields[$field->shortname])) {
+                $conditions = array('fieldid' => $field->id, 'userid' => $userid);
+                $id = $DB->get_field('user_info_data', 'id', $conditions);
+                $data = $profilefields[$field->shortname];
+                if ($id) {
+                    $DB->set_field('user_info_data', 'data', $data, array('id' => $id));
+                } else {
+                    $record = array('fieldid' => $field->id, 'userid' => $userid, 'data' => $data);
+                    $DB->insert_record('user_info_data', $record);
+                }
+            }
+        }
+    }
+}
