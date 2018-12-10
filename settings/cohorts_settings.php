@@ -137,6 +137,31 @@ class cohorts {
         $default = '';
         $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
+        $key = 'local_ent_installer/cohort_course_binding_attribute';
+        $label = get_string('configcohortcoursebindingattribute', 'local_ent_installer');
+        $desc = get_string('configcohortcoursebindingattribute_desc', 'local_ent_installer');
+        $default = '';
+        $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
+
+        $options = array(
+            'id' => get_string('id', 'local_ent_installer'),
+            'shortname' => get_string('shortname'),
+            'idnumber' => get_string('idnumber'),
+        );
+        $key = 'local_ent_installer/cohort_course_binding_identifier';
+        $label = get_string('configcohortcoursebindingidentifier', 'local_ent_installer');
+        $desc = get_string('configcohortcoursebindingidentifier_desc', 'local_ent_installer');
+        $default = 'shortname';
+        $settings->add(new admin_setting_configselect($key, $label, $desc, $default, $options));
+
+        $options = array('soft' => get_string('softcohortunenrol', 'local_ent_installer'),
+                         'hard' => get_string('hardcohortunenrol', 'local_ent_installer'));
+        $key = 'local_ent_installer/cohort_hard_cohort_unenrol';
+        $label = get_string('configcohorthardcohortunenrol', 'local_ent_installer');
+        $desc = get_string('configcohorthardcohortunenrol_desc', 'local_ent_installer');
+        $default = 'soft';
+        $settings->add(new admin_setting_configselect($key, $label, $desc, $default, $options));
+
         $ldapauth = get_auth_plugin('ldap');
 
         $key = 'local_ent_installer/cohort_user_identifier';
