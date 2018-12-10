@@ -1351,14 +1351,16 @@ function local_ent_installer_guess_old_record($newuser, &$status) {
     }
 
     /*
-     * Failover : IDNumber and username match, but not any other this may occur when pushing a temp fake user in
+     * Failover : IDNumber and user lastname match, but not any other this may occur when pushing a temp fake user in
      * moodle and syncing.
      */
-    $params = array($newuser->idnumber, strtolower($newuser->lastname));
-    $oldrec = $DB->get_record_select('user', " idnumber = ? AND LOWER(lastname) = ? ", $params);
-    if ($oldrec) {
-        $status = ENT_MATCH_ID_LASTNAME_NO_USERNAME_FIRSTNAME;
-        return $oldrec;
+     if (!empty($newuser->idnumber)) {
+        $params = array($newuser->idnumber, strtolower($newuser->lastname));
+        $oldrec = $DB->get_record_select('user', " idnumber = ? AND LOWER(lastname) = ? ", $params);
+        if ($oldrec) {
+            $status = ENT_MATCH_ID_LASTNAME_NO_USERNAME_FIRSTNAME;
+            return $oldrec;
+        }
     }
 
     $status = ENT_NO_MATCH;

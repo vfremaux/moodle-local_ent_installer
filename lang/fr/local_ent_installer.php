@@ -256,6 +256,10 @@ $string['configuserpictureurlpattern_desc'] = 'Un motif de construction d\'une U
 $string['cohortsfilters'] = 'Filtres LDAP pour les cohortes';
 $string['configcohortcontexts'] = 'Contextes des cohortes';
 $string['configcohortcontexts_desc'] = 'Contextes pour trouver les groupes de cohortes. Plusieurs contextes possibles séparés par des ;';
+$string['configcohortcoursebindingattribute'] = 'Attribut LDAP pour le raccordement de cours';
+$string['configcohortcoursebindingattribute_desc'] = 'L\'attribut LDAP qui porte les identificants de cours à raccorder à la cohorte.';
+$string['configcohortcoursebindingidentifier'] = 'Identifiant de cours';
+$string['configcohortcoursebindingidentifier_desc'] = 'Le champ moodle permettant d\'identifier les cours..';
 $string['configcohortobjectclass'] = 'Classes d\'objets des cohortes';
 $string['configcohortobjectclass_desc'] = 'Filtre en syntaxe LDAP pour restreindre les classes d\'objets ldap examinées.';
 $string['configcohortselectorfilter'] = 'Filtre de sélection des cohortes';
@@ -279,6 +283,8 @@ $string['configcohortmembershipattribute_desc'] = 'Attribut LDAP pour désigner 
 $string['configcohortmembershipfilter'] = 'Extracteur d\'appartenance à la cohorte';
 $string['configcohortuseridentifier'] = 'Identifiant interne d\'appartenance à la cohorte';
 $string['configcohortoldprefixes'] = 'Anciens prefixes';
+$string['configcohorthardcohortunenrol'] = 'Mode de suppression des cohortes';
+$string['configcohorthardcohortunenrol_desc'] = 'Ce qui se passe lorsqu\'une relation au cours disparait de l\'annuaire. Vous pouvez choisir entre la désactivation (sans suppression des données utilisateur liées à l\'inscription), ou la suppression avec désinscription.';
 $string['id'] = 'Id primaire';
 
 $string['configcohortuseridentifier_desc'] = 'Champ interne d\'identifiant utilisateur utilisé pour trouver l\'ID utilisateur';
@@ -291,14 +297,22 @@ La valeur est forcée par la configuration "L\'attribut appartenance utilise dn"
 
 $string['configcohortoldprefixes_desc'] = 'Prefixes (liste à virgule) des cohortes obsolètes à supprimer';
 
+$string['cohortnobindings'] = 'Aucune liaison de cohorte';
+$string['cohortbindings'] = 'Liaison des cohortes aux cours';
 $string['deletingcohorts'] = 'Suppression des cohortes';
 $string['creatingcohorts'] = 'Création des nouvelles cohortes';
 $string['updatingcohorts'] = 'Mise à jour des cohortes';
-$string['cohortdeleted'] = 'Cohort {$a} supprimée';
-$string['cohortcreated'] = 'Cohort {$a->name} [{$a->idnumber}] créée';
-$string['cohortupdated'] = 'Cohort {$a->name} mise à jour. Numéro d\'identification : {$a->idnumber}';
-$string['cohortmemberadded'] = 'Membre {$a->username} ajouté à la cohorte {$a->idnumber}';
-$string['cohortmemberremoved'] = 'Membre {$a->username} supprimé de la cohorte {$a->idnumber}';
+$string['cohortdeleted'] = 'Cohorte {$a} supprimée';
+$string['cohortcreated'] = 'Cohorte {$a->name} [{$a->idnumber}] créée';
+$string['cohortupdated'] = 'Cohorte {$a->name} mise à jour. Numéro d\'identification : {$a->idnumber}.';
+$string['cohortmemberadded'] = 'Membre {$a->username} [{$a->uidnumber}] ajouté à la cohorte {$a->idnumber}.';
+$string['cohortmemberexists'] = 'Membre {$a->username} [{$a->uidnumber}] existe dans la cohorte {$a->idnumber}.';
+$string['cohortmemberremoved'] = 'Membre {$a->username} [{$a->uidnumber}] supprimé de la cohorte {$a->idnumber}.';
+$string['cohortbindingadded'] = 'Inscription par cohorte {$a->idnumber} ajoutée au cours {$a->shortname} [{$a->cidnumber}]';
+$string['cohortbindingexists'] = 'Inscription par cohorte {$a->idnumber} conservée dans le cours {$a->shortname} [{$a->cidnumber}].';
+$string['cohortbindingremoved'] = 'Inscription par cohorte {$a->idnumber} supprimée du cours {$a->shortname} [{$a->cidnumber}]';
+$string['cohortbindingenabled'] = 'Inscription par cohorte {$a->idnumber} réactivée dans le cours {$a->shortname} [{$a->cidnumber}].';
+$string['cohortbindingdisabled'] = 'Inscription par cohorte {$a->idnumber} désactivée dans le cours {$a->shortname} [{$a->cidnumber}].';
 $string['disableautocohortscheck'] = 'Désactiver le verrou de cohortes automatiques';
 $string['removingoldcohort'] = 'Suppression de la cohorte obsolète {$a->id} {$a->name}';
 
