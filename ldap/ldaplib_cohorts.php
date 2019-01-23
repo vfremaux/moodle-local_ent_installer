@@ -36,6 +36,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     mtrace('');
 
+    $licenselimit = 1000000;
     if (empty($config->sync_enable)) {
         mtrace(get_string('syncdisabled', 'local_ent_installer'));
         return;
@@ -50,9 +51,19 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     core_php_time_limit::raise(600);
 
+    if (local_ent_installer_supports_feature() == 'pro') {
+        include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
+        $check = \local_ent_installer\pro_manager::set_and_check_license_key($config->customerkey, $config->provider);
+        if (!preg_match('/SET OK/', $check)) {
+            $licenselimit = 3000;
+        }
+    } else {
+        $licenselimit = 3000;
+    }
+
     $ldapconnection = $ldapauth->ldap_connect();
     // Ensure an explicit limit, or some defaults may  cur some results.
-    ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 100000);
+    ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, min($licenselimit, 1000000));
     // Read the effective limit in a variable.
     ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
     mtrace("Ldap opened with sizelimit $retvalue");
