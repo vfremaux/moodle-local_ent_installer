@@ -35,6 +35,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
     $config = get_config('local_ent_installer');
 
+    $licenselimit = 1000000;
     $debughardlimit = '';
     if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
         $debughardlimit = ' LIMIT 30 ';
@@ -68,12 +69,22 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
     core_php_time_limit::raise(600);
 
+    if (local_ent_installer_supports_feature() == 'pro') {
+        include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
+        $check = \local_ent_installer\pro_manager::set_and_check_license_key($config->customerkey, $config->provider);
+        if (!preg_match('/SET OK/', $check)) {
+            $licenselimit = 3000;
+        }
+    } else {
+        $licenselimit = 3000;
+    }
+
     $ldapconnection = $ldapauth->ldap_connect();
     // Ensure an explicit limit, or some defaults may  cut some results.
     if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 30);
     } else {
-        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 500000);
+        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, min($licenselimit, 1000000));
     }
     // Read the effective limit in a variable.
     ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);

@@ -26,7 +26,7 @@
 
 require('../../config.php');
 require_once($CFG->dirroot.'/local/ent_installer/sync_course_form.php');
-require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php');
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_users.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_courses.php');
 
