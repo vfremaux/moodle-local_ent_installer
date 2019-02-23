@@ -64,6 +64,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     global $CFG, $DB, $matchstatusarr;
 
     $debughardlimit = '';
+    $licenselimit = 1000000;
     if (($CFG->debug == DEBUG_DEVELOPER) && !empty($CFG->usedebughardlimit)) {
         $debughardlimit = ' LIMIT 300 ';
         echo '<span style="font-size:2.5em">';
@@ -81,9 +82,20 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     $inserterrorcount = 0;
     $updateerrorcount = 0;
 
+    $config = get_config('local_ent_installer');
+
+    if (local_ent_installer_supports_feature() == 'pro') {
+        include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
+        $check = \local_ent_installer\pro_manager::set_and_check_license_key($config->customerkey, $config->provider);
+        if (!preg_match('/SET OK/', $check)) {
+            $licenselimit = 3000;
+        }
+    } else {
+        $licenselimit = 3000;
+    }
+
     mtrace('');
 
-    $config = get_config('local_ent_installer');
     if (!$config->sync_enable) {
         mtrace(get_string('syncdisabled', 'local_ent_installer'));
         return;
@@ -121,7 +133,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 300);
     } else {
-        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 100000);
+        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, min($licenselimit, 1000000));
     }
     // Read the effective limit in a variable.
     ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
@@ -1511,7 +1523,9 @@ function local_ent_installer_get_username_from_dn($ldapauth, $userdn, $options =
 
     $results = ldap_get_entries_moodle($ldapconnection, $userinforesult);
     $firstrecord = array_shift($results);
-    $userentry = array_change_key_case($firstrecord, CASE_LOWER);
+    if ($firstrecord) {
+        $userentry = array_change_key_case($firstrecord, CASE_LOWER);
+    }
     if (empty($userentry)) {
         if ($localconnection) {
             $ldapauth->ldap_close();

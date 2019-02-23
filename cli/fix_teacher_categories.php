@@ -103,7 +103,7 @@ if (!defined('MOODLE_INTERNAL')) {
 echo('Config check : playing for '.$CFG->wwwroot);
 require_once($CFG->dirroot.'/lib/coursecatlib.php'); // ensure we have coursecat class.
 require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // ensure we have coursecat class.
-require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php'); // Ldap primitives.
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_users.php'); // Ldap primitives.
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // general primitives.
 require_once($CFG->dirroot.'/lib/datalib.php'); // general primitives.
 

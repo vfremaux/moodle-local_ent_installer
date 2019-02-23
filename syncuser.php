@@ -26,7 +26,7 @@
 
 require('../../config.php');
 require_once($CFG->dirroot.'/local/ent_installer/sync_user_form.php');
-require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php');
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_users.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 $url = new moodle_url('/local/ent_installer/syncuser.php');

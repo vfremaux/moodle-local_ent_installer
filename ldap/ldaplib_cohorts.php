@@ -30,12 +30,13 @@ defined('MOODLE_INTERNAL') || die();
  * @param array $options an array of options
  */
 function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
-    global $DB;
+    global $DB, $CFG;
 
     $config = get_config('local_ent_installer');
 
     mtrace('');
 
+    $licenselimit = 1000000;
     if (empty($config->sync_enable)) {
         mtrace(get_string('syncdisabled', 'local_ent_installer'));
         return;
@@ -50,9 +51,19 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     core_php_time_limit::raise(600);
 
+    if (local_ent_installer_supports_feature() == 'pro') {
+        include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
+        $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->customerkey, @$config->provider, true);
+        if (!preg_match('/SET OK/', $check)) {
+            $licenselimit = 3000;
+        }
+    } else {
+        $licenselimit = 3000;
+    }
+
     $ldapconnection = $ldapauth->ldap_connect();
     // Ensure an explicit limit, or some defaults may  cur some results.
-    ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 100000);
+    ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, min($licenselimit, 1000000));
     // Read the effective limit in a variable.
     ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
     mtrace("Ldap opened with sizelimit $retvalue");
@@ -326,7 +337,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 $oldrec->name = $cohortinfo->name;
             }
 
-            $oldrec->description = $cohortinfo->description;
+            $oldrec->description = '' + @$cohortinfo->description;
             $oldrec->descriptionformat = FORMAT_HTML;
             $oldrec->contextid = $systemcontext->id;
             $oldrec->component = 'local_ent_installer';
@@ -367,7 +378,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 }
 
                 $cohort = new StdClass;
-                $cohort->description = $cohortinfo->description;
+                $cohort->description = ''.@$cohortinfo->description;
                 $cohort->descriptionformat = FORMAT_HTML;
                 if (!empty($config->cohort_ix)) {
                     $cohort->name = $config->cohort_ix.'_'.$cohortinfo->name;
@@ -561,6 +572,7 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
                 }
             }
             $result[$key] = $newval;
+            continue;
         } else {
             // Normal attribute case.
             if (is_array($entry[$value])) {
@@ -597,7 +609,7 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
             if (!empty($allcourses)) {
                 foreach ($allcourses as $courseidentifier) {
                     if (!empty($options['verbose'])) {
-                        mtrace("\tExaminating course $courseidentifier");
+                        mtrace("\tExaminating course $courseidentifier as {$config->cohort_course_binding_identifier}");
                     }
                     $params = array($config->cohort_course_binding_identifier => $courseidentifier);
                     if ($courseid = $DB->get_field('course', 'id', $params)) {
@@ -839,9 +851,12 @@ function local_ent_installer_cohort_process_courses($cohortinfo, $cohort, $optio
     $params = array('enrol' => 'cohort', 'customint1' => $cohort->id);
     $oldbindings = $DB->get_records_menu('enrol', $params, 'id', 'courseid, id');
 
+    $oldbindingcourseids = array_keys($oldbindings);
+
     // Bind new course entries.
     if (!empty($cohortinfo->courses)) {
         foreach ($cohortinfo->courses as $courseid) {
+            if (assert(is_integer($courseid))) { die("Fatal error : should be an numeric id."); }
             $e = new StdClass;
             $e->idnumber = $cohort->idnumber;
             $e->shortname = $DB->get_field('course', 'shortname', array('id' => $courseid));;
@@ -860,11 +875,11 @@ function local_ent_installer_cohort_process_courses($cohortinfo, $cohort, $optio
                     mtrace("\t".'[SIMULATION] '.get_string('cohortbindingadded', 'local_ent_installer', $e));
                 }
             } else {
-                $enrol = $DB->get_record('enrol', array('id' => $oldbindings[$courseid]));
+                $enrol = $DB->get_record('enrol', array('id' => $oldbindings[$course->id]));
                 if ($enrol->status == 0) {
                     mtrace("\t".get_string('cohortbindingexists', 'local_ent_installer', $e));
                 } else {
-                    $DB->set_field('enrol', 'status', ENROL_INSTANCE_ENABLED, array($oldbindings[$courseid]));
+                    $DB->set_field('enrol', 'status', ENROL_INSTANCE_ENABLED, array($oldbindings[$course->id]));
                     mtrace("\t".get_string('cohortbindingenabled', 'local_ent_installer', $e));
                 }
                 unset($oldbindings[$courseid]);
@@ -890,8 +905,13 @@ function local_ent_installer_cohort_process_courses($cohortinfo, $cohort, $optio
                     mtrace("\t".get_string('cohortbindingdisabled', 'local_ent_installer', $e));
                 } else {
                     $instance = $DB->get_record('enrol', array('id' => $todeleteenrolid));
-                    mtrace("\t".get_string('cohortbindingremoved', 'local_ent_installer', $e));
-                    $plugin->delete_instance($instance);
+                    // Protect against course/enrol corruption
+                    if ($DB->record_exists('course', array('id' => $instance->courseid))) {
+                        mtrace("\t".get_string('cohortbindingremoved', 'local_ent_installer', $e));
+                        $plugin->delete_instance($instance);
+                    } else {
+                        mtrace("Warning : possible enrol table corruption on course ".$instance->courseid);
+                    }
                 }
             } else {
                 if ($config->cohort_hard_cohort_unenrol == 'soft') {

@@ -110,6 +110,8 @@ $string['dbupdateusersimul'] = 'SIMULATION : User update (guess status : {$a->st
 $string['defaultarchivecatname'] = 'Archives';
 $string['doit'] = 'Do it really!';
 $string['emptygroups'] = 'Empty groups';
+$string['emulatecommunity'] = 'Emulate the community version.';
+$string['emulatecommunity_desc'] = 'Switches the code to the community version. The result will be more compatible, but some features will not be available anymore.';
 $string['enrolled'] = 'Enrolled with method {$a}';
 $string['enrolmethod'] = 'Enrol plugin';
 $string['entities'] = 'Entities';
@@ -126,6 +128,11 @@ $string['inserts'] = 'Inserts (users added)';
 $string['installcats'] = 'site initial categories installation';
 $string['lastrun'] = 'Last run on {$a}';
 $string['lasttime'] = 'Last run time';
+$string['licensestatus'] = 'Pro License status';
+$string['licenseprovider'] = 'Pro License provider';
+$string['licenseprovider_desc'] = 'Input here your provider key';
+$string['licensekey'] = 'Pro license key';
+$string['licensekey_desc'] = 'Input here the product license key you got from your provider';
 $string['maxduration'] = 'Max sync duration';
 $string['meantime'] = 'Mean syncing time';
 $string['mergesiteadmins'] = 'Update site admins to {$a}';
@@ -144,6 +151,7 @@ $string['onceaweek'] = 'weekly';
 $string['options'] = 'Processing options';
 $string['overtime'] = 'Overtimes';
 $string['overtimes'] = 'Overtimes (> {$a} secs)';
+$string['plugindist'] = 'Plugin distribution';
 $string['pluginname'] = 'Installation Moodle ENT';
 $string['refreshsitemetadata'] = 'Reset site metadata';
 $string['relocatingcourse'] = 'Relocating course {$a}.';
@@ -572,3 +580,11 @@ Relocating teacher courses will move courses belonging (in edition) to a single 
 standard owned category. This affects all courses in moodle complying the ownership rule and not
 in a protected category (See ENT installer global settings).
 ';
+
+$string['plugindist_desc'] = '
+<p>This plugin is the community version and is published for anyone to use as is and check the plugin\'s
+core application. A "pro" version of this plugin exists and is distributed under conditions to feed the life cycle, upgrade, documentation
+and improvement effort.</p>
+<p>Note that both components local_sharedresources and mod_sharedresource must work using the same distribution level.</p>
+<p>Please contact one of our distributors to get "Pro" version support.</p>
+<p><a href="http://www.mylearningfactory.com/index.php/documentation/Distributeurs?lang=en_utf8">MyLF Distributors</a></p>';
