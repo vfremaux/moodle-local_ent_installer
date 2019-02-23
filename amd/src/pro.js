@@ -9,7 +9,7 @@ define(['jquery', 'core/log', 'core/config'], function($, log, cfg) {
 
         init: function() {
 
-            $('#id_s_ent_installer_licensekey').bind('change', this.check_product_key);
+            $('#id_s_local_ent_installer_licensekey').bind('change', this.check_product_key);
             $('#id_s_local_ent_installer_licensekey').trigger('change');
             log.debug('AMD Pro js initialized for ent_installer system');
         },
@@ -34,23 +34,23 @@ define(['jquery', 'core/log', 'core/config'], function($, log, cfg) {
                 url += 'what=license';
                 url += '&service=check';
                 url += '&customerkey=' + that.val();
-                url += '&provider=' + $('#id_s_ent_installer_licenseprovider').val();
+                url += '&provider=' + $('#id_s_local_ent_installer_licenseprovider').val();
 
-                $('#id_s_ent_installer_licensekey + img').remove();
-                $('#id_s_ent_installer_licensekey').after(waiticon);
+                $('#id_s_local_ent_installer_licensekey + img').remove();
+                $('#id_s_local_ent_installer_licensekey').after(waiticon);
 
                 $.get(url, function(data) {
                     if (data.match(/SET OK/)) {
-                        $('#id_s_ent_installer_licensekey + img').remove();
-                        $('#id_s_ent_installer_licensekey').after(validicon);
+                        $('#id_s_local_ent_installer_licensekey + img').remove();
+                        $('#id_s_local_ent_installer_licensekey').after(validicon);
                     } else {
-                        $('#id_s_ent_installer_licensekey + img').remove();
-                        $('#id_s_ent_installer_licensekey').after(invalidicon);
+                        $('#id_s_local_ent_installer_licensekey + img').remove();
+                        $('#id_s_local_ent_installer_licensekey').after(invalidicon);
                     }
                 }, 'html');
             } else {
-                $('#id_s_ent_installer_licensekey + img').remove();
-                $('#id_s_ent_installer_licensekey').after(cautionicon);
+                $('#id_s_local_ent_installer_licensekey + img').remove();
+                $('#id_s_local_ent_installer_licensekey').after(cautionicon);
             }
         },
 
