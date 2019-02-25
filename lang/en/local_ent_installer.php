@@ -583,3 +583,11 @@ Relocating teacher courses will move courses belonging (in edition) to a single 
 standard owned category. This affects all courses in moodle complying the ownership rule and not
 in a protected category (See ENT installer global settings).
 ';
+
+$string['plugindist_desc'] = '
+<p>This plugin is the community version and is published for anyone to use as is and check the plugin\'s
+core application. A "pro" version of this plugin exists and is distributed under conditions to feed the life cycle, upgrade, documentation
+and improvement effort.</p>
+<p>Note that both components local_sharedresources and mod_sharedresource must work using the same distribution level.</p>
+<p>Please contact one of our distributors to get "Pro" version support.</p>
+<p><a href="http://www.mylearningfactory.com/index.php/documentation/Distributeurs?lang=en_utf8">MyLF Distributors</a></p>';

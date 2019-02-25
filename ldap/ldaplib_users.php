@@ -1523,7 +1523,9 @@ function local_ent_installer_get_username_from_dn($ldapauth, $userdn, $options =
 
     $results = ldap_get_entries_moodle($ldapconnection, $userinforesult);
     $firstrecord = array_shift($results);
-    $userentry = array_change_key_case($firstrecord, CASE_LOWER);
+    if ($firstrecord) {
+        $userentry = array_change_key_case($firstrecord, CASE_LOWER);
+    }
     if (empty($userentry)) {
         if ($localconnection) {
             $ldapauth->ldap_close();
