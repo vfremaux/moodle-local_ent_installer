@@ -213,7 +213,7 @@ function local_ent_installer_reorder_teacher_categories() {
     }
 
     $sort = 'idnumber';
-    $cattosort = coursecat::get($teacherrootcat, MUST_EXIST, true);
+    $cattosort = \core_course_category::get($teacherrootcat, MUST_EXIST, true);
     \core_course\management\helper::action_category_resort_subcategories($cattosort, $sort, true);
 }
 
@@ -419,8 +419,6 @@ function local_ent_installer_fix_unprefixed_cohorts() {
 function local_ent_installer_install_categories($simulate = false) {
     global $CFG, $DB;
 
-    include_once($CFG->dirroot.'/lib/coursecatlib.php');
-
     $configcategories = get_config('local_ent_installer', 'initialcategories');
     $categories = (array) json_decode($configcategories);
 
@@ -479,7 +477,7 @@ function local_ent_installer_install_categories($simulate = false) {
                             // Fix category visibility on last node.
                             $catrec->visible = $category->visible;
                         }
-                        $newcat = coursecat::create($catrec);
+                        $newcat = \core_course_category::create($catrec);
                         $parentid = $newcat->id;
                         if ($depth == $maxdepth) {
                             $category->id = $parentid;
@@ -491,7 +489,7 @@ function local_ent_installer_install_categories($simulate = false) {
                     }
                 } else {
                     // We have a category of this name already.
-                    $coursecat = coursecat::get($thiscat->id);
+                    $coursecat = \core_course_category::get($thiscat->id);
                     $parentid = $thiscat->id;
                     if (!$simulate) {
                         $thiscat->idnumber = $category->idnumber;

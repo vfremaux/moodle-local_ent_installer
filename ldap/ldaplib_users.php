@@ -29,7 +29,6 @@ require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_cohorts.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_coursegroups.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_roleassigns.php');
 require_once($CFG->dirroot.'/cohort/lib.php');
-require_once($CFG->dirroot.'/lib/coursecatlib.php');
 
 define('ENT_MATCH_FULL', 100);
 define('ENT_MATCH_ID_NO_USERNAME', 50);
@@ -1523,9 +1522,7 @@ function local_ent_installer_get_username_from_dn($ldapauth, $userdn, $options =
 
     $results = ldap_get_entries_moodle($ldapconnection, $userinforesult);
     $firstrecord = array_shift($results);
-    if ($firstrecord) {
-        $userentry = array_change_key_case($firstrecord, CASE_LOWER);
-    }
+    $userentry = array_change_key_case($firstrecord, CASE_LOWER);
     if (empty($userentry)) {
         if ($localconnection) {
             $ldapauth->ldap_close();
@@ -1843,7 +1840,7 @@ function local_ent_installer_make_teacher_category($user) {
         $category->idnumber = $teachercatidnum;
         $category->parent = $teacherstubcategory;
         $category->visible = 1;
-        $category = coursecat::create($category);
+        $category = \core_course_category::create($category);
 
         role_assign($managerrole->id, $user->id, $category->get_context()->id);
     } else {

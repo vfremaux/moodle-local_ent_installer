@@ -30,7 +30,7 @@ defined('MOODLE_INTERNAL') || die();
  * @param array $options an array of options
  */
 function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
-    global $DB, $CFG;
+    global $DB;
 
     $config = get_config('local_ent_installer');
 
@@ -53,7 +53,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->customerkey, @$config->provider, true);
+        $check = \local_ent_installer\pro_manager::set_and_check_license_key($config->customerkey, $config->provider);
         if (!preg_match('/SET OK/', $check)) {
             $licenselimit = 3000;
         }
@@ -337,7 +337,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 $oldrec->name = $cohortinfo->name;
             }
 
-            $oldrec->description = '' + @$cohortinfo->description;
+            $oldrec->description = @$cohortinfo->description;
             $oldrec->descriptionformat = FORMAT_HTML;
             $oldrec->contextid = $systemcontext->id;
             $oldrec->component = 'local_ent_installer';
@@ -378,7 +378,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 }
 
                 $cohort = new StdClass;
-                $cohort->description = ''.@$cohortinfo->description;
+                $cohort->description = $cohortinfo->description;
                 $cohort->descriptionformat = FORMAT_HTML;
                 if (!empty($config->cohort_ix)) {
                     $cohort->name = $config->cohort_ix.'_'.$cohortinfo->name;
@@ -572,7 +572,6 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
                 }
             }
             $result[$key] = $newval;
-            continue;
         } else {
             // Normal attribute case.
             if (is_array($entry[$value])) {
@@ -609,7 +608,7 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
             if (!empty($allcourses)) {
                 foreach ($allcourses as $courseidentifier) {
                     if (!empty($options['verbose'])) {
-                        mtrace("\tExaminating course $courseidentifier as {$config->cohort_course_binding_identifier}");
+                        mtrace("\tExaminating course $courseidentifier");
                     }
                     $params = array($config->cohort_course_binding_identifier => $courseidentifier);
                     if ($courseid = $DB->get_field('course', 'id', $params)) {
@@ -855,18 +854,17 @@ function local_ent_installer_cohort_process_courses($cohortinfo, $cohort, $optio
 
     // Bind new course entries.
     if (!empty($cohortinfo->courses)) {
-        foreach ($cohortinfo->courses as $courseid) {
-            if (assert(is_integer($courseid))) { die("Fatal error : should be an numeric id."); }
+        foreach ($cohortinfo->courses as $course) {
             $e = new StdClass;
             $e->idnumber = $cohort->idnumber;
-            $e->shortname = $DB->get_field('course', 'shortname', array('id' => $courseid));;
-            $e->cidnumber = $DB->get_field('course', 'idnumber', array('id' => $courseid));;
+            $e->shortname = $DB->get_field('course', 'shortname', array('id' => $course->id));;
+            $e->cidnumber = $DB->get_field('course', 'idnumber', array('id' => $course->id));;
             if (!in_array($courseid, $oldbindingcourseids)) {
                 // Add enrol method.
                 $enrol = new StdClass;
                 $enrol->enrol = 'cohort';
                 $enrol->status = 0;
-                $enrol->courseid = $courseid;
+                $enrol->courseid = $course->id;
                 $enrol->customint1 = $cohort->id;
                 if (empty($options['simulate'])) {
                     $DB->insert_record('enrol', $enrol);
