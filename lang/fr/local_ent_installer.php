@@ -112,11 +112,13 @@ $string['dbinsertuser'] = 'ALIMENTATION : Création utilisateur {$a->username} -
 $string['dbinsertusersimul'] = 'SIMULATION : Création utilisateur {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
 $string['dbskipnewuser'] = 'IGNORE : Nouvel utilisateur ignoré {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
 $string['dbskipnewusersimul'] = 'SIMULATION IGNORE : Nouvel utilisateur ignoré {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
-$string['dbupdateuser'] = 'ALIMENTATION : Mise à jour utilisateur {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
-$string['dbupdateusersimul'] = 'SIMULATION : Mise à jour utilisateur {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
+$string['dbupdateuser'] = 'ALIMENTATION : Mise à jour (heuristique d\'existance : {$a->status}) utilisateur {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
+$string['dbupdateusersimul'] = 'SIMULATION : Mise à jour (heuristique d\'existance : {$a->status}) utilisateur {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
 $string['defaultarchivecatname'] = 'Corbeille';
 $string['doit'] = 'Créer les catégories manquantes';
 $string['emptygroups'] = 'Groupes vides';
+$string['emulatecommunity'] = 'Emuler la version communautaire';
+$string['emulatecommunity_desc'] = 'Bascule le code sur la version communautaire. Le résultat est plus compatible avec d\'autres installations, mais certaines fonctionnalités avancées ne seront plus disponibles.';
 $string['enrolled'] = 'Inscrit par la méthode {$a}';
 $string['enrolmethod'] = 'Méthode d\'inscription';
 $string['entities'] = 'Entités';
@@ -134,6 +136,11 @@ $string['inserts'] = 'Insertions (utilisateurs ajoutés)';
 $string['installcats'] = 'Installation des catégories initiales';
 $string['lastrun'] = 'Dernière exécution {$a}';
 $string['lasttime'] == 'Dernier passage';
+$string['licensestatus'] = 'Etat de la license d\'exploitation';
+$string['licenseprovider'] = 'Fournisseur version Pro';
+$string['licenseprovider_desc'] = 'Entrez la clef de votre distributeur.';
+$string['licensekey'] = 'Clef de license pro';
+$string['licensekey_desc'] = 'Entrez ici la clef de produit que vous avez reçu de votre distributeur.';
 $string['maxduration'] = 'Durée max';
 $string['meantime'] = 'Moyenne';
 $string['mergesiteadmins'] = 'Mise à jour des administrateurs de site à {$a}';
@@ -148,6 +155,7 @@ $string['nousers'] = 'Aucun utilisateur dans la cohorte';
 $string['options'] = 'Options de traitement';
 $string['overtime'] = 'Dépassements';
 $string['overtimes'] = 'Dépassement de temps critique (> {$a} secs)';
+$string['plugindist'] = 'Distribution du plugin';
 $string['pluginname'] = 'Installation spécifique Moodle ENT';
 $string['refreshsitemetadata'] = 'Raffraichir les métadonnées de site';
 $string['relocatingcourse'] = 'Cours {$a} relocalisé.';
@@ -256,6 +264,10 @@ $string['configuserpictureurlpattern_desc'] = 'Un motif de construction d\'une U
 $string['cohortsfilters'] = 'Filtres LDAP pour les cohortes';
 $string['configcohortcontexts'] = 'Contextes des cohortes';
 $string['configcohortcontexts_desc'] = 'Contextes pour trouver les groupes de cohortes. Plusieurs contextes possibles séparés par des ;';
+$string['configcohortcoursebindingattribute'] = 'Attribut LDAP pour le raccordement de cours';
+$string['configcohortcoursebindingattribute_desc'] = 'L\'attribut LDAP qui porte les identificants de cours à raccorder à la cohorte.';
+$string['configcohortcoursebindingidentifier'] = 'Identifiant de cours';
+$string['configcohortcoursebindingidentifier_desc'] = 'Le champ moodle permettant d\'identifier les cours..';
 $string['configcohortobjectclass'] = 'Classes d\'objets des cohortes';
 $string['configcohortobjectclass_desc'] = 'Filtre en syntaxe LDAP pour restreindre les classes d\'objets ldap examinées.';
 $string['configcohortselectorfilter'] = 'Filtre de sélection des cohortes';
@@ -279,6 +291,8 @@ $string['configcohortmembershipattribute_desc'] = 'Attribut LDAP pour désigner 
 $string['configcohortmembershipfilter'] = 'Extracteur d\'appartenance à la cohorte';
 $string['configcohortuseridentifier'] = 'Identifiant interne d\'appartenance à la cohorte';
 $string['configcohortoldprefixes'] = 'Anciens prefixes';
+$string['configcohorthardcohortunenrol'] = 'Mode de suppression des cohortes';
+$string['configcohorthardcohortunenrol_desc'] = 'Ce qui se passe lorsqu\'une relation au cours disparait de l\'annuaire. Vous pouvez choisir entre la désactivation (sans suppression des données utilisateur liées à l\'inscription), ou la suppression avec désinscription.';
 $string['id'] = 'Id primaire';
 
 $string['configcohortuseridentifier_desc'] = 'Champ interne d\'identifiant utilisateur utilisé pour trouver l\'ID utilisateur';
@@ -291,14 +305,22 @@ La valeur est forcée par la configuration "L\'attribut appartenance utilise dn"
 
 $string['configcohortoldprefixes_desc'] = 'Prefixes (liste à virgule) des cohortes obsolètes à supprimer';
 
+$string['cohortnobindings'] = 'Aucune liaison de cohorte';
+$string['cohortbindings'] = 'Liaison des cohortes aux cours';
 $string['deletingcohorts'] = 'Suppression des cohortes';
 $string['creatingcohorts'] = 'Création des nouvelles cohortes';
 $string['updatingcohorts'] = 'Mise à jour des cohortes';
-$string['cohortdeleted'] = 'Cohort {$a} supprimée';
-$string['cohortcreated'] = 'Cohort {$a->name} [{$a->idnumber}] créée';
-$string['cohortupdated'] = 'Cohort {$a->name} mise à jour. Numéro d\'identification : {$a->idnumber}';
-$string['cohortmemberadded'] = 'Membre {$a->username} ajouté à la cohorte {$a->idnumber}';
-$string['cohortmemberremoved'] = 'Membre {$a->username} supprimé de la cohorte {$a->idnumber}';
+$string['cohortdeleted'] = 'Cohorte {$a} supprimée';
+$string['cohortcreated'] = 'Cohorte {$a->name} [{$a->idnumber}] créée';
+$string['cohortupdated'] = 'Cohorte {$a->name} mise à jour. Numéro d\'identification : {$a->idnumber}.';
+$string['cohortmemberadded'] = 'Membre {$a->username} [{$a->uidnumber}] ajouté à la cohorte {$a->idnumber}.';
+$string['cohortmemberexists'] = 'Membre {$a->username} [{$a->uidnumber}] existe dans la cohorte {$a->idnumber}.';
+$string['cohortmemberremoved'] = 'Membre {$a->username} [{$a->uidnumber}] supprimé de la cohorte {$a->idnumber}.';
+$string['cohortbindingadded'] = 'Inscription par cohorte {$a->idnumber} ajoutée au cours {$a->shortname} [{$a->cidnumber}]';
+$string['cohortbindingexists'] = 'Inscription par cohorte {$a->idnumber} conservée dans le cours {$a->shortname} [{$a->cidnumber}].';
+$string['cohortbindingremoved'] = 'Inscription par cohorte {$a->idnumber} supprimée du cours {$a->shortname} [{$a->cidnumber}]';
+$string['cohortbindingenabled'] = 'Inscription par cohorte {$a->idnumber} réactivée dans le cours {$a->shortname} [{$a->cidnumber}].';
+$string['cohortbindingdisabled'] = 'Inscription par cohorte {$a->idnumber} désactivée dans le cours {$a->shortname} [{$a->cidnumber}].';
 $string['disableautocohortscheck'] = 'Désactiver le verrou de cohortes automatiques';
 $string['removingoldcohort'] = 'Suppression de la cohorte obsolète {$a->id} {$a->name}';
 
@@ -556,3 +578,11 @@ Déplacer tous les cours appartenant à un seul enseignant (en édition) dans la
 catégorie standard de l\'enseignant. Ceci affecte tous les cours de moodle sauf les cours
 placés dans des catégories protégées (voir réglages globaux du composant d\'installation ENT).
 ';
+
+$string['plugindist_desc'] = '
+<p>Ce plugin est distribué dans la communauté Moodle pour l\'évaluation de ses fonctions centrales
+correspondant à une utilisation courante du plugin. Une version "professionnelle" de ce plugin existe et est distribuée
+sous certaines conditions, afin de soutenir l\'effort de développement, amélioration; documentation et suivi des versions.</p>
+<p>Contactez un distributeur pour obtenir la version "Pro" et son support.</p>
+<p>Notez que les deux composant local_sharedresources et mod_sharedresource doivent fonctionner au même niveau de distribution</p>
+<p><a href="http://www.mylearningfactory.com/index.php/documentation/Distributeurs?lang=fr_utf8">Distributeurs MyLF</a></p>';

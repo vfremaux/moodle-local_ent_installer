@@ -127,7 +127,7 @@ if (!empty($options['debug'])) {
 }
 
 require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // ensure we have coursecat class.
-require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php'); // Ldap primitives.
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_users.php'); // Ldap primitives.
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // general primitives.
 
 // require_once($CFG->dirroot.'/course/lib.php');

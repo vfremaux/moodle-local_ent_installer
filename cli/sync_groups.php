@@ -53,7 +53,7 @@ global $CLI_VMOODLE_PRECHECK;
 $CLI_VMOODLE_PRECHECK = true; // force first config to be minimal
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
-require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php'); // Ldap primitives.
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_users.php'); // Ldap primitives.
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_coursegroups.php'); // Ldap primitives for course groups.
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // General primitives.
 

@@ -29,7 +29,6 @@ require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_cohorts.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_coursegroups.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_roleassigns.php');
 require_once($CFG->dirroot.'/cohort/lib.php');
-require_once($CFG->dirroot.'/lib/coursecatlib.php');
 
 define('ENT_MATCH_FULL', 100);
 define('ENT_MATCH_ID_NO_USERNAME', 50);
@@ -64,6 +63,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     global $CFG, $DB, $matchstatusarr;
 
     $debughardlimit = '';
+    $licenselimit = 1000000;
     if (($CFG->debug == DEBUG_DEVELOPER) && !empty($CFG->usedebughardlimit)) {
         $debughardlimit = ' LIMIT 300 ';
         echo '<span style="font-size:2.5em">';
@@ -81,9 +81,20 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     $inserterrorcount = 0;
     $updateerrorcount = 0;
 
+    $config = get_config('local_ent_installer');
+
+    if (local_ent_installer_supports_feature() == 'pro') {
+        include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
+        $check = \local_ent_installer\pro_manager::set_and_check_license_key($config->customerkey, $config->provider);
+        if (!preg_match('/SET OK/', $check)) {
+            $licenselimit = 3000;
+        }
+    } else {
+        $licenselimit = 3000;
+    }
+
     mtrace('');
 
-    $config = get_config('local_ent_installer');
     if (!$config->sync_enable) {
         mtrace(get_string('syncdisabled', 'local_ent_installer'));
         return;
@@ -121,7 +132,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
         ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 300);
     } else {
-        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, 100000);
+        ldap_set_option($ldapconnection, LDAP_OPT_SIZELIMIT, min($licenselimit, 1000000));
     }
     // Read the effective limit in a variable.
     ldap_get_option($ldapconnection, LDAP_OPT_SIZELIMIT, $retvalue);
@@ -1351,14 +1362,16 @@ function local_ent_installer_guess_old_record($newuser, &$status) {
     }
 
     /*
-     * Failover : IDNumber and username match, but not any other this may occur when pushing a temp fake user in
+     * Failover : IDNumber and user lastname match, but not any other this may occur when pushing a temp fake user in
      * moodle and syncing.
      */
-    $params = array($newuser->idnumber, strtolower($newuser->lastname));
-    $oldrec = $DB->get_record_select('user', " idnumber = ? AND LOWER(lastname) = ? ", $params);
-    if ($oldrec) {
-        $status = ENT_MATCH_ID_LASTNAME_NO_USERNAME_FIRSTNAME;
-        return $oldrec;
+     if (!empty($newuser->idnumber)) {
+        $params = array($newuser->idnumber, strtolower($newuser->lastname));
+        $oldrec = $DB->get_record_select('user', " idnumber = ? AND LOWER(lastname) = ? ", $params);
+        if ($oldrec) {
+            $status = ENT_MATCH_ID_LASTNAME_NO_USERNAME_FIRSTNAME;
+            return $oldrec;
+        }
     }
 
     $status = ENT_NO_MATCH;
@@ -1827,7 +1840,7 @@ function local_ent_installer_make_teacher_category($user) {
         $category->idnumber = $teachercatidnum;
         $category->parent = $teacherstubcategory;
         $category->visible = 1;
-        $category = coursecat::create($category);
+        $category = \core_course_category::create($category);
 
         role_assign($managerrole->id, $user->id, $category->get_context()->id);
     } else {

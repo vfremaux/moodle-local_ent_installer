@@ -31,6 +31,7 @@ if (is_dir($CFG->dirroot.'/local/adminsettings')) {
     $hasconfig = $hassiteconfig = has_capability($capability, context_system::instance());
 }
 
+require_once($CFG->dirroot.'/local/ent_installer/lib.php');
 require_once($CFG->dirroot.'/local/ent_installer/adminlib.php');
 require_once($CFG->dirroot.'/local/ent_installer/settings/structures_settings.php');
 require_once($CFG->dirroot.'/local/ent_installer/settings/coursegroups_settings.php');
@@ -48,7 +49,19 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
 
     $settings = new admin_settingpage('local_ent_installer_light', get_string('entupdate', 'local_ent_installer'));
 
+    if (local_ent_installer_supports_feature() == 'pro') {
+        include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
+    }
+
     if ($ADMIN->fulltree) {
+        if (local_ent_installer_supports_feature() == 'pro') {
+            $config = get_config('local_ent_installer');
+            $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->customerkey, @$config->provider, true);
+            if (!preg_match('/SET OK/', $check)) {
+                $licensemess = \local_ent_installer\pro_manager::print_empty_license_message();
+                $settings->add(new admin_setting_heading('licensesatus', get_string('licensestatus', 'local_ent_installer'), $licensemess));
+            }
+        }
         $settingurl = new moodle_url('/local/ent_installer/synctimereport.php');
         $settings->add(new admin_setting_heading('syncbench', get_string('syncbench', 'local_ent_installer'),
                        get_string('syncbenchreport_desc', 'local_ent_installer', $settingurl->out())));
@@ -295,5 +308,14 @@ if ($hassiteconfig) {
     /* **************************** Structure seek **************************** */
 
     $ADMIN->add('local_ent_installer', \local_ent_installer\settings\structure::settings());
+
+    if (local_ent_installer_supports_feature('emulate/community') == 'pro') {
+        include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
+        \local_ent_installer\pro_manager::add_settings($ADMIN, $settings);
+    } else {
+        $label = get_string('plugindist', 'local_ent_installer');
+        $desc = get_string('plugindist_desc', 'local_ent_installer');
+        $settings->add(new admin_setting_heading('plugindisthdr', $label, $desc));
+    }
 }
 

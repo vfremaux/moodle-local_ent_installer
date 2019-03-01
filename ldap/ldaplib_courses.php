@@ -25,7 +25,6 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
-require_once($CFG->dirroot.'/lib/coursecatlib.php');
 require_once($CFG->dirroot.'/backup/util/includes/restore_includes.php');
 
 /**
@@ -1297,7 +1296,7 @@ function local_ent_installer_check_category(&$courseinfo, $options = array()) {
                 $cat->parent = $parent;
                 if (empty($options['simulate'])) {
                     mtrace("\tCreating category {$cat->name} ");
-                    $newcat = coursecat::create($cat, null);
+                    $newcat = \core_course_category::create($cat, null);
                 } else {
                     mtrace("\tSIMULATION: Starting building category tree... ");
                     $parent = 0;

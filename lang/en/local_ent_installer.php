@@ -108,11 +108,13 @@ $string['dbinsertuser'] = 'ALIM : User creation {$a->username} - [{$a->idnumber}
 $string['dbinsertusersimul'] = 'SIMULATION : User creation {$a->username} - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
 $string['dbskipnewuser'] = 'SKIPPED : New user skipped {$a->username} - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
 $string['dbskipnewusersimul'] = 'SIMULATION SKIPPED : New user skipped {$a->username} - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
-$string['dbupdateuser'] = 'ALIM : User update or complete {$a->username} - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
-$string['dbupdateusersimul'] = 'SIMULATION : User update or complete {$a->username} - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbupdateuser'] = 'ALIM : User update (guess status : {$a->status}) or complete {$a->username} - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbupdateusersimul'] = 'SIMULATION : User update (guess status : {$a->status}) or complete {$a->username} - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
 $string['defaultarchivecatname'] = 'Archives';
 $string['doit'] = 'Do it really!';
 $string['emptygroups'] = 'Empty groups';
+$string['emulatecommunity'] = 'Emulate the community version.';
+$string['emulatecommunity_desc'] = 'Switches the code to the community version. The result will be more compatible, but some features will not be available anymore.';
 $string['enrolled'] = 'Enrolled with method {$a}';
 $string['enrolmethod'] = 'Enrol plugin';
 $string['entities'] = 'Entities';
@@ -129,6 +131,11 @@ $string['inserts'] = 'Inserts (users added)';
 $string['installcats'] = 'site initial categories installation';
 $string['lastrun'] = 'Last run on {$a}';
 $string['lasttime'] = 'Last run time';
+$string['licensestatus'] = 'Pro License status';
+$string['licenseprovider'] = 'Pro License provider';
+$string['licenseprovider_desc'] = 'Input here your provider key';
+$string['licensekey'] = 'Pro license key';
+$string['licensekey_desc'] = 'Input here the product license key you got from your provider';
 $string['maxduration'] = 'Max sync duration';
 $string['meantime'] = 'Mean syncing time';
 $string['mergesiteadmins'] = 'Update site admins to {$a}';
@@ -147,6 +154,7 @@ $string['onceaweek'] = 'weekly';
 $string['options'] = 'Processing options';
 $string['overtime'] = 'Overtimes';
 $string['overtimes'] = 'Overtimes (> {$a} secs)';
+$string['plugindist'] = 'Plugin distribution';
 $string['pluginname'] = 'Installation Moodle ENT';
 $string['refreshsitemetadata'] = 'Reset site metadata';
 $string['relocatingcourse'] = 'Relocating course {$a}.';
@@ -253,6 +261,10 @@ $string['cohortsfilters'] = 'Cohort LDAP filters';
 
 $string['configcohortcontexts'] = 'Cohort contexts';
 $string['configcohortcontexts_desc'] = 'Contexts where to find cohort groups. Several contexts can be given separated with ;';
+$string['configcohortcoursebindingattribute'] = 'Ldap attribute for course binding';
+$string['configcohortcoursebindingattribute_desc'] = 'A LDAP attribute that holds a course id or a list of ocurseids to bind this cohort with.';
+$string['configcohortcoursebindingidentifier'] = 'Course identifier for binding';
+$string['configcohortcoursebindingidentifier_desc'] = 'The moodle course filed that is used as course identifier reference.';
 $string['configcohortobjectclass'] = 'Cohort object classes filter';
 $string['configcohortobjectclass_desc'] = 'Object class that are legitimate for cohort description';
 $string['configcohortidattribute'] = 'Cohort id (ldapside)';
@@ -281,16 +293,26 @@ $string['configcohortuseridentifierlocked_desc'] = 'Internal user field used as 
 The value is locked by the auth/ldap configuration current choice for "membership as DN".';
 $string['configcohortoldprefixes'] = 'Old prefixes';
 $string['configcohortoldprefixes_desc'] = 'Prefixes (coma separated) of cohorts to delete by idnumber';
+$string['configcohorthardcohortunenrol'] = 'Unenrol cohort mode';
+$string['configcohorthardcohortunenrol_desc'] = 'What will happen when a cohort is unenrolled from course. When using soft method, enrol method is disabled and enrolments are kept with all user data and group assignations. When using hard unenrol, method is destroyed and all relevant membership so are user data in course.';
 $string['id'] = 'Primary id';
 
+$string['cohortbindings'] = 'Cohorts to course bindings';
+$string['cohortnobindings'] = 'No cohort bindings';
 $string['deletingcohorts'] = 'Deleting old cohorts';
 $string['creatingcohorts'] = 'Creating new cohorts';
 $string['updatingcohorts'] = 'Updating existing cohorts';
 $string['cohortdeleted'] = 'Cohort {$a} deleted';
 $string['cohortcreated'] = 'Cohort {$a->name} [{$a->idnumber}] created';
 $string['cohortupdated'] = 'Cohort {$a->name} updated. Idnumber set to {$a->idnumber}';
-$string['cohortmemberadded'] = 'Cohort member {$a->username} added to cohort {$a->idnumber}';
-$string['cohortmemberremoved'] = 'Cohort member {$a->username} removed from cohort {$a->idnumber}';
+$string['cohortmemberadded'] = 'Cohort member {$a->username} [{$a->uidnumber}] added to cohort {$a->idnumber}';
+$string['cohortmemberexists'] = 'Cohort member {$a->username} [{$a->uidnumber}] exists in cohort {$a->idnumber}. Keeping.';
+$string['cohortmemberremoved'] = 'Cohort member {$a->username} [{$a->uidnumber}] removed from cohort {$a->idnumber}';
+$string['cohortbindingadded'] = 'Cohort enrol method added for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}]';
+$string['cohortbindingexists'] = 'Cohort enrol method exists for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}]. Keeping.';
+$string['cohortbindingremoved'] = 'Cohort enrol method for cohort {$a->idnumber} removed from course {$a->shortname} [{$a->cidnumber}]';
+$string['cohortbindingenabled'] = 'Cohort enrol method enabled for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}].';
+$string['cohortbindingdisabled'] = 'Cohort enrol method disabled for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}].';
 $string['disableautocohortscheck'] = 'Disable autocohort check';
 $string['removingoldcohort'] = 'Removing obsolete cohort {$a->id} {$a->name}';
 
@@ -561,3 +583,11 @@ Relocating teacher courses will move courses belonging (in edition) to a single 
 standard owned category. This affects all courses in moodle complying the ownership rule and not
 in a protected category (See ENT installer global settings).
 ';
+
+$string['plugindist_desc'] = '
+<p>This plugin is the community version and is published for anyone to use as is and check the plugin\'s
+core application. A "pro" version of this plugin exists and is distributed under conditions to feed the life cycle, upgrade, documentation
+and improvement effort.</p>
+<p>Note that both components local_sharedresources and mod_sharedresource must work using the same distribution level.</p>
+<p>Please contact one of our distributors to get "Pro" version support.</p>
+<p><a href="http://www.mylearningfactory.com/index.php/documentation/Distributeurs?lang=en_utf8">MyLF Distributors</a></p>';
