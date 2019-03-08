@@ -53,7 +53,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->customerkey, @$config->provider, true);
+        $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
         if (!preg_match('/SET OK/', $check)) {
             $licenselimit = 3000;
         }
@@ -103,6 +103,13 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
     }
 
     $ldapcookie = '';
+    $requid = '*';
+    if (!empty($options['chid'])) {
+        // Force the ldap filter to match only one single user. We cannot be in forced mode in this case.
+        $options['force'] = false;
+        $cohort = $DB->get_record('cohort', array('id' => $options['chid']));
+        $requid = $cohort->idnumber;
+    }
 
     $cohortrecordfields = array($config->cohort_idnumber_attribute,
                                 $config->cohort_name_attribute,
@@ -114,7 +121,8 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
     // First fetch idnumbers to compare.
     foreach ($institutionids as $institutionid) {
 
-        $filter = str_replace('%ID%', $institutionid, $config->cohort_selector_filter);
+        $filter = '(&('.$config->cohort_idnumber_attribute.'='.$requid.')';
+        $filter .= str_replace('%ID%', $institutionid, $config->cohort_selector_filter).')';
 
         foreach ($contexts as $context) {
             $context = trim($context);
@@ -240,7 +248,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
     $lastmodified = '';
     $params = array();
-    if (empty($options['force'])) {
+    if (empty($options['force']) && empty($requid)) {
         // If not force, do check when cohorts have changed in ldap.
         $lastmodified = ' AND tc.lastmodified > ? ';
         $params = array(0 + @$config->last_sync_date_cohort);
@@ -623,6 +631,7 @@ function local_ent_installer_get_cohortinfo($ldapauth, $cohortidentifier, $optio
             }
 
             $result[$key] = $validatedcourses;
+            continue;
         }
 
         // Special processing of fields.
@@ -856,7 +865,9 @@ function local_ent_installer_cohort_process_courses($cohortinfo, $cohort, $optio
     // Bind new course entries.
     if (!empty($cohortinfo->courses)) {
         foreach ($cohortinfo->courses as $courseid) {
-            if (assert(is_integer($courseid))) { die("Fatal error : should be an numeric id."); }
+            if (!is_numeric($courseid)) {
+                die("Fatal error : should be an numeric id.");
+            }
             $e = new StdClass;
             $e->idnumber = $cohort->idnumber;
             $e->shortname = $DB->get_field('course', 'shortname', array('id' => $courseid));;
@@ -882,7 +893,7 @@ function local_ent_installer_cohort_process_courses($cohortinfo, $cohort, $optio
                     $DB->set_field('enrol', 'status', ENROL_INSTANCE_ENABLED, array($oldbindings[$course->id]));
                     mtrace("\t".get_string('cohortbindingenabled', 'local_ent_installer', $e));
                 }
-                unset($oldbindings[$course->id]);
+                unset($oldbindings[$courseid]);
             }
         }
     } else {

@@ -55,6 +55,7 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
 
     if ($ADMIN->fulltree) {
         if (local_ent_installer_supports_feature() == 'pro') {
+            $PAGE->requires->js_call_amd('local_ent_installer/pro', 'init');
             $config = get_config('local_ent_installer');
             $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->customerkey, @$config->provider, true);
             if (!preg_match('/SET OK/', $check)) {
@@ -313,8 +314,8 @@ if ($hassiteconfig) {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
         \local_ent_installer\pro_manager::add_settings($ADMIN, $settings);
     } else {
-        $label = get_string('plugindist', 'local_ent_intaller');
-        $desc = get_string('plugindist_desc', 'local_ent_intaller');
+        $label = get_string('plugindist', 'local_ent_installer');
+        $desc = get_string('plugindist_desc', 'local_ent_installer');
         $settings->add(new admin_setting_heading('plugindisthdr', $label, $desc));
     }
 }
