@@ -71,7 +71,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
     if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        $check = \local_ent_installer\pro_manager::set_and_check_license_key($config->customerkey, $config->provider);
+        $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
         if (!preg_match('/SET OK/', $check)) {
             $licenselimit = 3000;
         }

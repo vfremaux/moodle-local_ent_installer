@@ -178,6 +178,7 @@ $string['synchronisemoodle'] = 'Synchronize moodle';
 $string['syncroleassignsdisabled'] = 'ENT Role Assignments sync is disabled on this site';
 $string['syncsingleuser'] = 'Sync single user';
 $string['syncsinglecourse'] = 'Sync single course';
+$string['syncsinglecohort'] = 'Sync single cohort';
 $string['synctime'] = 'Sync time';
 $string['synctimes'] = 'Sync times';
 $string['synctimetitle'] = 'User Sync Time Measurement';
