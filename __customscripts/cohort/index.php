@@ -143,6 +143,21 @@ foreach($cohorts['cohorts'] as $cohort) {
     $line[] = format_text($cohort->description, $cohort->descriptionformat);
 
     // CHANGE : access to cohort listing for checkings
+    // Add course bindings list.
+    $bindings = '';
+    if ($enrols = cohort_get_course_bindings($cohort->id)) {
+        $b = array();
+        foreach ($enrols as $e) {
+            $str = $e->shortname.' ('.$e->idnumber.')';
+            if ($e->status == 1) {
+                $str = '<span class="dimmed">'.$str.'</span>';
+            }
+            $b[] = $str;
+        }
+        $bindings = implode('<br/>', $b);
+    }
+    $line[] = $bindings;
+
     if (empty($cohort->component)) {
         $line[] = $DB->count_records('cohort_members', array('cohortid' => $cohort->id));
     } else {
@@ -199,7 +214,7 @@ foreach($cohorts['cohorts'] as $cohort) {
 }
 $table = new html_table();
 $table->head  = array(get_string('name', 'cohort'), get_string('idnumber', 'cohort'), get_string('description', 'cohort'),
-                      get_string('memberscount', 'cohort'), get_string('component', 'cohort'));
+                      get_string('courses'), get_string('memberscount', 'cohort'), get_string('component', 'cohort'));
 $table->colclasses = array('leftalign name', 'leftalign id', 'leftalign description', 'leftalign size','centeralign source');
 if ($showall) {
     array_unshift($table->head, get_string('category'));
