@@ -25,6 +25,8 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->dirroot.'/local/ent_installer/lib.php');
+
 /**
  * Synchronizes roleassigns by getting records from a role holding ldap context.
  * @param array $options an array of options

@@ -25,6 +25,7 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->dirroot.'/local/ent_installer/lib.php');
 require_once($CFG->dirroot.'/group/lib.php');
 
 /**
