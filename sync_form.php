@@ -44,6 +44,7 @@ class SyncForm extends moodleform {
             $group = array();
             $group[] = &$mform->createElement('checkbox', 'users', '');
             $attrs = array('type' => 'button', 'value' => get_string('syncsingleuser', 'local_ent_installer'));
+
             $button = html_writer::tag('input', '', $attrs);
             $singleuserurl = new moodle_url('/local/ent_installer/syncuser.php');
             $attrs = array('href' => $singleuserurl);
@@ -60,6 +61,7 @@ class SyncForm extends moodleform {
             // $mform->addElement('checkbox', 'courses', get_string('courses', 'local_ent_installer'));
             $group = array();
             $group[] = &$mform->createElement('checkbox', 'courses', '');
+
             $attrs = array('type' => 'button', 'value' => get_string('syncsinglecourse', 'local_ent_installer'));
             $button = html_writer::tag('input', '', $attrs);
             $singlecourseurl = new moodle_url('/local/ent_installer/synccourse.php');
@@ -70,7 +72,16 @@ class SyncForm extends moodleform {
         }
 
         if (!empty($config->sync_cohorts_enable)) {
-            $mform->addElement('checkbox', 'cohorts', get_string('cohorts', 'local_ent_installer'));
+            $group = array();
+            $group[] = &$mform->createElement('checkbox', 'cohorts', get_string('cohorts', 'local_ent_installer'));
+
+            $attrs = array('type' => 'button', 'value' => get_string('syncsinglecohort', 'local_ent_installer'));
+            $button = html_writer::tag('input', '', $attrs);
+            $singlecohorturl = new moodle_url('/local/ent_installer/synccohort.php');
+            $attrs = array('href' => $singlecohorturl);
+            $html = html_writer::tag('a', $button, $attrs);
+            $group[] = &$mform->createElement('static', 'singlecohort', '', $html);
+            $mform->addGroup($group, 'cohortgroup', get_string('cohorts', 'local_ent_installer'), array(''), false);
         }
 
         if (!empty($config->sync_groups_enable)) {

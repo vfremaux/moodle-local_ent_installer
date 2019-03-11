@@ -34,8 +34,13 @@ $plugin->dependencies = array('local_vflibs' => '2016081100');
 
 // Non moodle attributes.
 <<<<<<< HEAD
+<<<<<<< HEAD
 $plugin->codeincrement = '3.5.0005';
 =======
 $plugin->codeincrement = '3.6.0005';
+$plugin->privacy = 'dualrelease';
+>>>>>>> MOODLE_36_STABLE
+=======
+$plugin->codeincrement = '3.6.0006';
 $plugin->privacy = 'dualrelease';
 >>>>>>> MOODLE_36_STABLE
