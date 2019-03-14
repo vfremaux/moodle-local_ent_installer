@@ -318,11 +318,11 @@ $string['cohortupdated'] = 'Cohorte {$a->name} mise à jour. Numéro d\'identifi
 $string['cohortmemberadded'] = 'Membre {$a->username} [{$a->uidnumber}] ajouté à la cohorte {$a->idnumber}.';
 $string['cohortmemberexists'] = 'Membre {$a->username} [{$a->uidnumber}] existe dans la cohorte {$a->idnumber}.';
 $string['cohortmemberremoved'] = 'Membre {$a->username} [{$a->uidnumber}] supprimé de la cohorte {$a->idnumber}.';
-$string['cohortbindingadded'] = 'Inscription par cohorte {$a->idnumber} ajoutée au cours {$a->shortname} [{$a->cidnumber}]';
-$string['cohortbindingexists'] = 'Inscription par cohorte {$a->idnumber} conservée dans le cours {$a->shortname} [{$a->cidnumber}].';
-$string['cohortbindingremoved'] = 'Inscription par cohorte {$a->idnumber} supprimée du cours {$a->shortname} [{$a->cidnumber}]';
-$string['cohortbindingenabled'] = 'Inscription par cohorte {$a->idnumber} réactivée dans le cours {$a->shortname} [{$a->cidnumber}].';
-$string['cohortbindingdisabled'] = 'Inscription par cohorte {$a->idnumber} désactivée dans le cours {$a->shortname} [{$a->cidnumber}].';
+$string['cohortbindingadded'] = 'Inscription par cohorte {$a->idnumber} ajoutée au cours {$a->shortname} [{$a->cidnumber}] avec le role {$a->role}';
+$string['cohortbindingexists'] = 'Inscription par cohorte {$a->idnumber} conservée dans le cours {$a->shortname} [{$a->cidnumber}] avec le role {$a->role}.';
+$string['cohortbindingremoved'] = 'Inscription par cohorte {$a->idnumber} supprimée du cours {$a->shortname} [{$a->cidnumber}] avec le role {$a->role}';
+$string['cohortbindingenabled'] = 'Inscription par cohorte {$a->idnumber} réactivée dans le cours {$a->shortname} [{$a->cidnumber}] avec le role {$a->role}.';
+$string['cohortbindingdisabled'] = 'Inscription par cohorte {$a->idnumber} désactivée dans le cours {$a->shortname} [{$a->cidnumber}] avec le role {$a->role}.';
 $string['disableautocohortscheck'] = 'Désactiver le verrou de cohortes automatiques';
 $string['removingoldcohort'] = 'Suppression de la cohorte obsolète {$a->id} {$a->name}';
 
