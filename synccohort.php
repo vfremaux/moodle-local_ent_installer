@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Form for activating manual resync of a single course.
+ * Form for activating manual resync of a single user.
  *
  * @package     local_ent_installer
  * @category    local
@@ -25,12 +25,12 @@
  */
 
 require('../../config.php');
-require_once($CFG->dirroot.'/local/ent_installer/sync_course_form.php');
+require_once($CFG->dirroot.'/local/ent_installer/sync_cohort_form.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_users.php');
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_cohorts.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
-require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_courses.php');
 
-$url = new moodle_url('/local/ent_installer/synccourse.php');
+$url = new moodle_url('/local/ent_installer/synccohort.php');
 $PAGE->set_url($url);
 
 // Security.
@@ -44,9 +44,9 @@ $syncstr = get_string('synchronisemoodle', 'local_ent_installer');
 $PAGE->set_context($systemcontext);
 $PAGE->set_heading($syncstr);
 $PAGE->set_pagelayout('admin');
-$PAGE->requires->js_call_amd('local_ent_installer/synccourse', 'init');
+$PAGE->requires->js_call_amd('local_ent_installer/synccohort', 'init');
 
-$mform = new SyncCourseForm($url, null, 'get');
+$mform = new SyncCohortForm($url, null, 'get');
 
 // Get ldap params from real ldap plugin.
 $ldapauth = get_auth_plugin('ldap');
@@ -66,8 +66,8 @@ if ($data = $mform->get_data()) {
 
     require_sesskey();
 
-    // Secure the reception of cid.
-    $data->cid = $_REQUEST['cid'];
+    // Secure the reception of uid.
+    $data->chid = $_REQUEST['chid'];
 
     // Get ldap params from real ldap plugin.
     $ldapauth = get_auth_plugin('ldap');
@@ -76,12 +76,12 @@ if ($data = $mform->get_data()) {
     $options['force'] = false;
     $options['simulate'] = @$data->simulate;
     $options['verbose'] = @$data->verbose;
-    $options['cid'] = @$data->cid;
-    $options['operation'] = @$data->operation;
+    $options['chid'] = @$data->chid;
+    $options['updateonly'] = @$data->updateonly;
 
     echo '<div class="console">';
     echo '<pre>';
-    local_ent_installer_sync_courses($ldapauth, $options);
+    local_ent_installer_sync_cohorts($ldapauth, $options);
     echo '</pre>';
     echo '</div>';
 
@@ -91,7 +91,7 @@ if ($data = $mform->get_data()) {
 
 echo '<p><center>';
 if (has_capability('moodle/site:config', $systemcontext)) {
-    $buttonurl = new moodle_url('/admin/category.php', array('category' => 'local_ent_installer'));
+    $buttonurl = new moodle_url('/admin/settings.php', array('section' => 'local_ent_installer_generals'));
     echo $OUTPUT->single_button($buttonurl, get_string('backtosettings', 'local_ent_installer'));
 } else {
     echo $OUTPUT->single_button($CFG->wwwroot, get_string('backtosite', 'local_ent_installer'));

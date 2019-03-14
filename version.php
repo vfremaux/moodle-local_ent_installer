@@ -34,3 +34,4 @@ $plugin->dependencies = array('local_vflibs' => '2016081100');
 
 // Non moodle attributes.
 $plugin->codeincrement = '3.1.0005';
+$plugin->privacy = 'dualrelease';

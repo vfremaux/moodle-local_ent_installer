@@ -103,6 +103,7 @@ $string['configtimestampformat'] = 'Format du champ de datation';
 $string['configtimestampformat_desc'] = 'Format unix UTC ou Active Directory (YYYYMMDDHHIISS.TZ)';
 $string['coursefilters'] = 'Filtres de cours';
 $string['coursegroups'] = 'Groupes des cours';
+$string['cohort'] = 'Cohorte';
 $string['datasync'] = 'Synchronisation de données ENT';
 $string['datasyncsettings'] = 'Réglages de la synchronisation de données ENT';
 $string['dbinsertuser'] = 'ALIMENTATION : Création utilisateur {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
@@ -114,6 +115,8 @@ $string['dbupdateusersimul'] = 'SIMULATION : Mise à jour (heuristique d\'exista
 $string['defaultarchivecatname'] = 'Corbeille';
 $string['doit'] = 'Créer les catégories manquantes';
 $string['emptygroups'] = 'Groupes vides';
+$string['emulatecommunity'] = 'Emuler la version communautaire';
+$string['emulatecommunity_desc'] = 'Bascule le code sur la version communautaire. Le résultat est plus compatible avec d\'autres installations, mais certaines fonctionnalités avancées ne seront plus disponibles.';
 $string['enrolled'] = 'Inscrit par la méthode {$a}';
 $string['enrolmethod'] = 'Méthode d\'inscription';
 $string['entities'] = 'Entités';
@@ -131,6 +134,11 @@ $string['inserts'] = 'Insertions (utilisateurs ajoutés)';
 $string['installcats'] = 'Installation des catégories initiales';
 $string['lastrun'] = 'Dernière exécution {$a}';
 $string['lasttime'] == 'Dernier passage';
+$string['licensestatus'] = 'Etat de la license d\'exploitation';
+$string['licenseprovider'] = 'Fournisseur version Pro';
+$string['licenseprovider_desc'] = 'Entrez la clef de votre distributeur.';
+$string['licensekey'] = 'Clef de license pro';
+$string['licensekey_desc'] = 'Entrez ici la clef de produit que vous avez reçu de votre distributeur.';
 $string['maxduration'] = 'Durée max';
 $string['meantime'] = 'Moyenne';
 $string['mergesiteadmins'] = 'Mise à jour des administrateurs de site à {$a}';
@@ -145,6 +153,7 @@ $string['nousers'] = 'Aucun utilisateur dans la cohorte';
 $string['options'] = 'Options de traitement';
 $string['overtime'] = 'Dépassements';
 $string['overtimes'] = 'Dépassement de temps critique (> {$a} secs)';
+$string['plugindist'] = 'Distribution du plugin';
 $string['pluginname'] = 'Installation spécifique Moodle ENT';
 $string['refreshsitemetadata'] = 'Raffraichir les métadonnées de site';
 $string['relocatingcourse'] = 'Cours {$a} relocalisé.';
@@ -168,6 +177,7 @@ $string['synchronisemoodle'] = 'Synchroniser les données de moodle';
 $string['syncroleassignsdisabled'] = 'La synchro des associations de rôle est désactivée sur ce site';
 $string['syncsingleuser'] = 'Synchroniser un utilisateur unique';
 $string['syncsinglecourse'] = 'Synchroniser un cours unique';
+$string['syncsinglecohort'] = 'Synchroniser une cohorte unique';
 $string['synctime'] = 'Temps de syncro';
 $string['synctimes'] = 'Temps de synchro';
 $string['synctimetitle'] = 'Mesure des temps de chargement/mise à jour utilisateurs';
@@ -305,11 +315,11 @@ $string['cohortupdated'] = 'Cohorte {$a->name} mise à jour. Numéro d\'identifi
 $string['cohortmemberadded'] = 'Membre {$a->username} [{$a->uidnumber}] ajouté à la cohorte {$a->idnumber}.';
 $string['cohortmemberexists'] = 'Membre {$a->username} [{$a->uidnumber}] existe dans la cohorte {$a->idnumber}.';
 $string['cohortmemberremoved'] = 'Membre {$a->username} [{$a->uidnumber}] supprimé de la cohorte {$a->idnumber}.';
-$string['cohortbindingadded'] = 'Inscription par cohorte {$a->idnumber} ajoutée au cours {$a->shortname} [{$a->cidnumber}]';
-$string['cohortbindingexists'] = 'Inscription par cohorte {$a->idnumber} conservée dans le cours {$a->shortname} [{$a->cidnumber}].';
-$string['cohortbindingremoved'] = 'Inscription par cohorte {$a->idnumber} supprimée du cours {$a->shortname} [{$a->cidnumber}]';
-$string['cohortbindingenabled'] = 'Inscription par cohorte {$a->idnumber} réactivée dans le cours {$a->shortname} [{$a->cidnumber}].';
-$string['cohortbindingdisabled'] = 'Inscription par cohorte {$a->idnumber} désactivée dans le cours {$a->shortname} [{$a->cidnumber}].';
+$string['cohortbindingadded'] = 'Inscription par cohorte {$a->idnumber} ajoutée au cours {$a->shortname} [{$a->cidnumber}] avec le role {$a->role}';
+$string['cohortbindingexists'] = 'Inscription par cohorte {$a->idnumber} conservée dans le cours {$a->shortname} [{$a->cidnumber}] avec le role {$a->role}.';
+$string['cohortbindingremoved'] = 'Inscription par cohorte {$a->idnumber} supprimée du cours {$a->shortname} [{$a->cidnumber}] avec le role {$a->role}';
+$string['cohortbindingenabled'] = 'Inscription par cohorte {$a->idnumber} réactivée dans le cours {$a->shortname} [{$a->cidnumber}] avec le role {$a->role}.';
+$string['cohortbindingdisabled'] = 'Inscription par cohorte {$a->idnumber} désactivée dans le cours {$a->shortname} [{$a->cidnumber}] avec le role {$a->role}.';
 $string['disableautocohortscheck'] = 'Désactiver le verrou de cohortes automatiques';
 $string['removingoldcohort'] = 'Suppression de la cohorte obsolète {$a->id} {$a->name}';
 
@@ -567,3 +577,11 @@ Déplacer tous les cours appartenant à un seul enseignant (en édition) dans la
 catégorie standard de l\'enseignant. Ceci affecte tous les cours de moodle sauf les cours
 placés dans des catégories protégées (voir réglages globaux du composant d\'installation ENT).
 ';
+
+$string['plugindist_desc'] = '
+<p>Ce plugin est distribué dans la communauté Moodle pour l\'évaluation de ses fonctions centrales
+correspondant à une utilisation courante du plugin. Une version "professionnelle" de ce plugin existe et est distribuée
+sous certaines conditions, afin de soutenir l\'effort de développement, amélioration; documentation et suivi des versions.</p>
+<p>Contactez un distributeur pour obtenir la version "Pro" et son support.</p>
+<p>Notez que les deux composant local_sharedresources et mod_sharedresource doivent fonctionner au même niveau de distribution</p>
+<p><a href="http://www.mylearningfactory.com/index.php/documentation/Distributeurs?lang=fr_utf8">Distributeurs MyLF</a></p>';

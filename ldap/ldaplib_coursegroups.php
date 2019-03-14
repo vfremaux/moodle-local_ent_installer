@@ -25,6 +25,7 @@
  */
 defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->dirroot.'/local/ent_installer/lib.php');
 require_once($CFG->dirroot.'/group/lib.php');
 
 /**
@@ -678,7 +679,6 @@ function local_ent_installer_get_groupinfo($ldapauth, $groupidentifier, $options
                 }
             }
             $result[$key] = $newval;
-            $ldapauth->ldap_close();
         } else {
             if (is_array($entry[$value])) {
                 $newval = core_text::convert($entry[$value][0], $ldapauth->config->ldapencoding, 'utf-8');

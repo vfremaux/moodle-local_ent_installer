@@ -113,9 +113,26 @@ foreach($cohorts['cohorts'] as $cohort) {
     $line = array();
     $line[] = format_string($cohort->name);
     $line[] = s($cohort->idnumber); // All idnumbers are plain text.
+    $cohort->description = file_rewrite_pluginfile_urls($cohort->description, 'pluginfile.php', $cohortcontext->id,
+            'cohort', 'description', $cohort->id);
     $line[] = format_text($cohort->description, $cohort->descriptionformat);
 
     // CHANGE : access to cohort listing for checkings
+    // Add course bindings list.
+    $bindings = '';
+    if ($enrols = cohort_get_course_bindings($cohort->id)) {
+        $b = array();
+        foreach ($enrols as $e) {
+            $str = $e->shortname.' ('.$e->idnumber.')';
+            if ($e->status == 1) {
+                $str = '<span class="dimmed">'.$str.'</span>';
+            }
+            $b[] = $str;
+        }
+        $bindings = implode('<br/>', $b);
+    }
+    $line[] = $bindings;
+
     if (empty($cohort->component)) {
         $line[] = $DB->count_records('cohort_members', array('cohortid' => $cohort->id));
     } else {
@@ -147,7 +164,8 @@ foreach($cohorts['cohorts'] as $cohort) {
 }
 $table = new html_table();
 $table->head  = array(get_string('name', 'cohort'), get_string('idnumber', 'cohort'), get_string('description', 'cohort'),
-                      get_string('memberscount', 'cohort'), get_string('component', 'cohort'), get_string('edit'));
+                      get_string('courses'), get_string('memberscount', 'cohort'),
+                      get_string('component', 'cohort'), get_string('edit'));
 $table->colclasses = array('leftalign name', 'leftalign id', 'leftalign description', 'leftalign size','centeralign source', 'centeralign action');
 $table->id = 'cohorts';
 $table->attributes['class'] = 'admintable generaltable';

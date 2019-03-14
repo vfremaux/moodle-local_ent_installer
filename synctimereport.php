@@ -16,7 +16,7 @@
 
 require('../../config.php');
 require_once($CFG->dirroot.'/local/ent_installer/getid_form.php');
-require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php');
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_users.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 require_once($CFG->dirroot.'/local/vflibs/jqplotlib.php');
 

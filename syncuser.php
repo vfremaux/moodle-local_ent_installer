@@ -26,7 +26,7 @@
 
 require('../../config.php');
 require_once($CFG->dirroot.'/local/ent_installer/sync_user_form.php');
-require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib.php');
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_users.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 $url = new moodle_url('/local/ent_installer/syncuser.php');
@@ -90,7 +90,7 @@ if ($data = $mform->get_data()) {
 
 echo '<p><center>';
 if (has_capability('moodle/site:config', $systemcontext)) {
-    $buttonurl = new moodle_url('/admin/settings.php', array('section' => 'local_ent_installer'));
+    $buttonurl = new moodle_url('/admin/settings.php', array('section' => 'local_ent_installer_generals'));
     echo $OUTPUT->single_button($buttonurl, get_string('backtosettings', 'local_ent_installer'));
 } else {
     echo $OUTPUT->single_button($CFG->wwwroot, get_string('backtosite', 'local_ent_installer'));
