@@ -151,3 +151,22 @@ function cohort_get_available_sorted_cohorts($currentcontext, $withmembers = 0, 
     return $DB->get_records_sql($sql, $params, $offset, $limit);
 }
 
+function cohort_get_course_bindings($cohortid) {
+    global $DB;
+
+    $sql = "
+        SELECT
+            c.shortname,
+            c.idnumber,
+            e.status
+        FROM
+            {course} c,
+            {enrol} e
+        WHERE
+            c.id = e.courseid AND
+            e.customint1 = ?
+    ";
+
+    $enrols = $DB->get_records_sql($sql, array($cohortid));
+    return $enrols;
+}

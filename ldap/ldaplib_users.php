@@ -24,6 +24,7 @@
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 defined('MOODLE_INTERNAL') || die();
+require_once($CFG->dirroot.'/local/ent_installer/lib.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_cohorts.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_coursegroups.php');
@@ -86,14 +87,13 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        $check = \local_ent_installer\pro_manager::set_and_check_license_key($config->customerkey, $config->provider);
+        $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
         if (!preg_match('/SET OK/', $check)) {
-            $licenselimit = 3000;
+            $licenselimit = 1000;
         }
     } else {
-        $licenselimit = 3000;
+        $licenselimit = 1000;
     }
-
     mtrace('');
 
     if (!$config->sync_enable) {

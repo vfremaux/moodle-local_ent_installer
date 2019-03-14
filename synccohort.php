@@ -25,11 +25,12 @@
  */
 
 require('../../config.php');
-require_once($CFG->dirroot.'/local/ent_installer/sync_user_form.php');
+require_once($CFG->dirroot.'/local/ent_installer/sync_cohort_form.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_users.php');
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_cohorts.php');
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
-$url = new moodle_url('/local/ent_installer/syncuser.php');
+$url = new moodle_url('/local/ent_installer/synccohort.php');
 $PAGE->set_url($url);
 
 // Security.
@@ -43,9 +44,9 @@ $syncstr = get_string('synchronisemoodle', 'local_ent_installer');
 $PAGE->set_context($systemcontext);
 $PAGE->set_heading($syncstr);
 $PAGE->set_pagelayout('admin');
-$PAGE->requires->js_call_amd('local_ent_installer/syncuser', 'init');
+$PAGE->requires->js_call_amd('local_ent_installer/synccohort', 'init');
 
-$mform = new SyncUserForm($url, null, 'get');
+$mform = new SyncCohortForm($url, null, 'get');
 
 // Get ldap params from real ldap plugin.
 $ldapauth = get_auth_plugin('ldap');
@@ -66,7 +67,7 @@ if ($data = $mform->get_data()) {
     require_sesskey();
 
     // Secure the reception of uid.
-    $data->uid = $_REQUEST['uid'];
+    $data->chid = $_REQUEST['chid'];
 
     // Get ldap params from real ldap plugin.
     $ldapauth = get_auth_plugin('ldap');
@@ -75,12 +76,12 @@ if ($data = $mform->get_data()) {
     $options['force'] = false;
     $options['simulate'] = @$data->simulate;
     $options['verbose'] = @$data->verbose;
-    $options['uid'] = @$data->uid;
+    $options['chid'] = @$data->chid;
     $options['updateonly'] = @$data->updateonly;
 
     echo '<div class="console">';
     echo '<pre>';
-    local_ent_installer_sync_users($ldapauth, $options);
+    local_ent_installer_sync_cohorts($ldapauth, $options);
     echo '</pre>';
     echo '</div>';
 

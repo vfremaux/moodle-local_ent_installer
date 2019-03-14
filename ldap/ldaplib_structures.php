@@ -26,6 +26,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->dirroot.'/local/ent_installer/lib.php');
+
 /**
  * a utility function that explores the ldap ENTEtablissement object list to get proper institution id
  *
