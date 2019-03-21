@@ -91,7 +91,7 @@ if ($data = $mform->get_data()) {
 
 echo '<p><center>';
 if (has_capability('moodle/site:config', $systemcontext)) {
-    $buttonurl = new moodle_url('/admin/settings.php', array('section' => 'local_ent_installer'));
+    $buttonurl = new moodle_url('/admin/settings.php', array('section' => 'local_ent_installer_generals'));
     echo $OUTPUT->single_button($buttonurl, get_string('backtosettings', 'local_ent_installer'));
 } else {
     echo $OUTPUT->single_button($CFG->wwwroot, get_string('backtosite', 'local_ent_installer'));
