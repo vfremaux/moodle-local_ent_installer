@@ -30,6 +30,7 @@ $string['byid'] = 'By ID';
 $string['byname'] = 'By Name';
 $string['cleaningautomatedcohortscontent'] = 'Cleaning {$a} automated cohorts content';
 $string['clear'] = 'Clear';
+$string['cohort'] = 'Cohort';
 $string['cohorts'] = 'Cohorts';
 $string['courses'] = 'Courses';
 $string['coursecats'] = 'Course categories';
@@ -309,11 +310,11 @@ $string['cohortupdated'] = 'Cohort {$a->name} updated. Idnumber set to {$a->idnu
 $string['cohortmemberadded'] = 'Cohort member {$a->username} [{$a->uidnumber}] added to cohort {$a->idnumber}';
 $string['cohortmemberexists'] = 'Cohort member {$a->username} [{$a->uidnumber}] exists in cohort {$a->idnumber}. Keeping.';
 $string['cohortmemberremoved'] = 'Cohort member {$a->username} [{$a->uidnumber}] removed from cohort {$a->idnumber}';
-$string['cohortbindingadded'] = 'Cohort enrol method added for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}]';
-$string['cohortbindingexists'] = 'Cohort enrol method exists for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}]. Keeping.';
-$string['cohortbindingremoved'] = 'Cohort enrol method for cohort {$a->idnumber} removed from course {$a->shortname} [{$a->cidnumber}]';
-$string['cohortbindingenabled'] = 'Cohort enrol method enabled for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}].';
-$string['cohortbindingdisabled'] = 'Cohort enrol method disabled for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}].';
+$string['cohortbindingadded'] = 'Cohort enrol method added for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}] with role {$a->role}';
+$string['cohortbindingexists'] = 'Cohort enrol method exists for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}]. Keeping role {$a->role}';
+$string['cohortbindingremoved'] = 'Cohort enrol method for cohort {$a->idnumber} removed from course {$a->shortname} [{$a->cidnumber}] with role {$a->role}';
+$string['cohortbindingenabled'] = 'Cohort enrol method enabled for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}] with role {$a->role}.';
+$string['cohortbindingdisabled'] = 'Cohort enrol method disabled for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}] with role {$a->role}.';
 $string['disableautocohortscheck'] = 'Disable autocohort check';
 $string['removingoldcohort'] = 'Removing obsolete cohort {$a->id} {$a->name}';
 
@@ -589,6 +590,5 @@ $string['plugindist_desc'] = '
 <p>This plugin is the community version and is published for anyone to use as is and check the plugin\'s
 core application. A "pro" version of this plugin exists and is distributed under conditions to feed the life cycle, upgrade, documentation
 and improvement effort.</p>
-<p>Note that both components local_sharedresources and mod_sharedresource must work using the same distribution level.</p>
 <p>Please contact one of our distributors to get "Pro" version support.</p>
 <p><a href="http://www.mylearningfactory.com/index.php/documentation/Distributeurs?lang=en_utf8">MyLF Distributors</a></p>';

@@ -862,22 +862,27 @@ function local_ent_installer_cohort_process_courses($cohortinfo, $cohort, $optio
 
     $oldbindingcourseids = array_keys($oldbindings);
 
+    $role = $DB->get_record('role', array('shortname' => 'student'));
+
     // Bind new course entries.
     if (!empty($cohortinfo->courses)) {
         foreach ($cohortinfo->courses as $courseid) {
             if (!is_numeric($courseid)) {
                 die("Fatal error : should be an numeric id.");
             }
+
             $e = new StdClass;
             $e->idnumber = $cohort->idnumber;
-            $e->shortname = $DB->get_field('course', 'shortname', array('id' => $courseid));;
-            $e->cidnumber = $DB->get_field('course', 'idnumber', array('id' => $courseid));;
+            $e->shortname = $DB->get_field('course', 'shortname', array('id' => $courseid));
+            $e->cidnumber = $DB->get_field('course', 'idnumber', array('id' => $courseid));
+            $e->role = $role->shortname;
             if (!in_array($courseid, $oldbindingcourseids)) {
                 // Add enrol method.
                 $enrol = new StdClass;
                 $enrol->enrol = 'cohort';
                 $enrol->status = 0;
                 $enrol->courseid = $courseid;
+                $enrol->roleid = $role->id;
                 $enrol->customint1 = $cohort->id;
                 if (empty($options['simulate'])) {
                     $DB->insert_record('enrol', $enrol);
@@ -886,13 +891,15 @@ function local_ent_installer_cohort_process_courses($cohortinfo, $cohort, $optio
                     mtrace("\t".'[SIMULATION] '.get_string('cohortbindingadded', 'local_ent_installer', $e));
                 }
             } else {
-                $enrol = $DB->get_record('enrol', array('id' => $oldbindings[$course->id]));
+                $enrol = $DB->get_record('enrol', array('id' => $oldbindings[$courseid]));
+                $enrol->roleid = $role->id;
                 if ($enrol->status == 0) {
                     mtrace("\t".get_string('cohortbindingexists', 'local_ent_installer', $e));
                 } else {
-                    $DB->set_field('enrol', 'status', ENROL_INSTANCE_ENABLED, array($oldbindings[$course->id]));
+                    $enrol->status == 0;
                     mtrace("\t".get_string('cohortbindingenabled', 'local_ent_installer', $e));
                 }
+                $DB->update_record('enrol', $enrol);
                 unset($oldbindings[$courseid]);
             }
         }
