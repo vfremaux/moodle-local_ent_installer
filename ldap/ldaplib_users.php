@@ -577,7 +577,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     // User Updates - time-consuming (optional). ***************************.
 
     // This might be an OBSOLETE code, regarding the update capability of the create process.
-    if ($options['operation'] == 0 || ($options['operation'] == 'update') && !empty($CFG->ent_installer_hard_updates)) {
+    if (($options['operation'] == 0) || ($options['operation'] == 'update') && !empty($CFG->ent_installer_hard_updates)) {
 
         mtrace("\n>> ".get_string('updatingusers', 'local_ent_installer'));
 
@@ -600,6 +600,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
         unset($allkeys);
         unset($key);
 
+        $params = array($ldapauth->authtype, $CFG->mnet_localhost_id);
+
         // Run updates only if relevant.
         $sql = '
             SELECT
@@ -612,7 +614,13 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 u.auth = ?
                 AND u.mnethostid = ?'.@$debughardlimit;
 
-        $users = $DB->get_records_sql($sql, array($ldapauth->authtype, $CFG->mnet_localhost_id));
+        if (!empty($requid)) {
+            // Only update the required user.
+            $sql .= ' AND u.id = ? ';
+            $params[] = $requid;
+        }
+
+        $users = $DB->get_records_sql($sql, $params);
         if (!empty($users)) {
             mtrace(get_string('userentriestoupdate', 'auth_ldap', count($users)));
 
@@ -1679,6 +1687,9 @@ function local_ent_installer_get_userinfo($ldapauth, $username, $options = array
 
         if (!is_null($ldapval)) {
             $result[core_text::strtolower($key)] = $ldapval;
+        }
+        if (!empty($options['verbose'])) {
+            mtrace("Requested value $key : $ldapval");
         }
 
     }
