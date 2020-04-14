@@ -64,6 +64,7 @@ if ($mform->is_cancelled()) {
 
 echo $OUTPUT->header();
 echo $OUTPUT->heading($syncstr);
+flush();
 
 if ($data = $mform->get_data()) {
 

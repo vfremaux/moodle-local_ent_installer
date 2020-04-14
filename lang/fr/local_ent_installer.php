@@ -90,6 +90,7 @@ $string['configsynccohortsenable'] = 'Activer les cohortes';
 $string['configsyncenable'] = 'Actif';
 $string['configsyncenable_desc'] = 'Active la synchronisation régulière des données ENT (CLI). Si désactivé, le script de synchronisation n\'aura aucun effet même s\'il est lancé par cron.';
 $string['configsyncgroupsenable'] = 'Activer les groupes de cours';
+$string['configsynccohorttocourseenable'] = 'Activer la synchro des liaisons de cohortes aux cours';
 $string['configsyncsystemrolesenable'] = 'Activer l\'attribution de roles système';
 $string['configsyncusersenable'] = 'Activer les comptes utilisateur';
 $string['configteachermaskfirstname'] = 'Masquer le prénom des enseignants';
@@ -153,11 +154,14 @@ $string['noresults'] = 'Aucun résultat';
 $string['normalmeantime'] = 'Moyenne usuelle (sans dépassements)';
 $string['nothingtodo'] = 'Aucune donnée à traiter';
 $string['nousers'] = 'Aucun utilisateur dans la cohorte';
+$string['oldcohortdeleted'] = 'Cohorte obsolète {$a} supprimée';
 $string['options'] = 'Options de traitement';
+$string['othercommands'] = 'Autres commandes';
 $string['overtime'] = 'Dépassements';
 $string['overtimes'] = 'Dépassement de temps critique (> {$a} secs)';
 $string['plugindist'] = 'Distribution du plugin';
 $string['pluginname'] = 'Installation spécifique Moodle ENT';
+$string['purgeobsoletecohorts'] = 'Supprimer les cohortes obsoletes';
 $string['refreshsitemetadata'] = 'Raffraichir les métadonnées de site';
 $string['relocatingcourse'] = 'Cours {$a} relocalisé.';
 $string['relocatingcourseignored'] = 'Cours {$a} non déplacé (catégorie protégée).';
@@ -194,7 +198,7 @@ $string['doall'] = 'Faire toutes les opérations.';
 $string['updateerrors'] = 'Erreur de mises à jour';
 $string['updateonly'] = 'Uniquement raffraichir les enregistrements existants. Ne pas en créer de nouveaux.';
 $string['createonly'] = 'Uniquement créer les nouveaux.';
-$string['deleteonly'] = 'Uniquement supprimer les enregsitrements obsolètes.';
+$string['deleteonly'] = 'Uniquement supprimer les enregistrements obsolètes.';
 $string['updates'] = 'Mises à jour (utilisateurs modifiés)';
 $string['updatingusers'] = 'Mise à jour des utilisateurs (attributs seulement)';
 $string['users'] = 'Comptes utilisateur';
@@ -216,6 +220,7 @@ $string['settingsroleassigns'] = 'Synchronisation des affectations de rôle';
 $string['settingscoursegroups'] = 'Synchronisation des groupes de cours';
 $string['settingsstructures'] = 'Information sur les établissements';
 $string['ldapfilters'] = 'Filtres ldap';
+$string['usefilternotice'] = 'Plus de 200 utilisateurs sont inscrits. Utilisez le filtre pour réduire...';
 
 $string['personfilters'] = 'Filtres LDAP pour les comptes utilisateur';
 $string['configgenericusertypefilter'] = 'Discriminant des utilisateurs génériques';
@@ -255,7 +260,7 @@ $string['configstudentfullageuserfield_desc'] = 'Champ indiquant si l\'élève e
 $string['configstudentfullageuserfieldfilter'] = 'Extracteur de majorité';
 $string['configstudentfullageuserfieldfilter_desc'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier sous-motif disponible';
 $string['configuserpicturefield'] = 'Champ d\'avatar';
-$string['configuserpicturefield_desc'] = 'Champ Ldap contenant l\'informaiton permettant de synthétiser une url vers l\'image de profil.';
+$string['configuserpicturefield_desc'] = 'Champ Ldap contenant l\'information permettant de synthétiser une url vers l\'image de profil.';
 $string['configuserpicturefilter'] = 'Extracteur de l\'avatar';
 $string['configuserpicturefilter_desc'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier sous-motif disponible';
 $string['configuserpictureurlpattern'] = 'Motif de constrution de l\'url d\'avatar';
@@ -296,6 +301,9 @@ $string['configcohortoldprefixes'] = 'Anciens prefixes';
 $string['configcohorthardcohortunenrol'] = 'Mode de suppression des cohortes';
 $string['configcohorthardcohortunenrol_desc'] = 'Ce qui se passe lorsqu\'une relation au cours disparait de l\'annuaire. Vous pouvez choisir entre la désactivation (sans suppression des données utilisateur liées à l\'inscription), ou la suppression avec désinscription.';
 $string['id'] = 'Id primaire';
+
+$string['configsynccohorttocourseenable_desc'] = 'Active la synchronisation des liaisons entre les cours et les cohortes, gérant les méthodes d\'inscriptions par synchronisation de cohortes. Attention, dans ce cas les affectations manuelles de méthodes de synchonisation de cohortes ne peuvent plus être maintenues si elles ne sont
+pas répercutées sur la référence externe de données.';
 
 $string['configcohortuseridentifier_desc'] = 'Champ interne d\'identifiant utilisateur utilisé pour trouver l\'ID utilisateur';
 
@@ -586,5 +594,4 @@ $string['plugindist_desc'] = '
 correspondant à une utilisation courante du plugin. Une version "professionnelle" de ce plugin existe et est distribuée
 sous certaines conditions, afin de soutenir l\'effort de développement, amélioration; documentation et suivi des versions.</p>
 <p>Contactez un distributeur pour obtenir la version "Pro" et son support.</p>
-<p>Notez que les deux composant local_sharedresources et mod_sharedresource doivent fonctionner au même niveau de distribution</p>
 <p><a href="http://www.mylearningfactory.com/index.php/documentation/Distributeurs?lang=fr_utf8">Distributeurs MyLF</a></p>';

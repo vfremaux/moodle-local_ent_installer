@@ -31,7 +31,7 @@ require_once($CFG->dirroot.'/lib/formslib.php');
 class SyncUserForm extends moodleform {
 
     public function definition() {
-        global $CFG, $DB;
+        global $CFG, $DB, $OUTPUT;
 
         $config = get_config('local_ent_installer');
         $isent = is_dir($CFG->dirroot.'/local/ent_access_point');
@@ -41,8 +41,12 @@ class SyncUserForm extends moodleform {
         $mform->addElement('html', '<h3>'.get_string('entities', 'local_ent_installer').'</h3>');
 
         $params = array('auth' => $config->real_used_auth, 'mnethostid' => $CFG->mnet_localhost_id, 'deleted' => 0);
-        $fields = 'id, CONCAT(firstname, " ", lastname, " (", username, ")")';
+        $fields = 'id, CONCAT(lastname, " ", firstname, " (", username, ")")';
         $usersopts = $DB->get_records_menu('user', $params, 'lastname, firstname', $fields, 0, 200);
+        $countall = $DB->count_records('user', $params);
+        if ($countall > 200) {
+            $mform->addelement('static', 'overnumnotice', $OUTPUT->notification(get_string('usefilternotice', 'local_ent_installer')));
+        }
 
         if (!empty($config->sync_users_enable)) {
             $attrs = array('size' => 15);

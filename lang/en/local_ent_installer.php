@@ -86,6 +86,7 @@ $string['configstaffsitecohortname_desc'] = '';
 $string['configstudentssitecohortname'] = 'Name for the global student cohort';
 $string['configstudentssitecohortname_desc'] = '';
 $string['configsynccohortsenable'] = 'Enable cohorts';
+$string['configsynccohorttocourseenable'] = 'Enable cohort to course bindings';
 $string['configsyncenable'] = 'Enable';
 $string['configsyncenable_desc'] = 'enables the synchronisation script (CLI). If disabled, the sync script will have no effect at all, even if lauched by cron.';
 $string['configsyncgroupsenable'] = 'Enable course groups';
@@ -123,7 +124,7 @@ $string['entupdate'] = 'Update ENT definitions';
 $string['filter'] = 'Filter';
 $string['finaloperations'] = 'Final cleanup operations';
 $string['force'] = 'Force updating all entries (even unmodified since last reference)';
-$string['forcedebugwarning'] = 'Vous ne pouvez pas activer la synchronisation complète en mode de déboggage développeur car les informations récupérées du ldap seront incomplète. Seul le traitement différentiel est supporté.';
+$string['forcedebugwarning'] = 'You cannot run the complete synchrosnisation in developer debugging mode as ldap fetched set is incomplete.';
 $string['getinstitutionidservice'] = 'Structure ID Search';
 $string['generals'] = 'General settings';
 $string['id'] = 'Structure Identifier';
@@ -153,10 +154,13 @@ $string['onceaday'] = 'daily';
 $string['onceamonth'] = 'monthly';
 $string['onceaweek'] = 'weekly';
 $string['options'] = 'Processing options';
+$string['othercommands'] = 'Other commands';
 $string['overtime'] = 'Overtimes';
 $string['overtimes'] = 'Overtimes (> {$a} secs)';
+$string['oldcohortdeleted'] = 'Old cohort {$a} deleted';
 $string['plugindist'] = 'Plugin distribution';
 $string['pluginname'] = 'Installation Moodle ENT';
+$string['purgeobsoletecohorts'] = 'Delete obsolete cohorts';
 $string['refreshsitemetadata'] = 'Reset site metadata';
 $string['relocatingcourse'] = 'Relocating course {$a}.';
 $string['relocatingcourseignored'] = 'Course {$a} ignored (protected category).';
@@ -190,6 +194,7 @@ $string['teachercatreorder'] = 'Reorder teacher categories';
 $string['relocateteachercourses'] = 'Relocate teacher courses in owned category';
 $string['unenrolled'] = 'Unenrolled from method {$a}';
 $string['updateerrors'] = 'Updates errors';
+$string['usefilternotice'] = 'More than 200 users in the list. Use filter to reduce.';
 $string['doall'] = 'Do all operations.';
 $string['createonly'] = 'Only create new records.';
 $string['updateonly'] = 'Only update existing records. Do not create any more.';
@@ -590,6 +595,5 @@ $string['plugindist_desc'] = '
 <p>This plugin is the community version and is published for anyone to use as is and check the plugin\'s
 core application. A "pro" version of this plugin exists and is distributed under conditions to feed the life cycle, upgrade, documentation
 and improvement effort.</p>
-<p>Note that both components local_sharedresources and mod_sharedresource must work using the same distribution level.</p>
 <p>Please contact one of our distributors to get "Pro" version support.</p>
 <p><a href="http://www.mylearningfactory.com/index.php/documentation/Distributeurs?lang=en_utf8">MyLF Distributors</a></p>';
