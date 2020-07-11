@@ -16,3 +16,8 @@
     border:1px dashed #808080;
     border-radius:5px;
 }
+
+#fgroup_id_usersgroup input[type=button],
+#fgroup_id_cohortgroup input[type=button] {
+    margin-left: 80px;
+}

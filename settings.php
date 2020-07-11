@@ -22,15 +22,6 @@
 
 defined('MOODLE_INTERNAL') || die;
 
-if (is_dir($CFG->dirroot.'/local/adminsettings')) {
-    require_once($CFG->dirroot.'/local/adminsettings/lib.php');
-    list($hasconfig, $hassiteconfig, $capability) = local_adminsettings_access();
-} else {
-    // Standard Moodle code.
-    $capability = 'moodle/site:config';
-    $hasconfig = $hassiteconfig = has_capability($capability, context_system::instance());
-}
-
 require_once($CFG->dirroot.'/local/ent_installer/lib.php');
 require_once($CFG->dirroot.'/local/ent_installer/adminlib.php');
 require_once($CFG->dirroot.'/local/ent_installer/settings/structures_settings.php');
@@ -40,7 +31,7 @@ require_once($CFG->dirroot.'/local/ent_installer/settings/roleassigns_settings.p
 require_once($CFG->dirroot.'/local/ent_installer/settings/cohorts_settings.php');
 require_once($CFG->dirroot.'/local/ent_installer/settings/users_settings.php');
 
-if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
+if (!empty($hasconfig) || $hassiteconfig) {
 
     // Add a light weight resync service access to site managers.
     if (!$ADMIN->locate('automation')) {
@@ -57,7 +48,7 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
         if (local_ent_installer_supports_feature() == 'pro') {
             $PAGE->requires->js_call_amd('local_ent_installer/pro', 'init');
             $config = get_config('local_ent_installer');
-            $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->customerkey, @$config->provider, true);
+            $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
             if (!preg_match('/SET OK/', $check)) {
                 $licensemess = \local_ent_installer\pro_manager::print_empty_license_message();
                 $settings->add(new admin_setting_heading('licensesatus', get_string('licensestatus', 'local_ent_installer'), $licensemess));
@@ -199,7 +190,6 @@ if ($hassiteconfig) {
     $key = 'local_ent_installer/teacher_stub_category';
     $label = get_string('configteacherstubcategory', 'local_ent_installer');
     $desc = get_string('configteacherstubcategory_desc', 'local_ent_installer');
-    $default = 'ldap';
     $settings->add(new admin_setting_configselect($key, $label, $desc, 1, $categoryoptions));
 
     $key = 'local_ent_installer/teacher_mask_firstname';
