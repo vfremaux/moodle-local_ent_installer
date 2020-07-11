@@ -22,6 +22,15 @@
 
 defined('MOODLE_INTERNAL') || die;
 
+if (is_dir($CFG->dirroot.'/local/adminsettings')) {
+    require_once($CFG->dirroot.'/local/adminsettings/lib.php');
+    list($hasconfig, $hassiteconfig, $capability) = local_adminsettings_access();
+} else {
+    // Standard Moodle code.
+    $capability = 'moodle/site:config';
+    $hasconfig = $hassiteconfig = has_capability($capability, context_system::instance());
+}
+
 require_once($CFG->dirroot.'/local/ent_installer/lib.php');
 require_once($CFG->dirroot.'/local/ent_installer/adminlib.php');
 require_once($CFG->dirroot.'/local/ent_installer/settings/structures_settings.php');
@@ -31,7 +40,7 @@ require_once($CFG->dirroot.'/local/ent_installer/settings/roleassigns_settings.p
 require_once($CFG->dirroot.'/local/ent_installer/settings/cohorts_settings.php');
 require_once($CFG->dirroot.'/local/ent_installer/settings/users_settings.php');
 
-if (!empty($hasconfig) || $hassiteconfig) {
+if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
 
     // Add a light weight resync service access to site managers.
     if (!$ADMIN->locate('automation')) {

@@ -32,9 +32,7 @@ $config = get_config('local_ent_installer');
 $filter = optional_param('filter', '', PARAM_TEXT);
 
 $select = " AND
-        (lastname LIKE '%$filter%' OR
-         firstname LIKE '%$filter%' OR
-         username LIKE '%$filter%')
+        (lastname LIKE '%$filter%')
 ";
 
 $filterclause = (!empty($filter)) ? $select : '';
