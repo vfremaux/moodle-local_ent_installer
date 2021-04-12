@@ -26,7 +26,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/local/ent_installer/lib.php');
-require_once($CFG->dirroot.'/lib/coursecatlib.php');
+require_once($CFG->dirroot.'/local/ent_installer/compatlib.php');
 require_once($CFG->dirroot.'/backup/util/includes/restore_includes.php');
 
 /**
@@ -356,7 +356,7 @@ function local_ent_installer_sync_courses($ldapauth, $options = array()) {
     }
 
     /*
-     * If no entries at all get out. there may be a misconfig in fitlers and we need protect all our data.
+     * If no entries at all get out. there may be a misconfig in filters and we need protect all our data.
      */
      if (!$hasentries) {
         echo "No entries from LDAP. Resuming.";
@@ -1298,7 +1298,7 @@ function local_ent_installer_check_category(&$courseinfo, $options = array()) {
                 $cat->parent = $parent;
                 if (empty($options['simulate'])) {
                     mtrace("\tCreating category {$cat->name} ");
-                    $newcat = coursecat::create($cat, null);
+                    $newcat = local_ent_installer_coursecat_create($cat, null);
                 } else {
                     mtrace("\tSIMULATION: Starting building category tree... ");
                     $parent = 0;

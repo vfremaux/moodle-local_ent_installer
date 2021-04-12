@@ -26,6 +26,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->dirroot.'/local/ent_installer/compatlib.php');
+require_once($CFG->dirroot.'/local/ent_installer/lib.php');
+
 // This allows 2 minutes synchronisation before trigering an overtime.
 define('OVERTIME_THRESHOLD', 120);
 
@@ -62,7 +65,7 @@ function local_ent_installer_generate_email($user) {
     $fakedomain = get_config('local_ent_installer', 'fake_email_domain');
 
     if (empty($fakedomain)) {
-        $fakedomain = 'foomail.com';
+        $fakedomain = 'foomail.invalid';
     }
 
     return $fullname.'@'.$fakedomain;
@@ -100,7 +103,7 @@ function local_ent_installer_get_teacher_cat_idnumber($user = null) {
         $user = $USER;
     }
 
-    $teachercatidnum = strtoupper($user->lastname).'_'.substr(strtoupper($user->firstname), 0, 1).'$'.$user->idnumber.'$CAT';
+    $teachercatidnum = core_text::strtoupper($user->lastname).'_'.core_text::substr(core_text::strtoupper($user->firstname), 0, 1).'$'.$user->idnumber.'$CAT';
 
     return $teachercatidnum;
 }
@@ -126,7 +129,7 @@ function local_ent_installer_teacher_category_name($user) {
         preg_match_all('/[\wéèöëêôÏîàùç]+/u', $user->firstname, $matches);
         $firstnameinitials = '';
         foreach (array_values($matches) as $res) {
-            $firstnameinitials .= core_text::strtoupper(substr($res[0], 0, 1)).'.';
+            $firstnameinitials .= core_text::strtoupper(core_text::substr($res[0], 0, 1)).'.';
         }
 
         if (empty($user->personalTitle)) {
@@ -213,7 +216,7 @@ function local_ent_installer_reorder_teacher_categories() {
     }
 
     $sort = 'idnumber';
-    $cattosort = coursecat::get($teacherrootcat, MUST_EXIST, true);
+    $cattosort = local_ent_installer_coursecat_get($teacherrootcat, MUST_EXIST, true);
     \core_course\management\helper::action_category_resort_subcategories($cattosort, $sort, true);
 }
 
@@ -419,8 +422,6 @@ function local_ent_installer_fix_unprefixed_cohorts() {
 function local_ent_installer_install_categories($simulate = false) {
     global $CFG, $DB;
 
-    include_once($CFG->dirroot.'/lib/coursecatlib.php');
-
     $configcategories = get_config('local_ent_installer', 'initialcategories');
     $categories = (array) json_decode($configcategories);
 
@@ -479,7 +480,7 @@ function local_ent_installer_install_categories($simulate = false) {
                             // Fix category visibility on last node.
                             $catrec->visible = $category->visible;
                         }
-                        $newcat = coursecat::create($catrec);
+                        $newcat = local_ent_installer_coursecat_create($catrec);
                         $parentid = $newcat->id;
                         if ($depth == $maxdepth) {
                             $category->id = $parentid;
@@ -491,7 +492,7 @@ function local_ent_installer_install_categories($simulate = false) {
                     }
                 } else {
                     // We have a category of this name already.
-                    $coursecat = coursecat::get($thiscat->id);
+                    $coursecat = local_ent_installer_coursecat_get($thiscat->id);
                     $parentid = $thiscat->id;
                     if (!$simulate) {
                         $thiscat->idnumber = $category->idnumber;
@@ -635,4 +636,296 @@ function convert_from_ad_timestamp($timestamp) {
         return $unixtime + (0 + @$config->timestamp_shift);
     }
     return time();
+}
+
+/**
+ * loads User Type special info fields definition
+ * @return an array of info/custom field mappings
+ */
+function local_ent_installer_load_user_fields() {
+    global $DB, $CFG;
+
+    $userfields = array();
+
+    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'eleve'));
+    assert($fieldid != 0);
+    $userfields['eleve'] = $fieldid;
+
+    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'parent'));
+    assert($fieldid != 0);
+    $userfields['parent'] = $fieldid;
+
+    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'enseignant'));
+    assert($fieldid != 0);
+    $userfields['enseignant'] = $fieldid;
+
+    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'administration'));
+    assert($fieldid != 0);
+    $userfields['administration'] = $fieldid;
+
+    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'cdt'));
+    assert($fieldid != 0);
+    $userfields['cdt'] = $fieldid;
+
+    // Academic info.
+
+    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'cohort'));
+    assert($fieldid != 0);
+    $userfields['cohort'] = $fieldid;
+
+    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'transport'));
+    assert($fieldid != 0);
+    $userfields['transport'] = $fieldid;
+
+    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'regime'));
+    assert($fieldid != 0);
+    $userfields['regime'] = $fieldid;
+
+    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'fullage'));
+    assert($fieldid != 0);
+    $userfields['fullage'] = $fieldid;
+
+    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'isprimaryassignation'));
+    assert($fieldid != 0);
+    $userfields['isprimaryassignation'] = $fieldid;
+
+    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'personaltitle'));
+    if (!$fieldid) {
+
+        // Try to add the field if missing.
+        require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
+
+        $categoryname = ent_installer_string('academicinfocategoryname');
+        $academicinfocategoryid = $DB->get_field('user_info_category', 'id', array('name' => $categoryname));
+        $lastorder = $DB->get_field('user_info_field', 'MAX(sortorder)', array('categoryid' => $academicinfocategoryid));
+
+        // Adding primary assignation.
+        /*
+         * Primary assignation should be marked if the Moodle node
+         * matches the registered primary facility of the user in ldap attributes.
+         */
+        $userfield = new StdClass;
+        $userfield->name = ent_installer_string('personaltitle');
+        $userfield->shortname = 'personaltitle';
+        $userfield->datatype = 'text';
+        $userfield->description = ent_installer_string('personaltitledesc');
+        $userfield->descriptionformat = FORMAT_MOODLE;
+        $userfield->categoryid = $academicinfocategoryid;
+        $userfield->sortorder = $lastorder + 1;
+        $userfield->required = 0;
+        $userfield->locked = 1;
+        $userfield->visible = 0;
+        $userfield->forceunique = 0;
+        $userfield->signup = 0;
+        $userfield->param1 = 10;
+        $userfield->param2 = 10;
+        $fieldid = $DB->insert_record('user_info_field', $userfield);
+    }
+    assert($fieldid != 0);
+    $userfields['personaltitle'] = $fieldid;
+
+    return $userfields;
+}
+
+/**
+ * Returns extended classes for a user depending on its profile.
+ */
+function local_ent_installer_get_profile_classes($u) {
+    global $CFG, $DB;
+
+    $isent = is_dir($CFG->dirroot.'/local/ent_access_point');
+
+    if ($isent) {
+        $entfields = local_ent_installer_load_user_fields();
+
+        $eleve = $DB->get_field('user_info_data', 'data', ['fieldid' => $entfields['eleve'], 'userid' => $u->id]);
+        $enseignant = $DB->get_field('user_info_data', 'data', ['fieldid' => $entfields['enseignant'], 'userid' => $u->id]);
+        $cdt = $DB->get_field('user_info_data', 'data', ['fieldid' => $entfields['cdt'], 'userid' => $u->id]);
+        $parent = $DB->get_field('user_info_data', 'data', ['fieldid' => $entfields['parent'], 'userid' => $u->id]);
+        $administration = $DB->get_field('user_info_data', 'data', ['fieldid' => $entfields['administration'], 'userid' => $u->id]);
+
+        $entclasses = ' is-ent-user';
+        if ($eleve) {
+            $entclasses .= ' eleve';
+        }
+        if ($enseignant) {
+            $entclasses .= ' enseignant';
+        }
+        if ($cdt) {
+            $entclasses .= ' cdt';
+        }
+        if ($parent) {
+            $entclasses .= ' parent';
+        }
+        if ($administration) {
+            $entclasses .= ' administration';
+        }
+        return $entclasses;
+    }
+    return '';
+}
+
+function local_ent_installer_get_aux_groups($ldapuser, $options) {
+
+    $config = get_config('local_ent_installer');
+
+    if (empty($ldapuser->entauxensgroupes) && empty($ldapuser->entelevegroupes)) {
+        // Note : No groups at all. But a user cannot have both at the same time !
+        return;
+    }
+
+    $ldapgroups = [];
+    if (!empty($ldapuser->entauxensgroupes)) {
+        $groups = $ldapuser->entauxensgroupes;
+        if (is_array($groups)) {
+            $ldapgroups = $ldapgroups + $ldapuser->entauxensgroupes;
+        } else {
+            $ldapgroups = $ldapgroups + [$ldapuser->entauxensgroupes];
+        }
+    }
+
+    if (!empty($ldapuser->entelevegroupes)) {
+        $groups = $ldapuser->entelevegroupes;
+        if (is_array($groups)) {
+            $ldapgroups = $ldapgroups + $ldapuser->entelevegroupes;
+        } else {
+            $ldapgroups = $ldapgroups + [$ldapuser->entelevegroupes];
+        }
+    }
+
+    $groups = [];
+    foreach ($ldapgroups as $group) {
+        if (!empty($options['verbose'])) {
+            mtrace("\tApplying filter \"/{$config->aux_groupname_filter}/\" to $group");
+        }
+        if (preg_match('/'.$config->aux_groupname_filter.'/', $group, $matches)) {
+            $groups[] = $matches[1];
+        }
+    }
+
+    return $groups;
+}
+
+/**
+ * Process AuxEnsGroupes to forge disciplinar groups (cohorts).
+ * AuxEnsGroupes contains auxiliary cohort assignations owned by a unique teacher.
+ * If the current user is the teacher and the cohort does not exist :
+ * - Create the cohort if not exists.
+ * - Find the teacher's owned category.
+ * - Move the cohort to this category context.
+ * If the current user is a student (NOT a teacher):
+ * - Create the cohort in system context if not exists (will be rebound later).
+ * - assign the user as member of the cohort.
+ *
+ *
+ * @param object $ldapuser the users ldap attributes
+ * @return string
+ */
+function local_ent_installer_process_aux_groups($user, $options = []) {
+    global $DB;
+    static $auxcohorts = [];
+
+    $config = get_config('local_ent_installer');
+
+    // Get group values.
+    $auxensgroups = local_ent_installer_get_aux_groups($user, $options);
+
+    if (empty($user->entauxensgroupes) && empty($user->entelevegroupes)) {
+        mtrace('Auxiliary groups : No auxiliary groups defined');
+        return;
+    } else {
+        if (empty($auxensgroups)) {
+            mtrace("User has auxiliary groups, but none retained by the filter.");
+            return;
+        } else {
+            mtrace('Processing aux groups on '.implode(', ', $auxensgroups).' for usertype '.$user->usertype);
+        }
+    }
+
+    $context = context_system::instance();
+
+    if ($user->usertype != 'eleve') {
+        /*
+        $teachercatidnum = local_ent_installer_get_teacher_cat_idnumber($user);
+        $context = context_coursecat::instance($teachercatidnum);
+        */
+
+        foreach ($auxensgroups as $auxgroup) {
+            $auxcohorts[$auxgroup] = local_ent_installer_make_aux_group($auxgroup, $context, $options);
+        }
+        // At the moment, do NOT attach to context.
+    } else {
+        foreach ($auxensgroups as $auxgroup) {
+            if (!array_key_exists($auxgroup, $auxcohorts)) {
+                $cohort = $DB->get_record('cohort', ['idnumber' => $config->cohort_ix.'_GRP_'.$auxgroup]);
+                if (!$cohort) {
+                    // Cohort not yet created.
+                    $auxcohorts[$auxgroup] = local_ent_installer_make_aux_group($auxgroup, $context, $options);
+                } else {
+                    $auxcohorts[$auxgroup] = $cohort;
+                }
+            }
+
+            $cohort = $auxcohorts[$auxgroup];
+
+            // Assign user to that cohort.
+            cohort_add_member($cohort->id, $user->id);
+            if (!empty($options['verbose'])) {
+                mtrace("\t\tAdding user {$user->username} to cohort {$cohort->name} ({$cohort->idnumber})");
+            }
+        }
+    }
+}
+
+/**
+ * Makes a cohort based on ldap group
+ * @param string $auxgroup cohort name.
+ * @param object $context moodle context where to create the cohort.
+ */
+function local_ent_installer_make_aux_group($auxgroup, $context, $options) {
+    global $DB;
+
+    $config = get_config('local_ent_installer');
+    $cohortname = $config->cohort_ix.'_GRP_'.$auxgroup;
+    $params = ['name' => $cohortname, 'idnumber' => $cohortname];
+    if (!$oldrecord = $DB->get_record('cohort', $params)) {
+        $cohort = new StdClass;
+        $cohort->contextid = $context->id;
+        $cohort->name = $cohortname;
+        $cohort->idnumber = $cohortname;
+        $cohort->component = 'local_ent_installer';
+        $cohort->description = '';
+        $cohort->descriptionformat = FORMAT_MOODLE;
+        $cohort->visible = 1;
+        $cohort->timecreated = time();
+        $cohort->timemodified = time();
+        $cohort->theme = '';
+        $cohort->id = $DB->insert_record('cohort', $cohort);
+        if (!empty($options['verbose'])) {
+            mtrace("\tCreating auxiliary group cohort $cohortname ($cohortname)");
+        }
+        return $cohort;
+    } else {
+        if (!empty($options['verbose'])) {
+            mtrace("\tAuxiliary group cohort $cohortname ($cohortname) exists");
+        }
+        return $oldrecord;
+    }
+}
+
+/**
+ * Pro wrapper for sending mail processing checkpoints. Sends a mail to a set of users 
+ * defined in local_ent_installer settings.
+ * @param string $toolname Name of the script and processing level that sends the notification. 
+ * @param string $mailmess Mail report message
+ */
+function local_ent_installer_send_mail_checkpoint($toolname, $mailmess) {
+    global $CFG;
+
+    if (local_ent_installer_supports_feature('clinotifs/mail')) {
+        include_once($CFG->dirroot.'/local/ent_installer/pro/lib.php');
+        \local_ent_installer\pro_api::send_mail_checkpoint($toolname, $mailmess);
+    } else {
+        mtrace("Unsupported notification outout");
+    }
 }

@@ -22,20 +22,27 @@ defined('MOODLE_INTERNAL') || die();
  * implementation path where to fetch resources.
  * @param string $feature a feature key to be tested.
  */
-function local_ent_installer_supports_feature($feature = null) {
+function local_ent_installer_supports_feature($feature = null, $getsupported = false) {
     global $CFG;
     static $supports;
 
-    $config = get_config('local_ent_installer');
+    if (!during_initial_install()) {
+        $config = get_config('local_ent_installer');
+    }
 
     if (!isset($supports)) {
-        $supports = array(
-            'pro' => array(
+        $supports = [
+            'pro' => [
                 'volume' => array('unlimited'),
-            ),
-            'community' => array(
-            ),
-        );
+                'clinotifs' => array('mail'),
+            ],
+            'community' => [
+            ],
+        ];
+    }
+
+    if ($getsupported) {
+        return $supports;
     }
 
     // Check existance of the 'pro' dir in plugin.

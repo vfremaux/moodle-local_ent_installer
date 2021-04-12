@@ -44,6 +44,60 @@ function cohort_get_sorted_cohorts($contextid, $page = 0, $perpage = 25, $search
 }
 
 /**
+ * Get all the cohorts defined in given context.
+ *
+ * @param int $contextid
+ * @param int $page number of the current page
+ * @param int $perpage items per page
+ * @param string $search search string
+ * @return array    Array(totalcohorts => int, cohorts => array, allcohorts => int)
+ */
+function cohort_get_all_sorted_cohorts($page = 0, $perpage = 25, $search = '') {
+    global $DB;
+
+    $config = get_config('local_ent_installer');
+
+    // Add some additional sensible conditions.
+    $tests = ['1 = 1'];
+
+    if (!empty($search)) {
+        $conditions = array('name', 'idnumber', 'description');
+        $searchparam = '%' . $DB->sql_like_escape($search) . '%';
+        foreach ($conditions as $key=>$condition) {
+            $conditions[$key] = $DB->sql_like($condition, "?", false);
+            $params[] = $searchparam;
+        }
+        $tests[] = '(' . implode(' OR ', $conditions) . ')';
+    }
+    $wherecondition = implode(' AND ', $tests);
+
+    $totalcountsql = "
+        SELECT
+            COUNT(*)
+        FROM
+            {cohort}
+        WHERE
+            $wherecondition
+    ";
+
+    $sql = "
+        SELECT
+            *
+        FROM
+            {cohort}
+        WHERE
+            $wherecondition
+        ORDER BY
+            SUBSTR(name, 1, {$config->cohort_sort_prefix_length}) DESC, idnumber ASC
+    ";
+    $allcohorts = $DB->count_records('cohort');
+    $totalcohorts = $DB->count_records_sql($totalcountsql, []);
+    $cohorts = $DB->get_records_sql($sql, [], $page * $perpage, $perpage);
+
+    return array('totalcohorts' => $totalcohorts, 'cohorts' => $cohorts, 'allcohorts'=>$allcohorts);
+}
+
+/**
  * Returns the list of cohorts visible to the current user in the given course.
  *
  * The following fields are returned in each record: id, name, contextid, idnumber, visible

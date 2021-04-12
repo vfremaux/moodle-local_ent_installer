@@ -37,6 +37,18 @@ function local_ent_installer_sync_groups($ldapauth, $options = array()) {
 
     $config = get_config('local_ent_installer');
 
+    mtrace('');
+
+    if (empty($config->sync_enable)) {
+        mtrace(get_string('syncdisabled', 'local_ent_installer'));
+        return;
+    }
+
+    if (empty($config->sync_groups_enable)) {
+        mtrace("Group sync disabled by config\n");
+        return;
+    }
+
     $debughardlimit = '';
     if (($CFG->debug == DEBUG_DEVELOPER) && !empty($CFG->usedebughardlimit)) {
         $debughardlimit = ' LIMIT 30 ';
