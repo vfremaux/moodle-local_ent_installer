@@ -356,7 +356,7 @@ function local_ent_installer_sync_courses($ldapauth, $options = array()) {
     }
 
     /*
-     * If no entries at all get out. there may be a misconfig in filters and we need protect all our data.
+     * If no entries at all get out. there may be a misconfig in fitlers and we need protect all our data.
      */
      if (!$hasentries) {
         echo "No entries from LDAP. Resuming.";

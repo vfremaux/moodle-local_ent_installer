@@ -19,8 +19,6 @@ define('ENT_INSTALLER_SYNC_INTERHOST', 1);
 
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions
-require_once($CFG->dirroot.'/local/vmoodle/cli/clilib.php'); // CLI only functions
-require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // CLI only functions
 
 // Now get cli options.
 
@@ -37,7 +35,6 @@ list($options, $unrecognized) = cli_get_params(
         'debug'             => false,
         'horodate'          => false,
         'fullstop'          => false,
-        'mail'              => false,
     ),
     array(
         'h' => 'help',
@@ -52,7 +49,6 @@ list($options, $unrecognized) = cli_get_params(
         'H' => 'horodate',
         'd' => 'debug',
         's' => 'fullstop',
-        'M' => 'mail',
     )
 );
 
@@ -78,7 +74,6 @@ if ($options['help'] || empty($options['nodes'])) {
         -H, --horodate      Horodate log files.
         -d, --debug         Turn debug on.
         -s, --fullstop      Stop on first error.
-        -M, --mail          0, 1, or 2. If not 0, sends mail to admin when process finishes at its level. 1 : worker, 2 : task
 
         "; // TODO: localize - to be translated later when everything is finished.
 
@@ -131,18 +126,6 @@ $runtime = strftime('%Y%m%d%H%s', time());
  * configuration of ent_installer processes.
  */
 
-// preparing mail monitoring features.
-$mailmess = '';
-$mailmode = @$options['mail'];
-$nextmailmode = 0;
-$mail = '';
-if ($mailmode > 0) {
-    $nextmailmode = $mailmode - 1;
-    if ($nextmailmode) {
-        $mail = '--mail='.$nextmailmode;
-    }
-}
-
 $nodes = explode(',', $options['nodes']);
 foreach ($nodes as $nodeid) {
 
@@ -168,11 +151,10 @@ foreach ($nodes as $nodeid) {
         fputs($LOG, "\nStarting user process for node $nodeid\n");
     }
     $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users.php {$debug} --host={$host->vhostname}";
-    $cmd .= " {$force} {$role} {$fulldelete} {$verbose} {$mail}";
+    $cmd .= " {$force} {$role} {$fulldelete} {$verbose}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
-    $mailmess .= "Executing $cmd\n";
     exec($cmd, $output, $return);
     if ($LOG) {
         fputs($LOG, "\n$cmd\n#-------------------\n");
@@ -184,15 +166,9 @@ foreach ($nodes as $nodeid) {
         }
         if (!empty($options['fullstop'])) {
             echo implode("\n", $output)."\n";
-            $mailmess .= "Full stopping on child error\n";
-            if ($options['mail'] >= 1) {
-                local_ent_installer_send_mail_checkpoint('sync_hosts_worker', $mailmess);
-            }
             die ("User Worker failed");
         } else {
-            $mess = "Users Worker execution error on {$host->vhostname}... Continuing anyway\n";
-            echo $mess;
-            $mailmess .= $mess;
+            echo "Users Worker execution error on {$host->vhostname}... Continuing anyway\n";
         }
     }
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
@@ -200,7 +176,7 @@ foreach ($nodes as $nodeid) {
     mtrace("Starting Cohorts process for node $nodeid");
 
     $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_cohorts.php {$debug} --host={$host->vhostname}";
-    $cmd .= " {$verbose} {$force} {$empty} {$mail}";
+    $cmd .= " {$verbose} {$force} {$empty}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -215,16 +191,10 @@ foreach ($nodes as $nodeid) {
         }
         if (!empty($options['fullstop'])) {
             echo implode("\n", $output)."\n";
-            $mailmess .= "Full stopping on child error\n";
-            if ($options['mail'] >= 1) {
-                local_ent_installer_send_mail_checkpoint('sync_hosts_worker', $mailmess);
-            }
             die ("Cohort Worker failed");
         } else {
-            $mess = "Cohort Worker execution error on {$host->vhostname}:\n";
+            echo "Cohort Worker execution error on {$host->vhostname}:\n";
             echo implode("\n", $output)."\n";
-            $mailmess .= $mess;
-            echo $mess;
             echo "Continuing anyway.\n";
         }
     }
@@ -237,7 +207,7 @@ foreach ($nodes as $nodeid) {
     mtrace("Starting Role assignments process for node $nodeid");
 
     $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_roleassigns.php {$debug} --host={$host->vhostname}";
-    $cmd .= " {$verbose} {$force} {$mail}";
+    $cmd .= " {$verbose} {$force}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -252,15 +222,9 @@ foreach ($nodes as $nodeid) {
         }
         if (!empty($options['fullstop'])) {
             echo implode("\n", $output)."\n";
-            $mailmess .= "Full stopping on child error\n";
-            if ($options['mail'] >= 1) {
-                local_ent_installer_send_mail_checkpoint('sync_hosts_worker', $mailmess);
-            }
             die ("Role assignment Worker failed\n");
         } else {
-            $mess = "role assignment execution error on {$host->vhostname}:\n";
-            echo $mess;
-            $mailmess .= $mess;
+            echo "role assignment execution error on {$host->vhostname}:\n";
             echo implode("\n", $output)."\n";
             echo "Pursuing anyway.\n";
         }
@@ -273,7 +237,7 @@ foreach ($nodes as $nodeid) {
     mtrace("Starting Course group process for node $nodeid");
 
     $cmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_groups.php {$debug} --host={$host->vhostname}";
-    $cmd .= " {$force} {$empty} {$verbose} {$mail}";
+    $cmd .= " {$force} {$empty} {$verbose}";
     $return = 0;
     $output = array();
     mtrace("\n".$cmd);
@@ -288,15 +252,9 @@ foreach ($nodes as $nodeid) {
         }
         if (!empty($options['fullstop'])) {
             echo implode("\n", $output)."\n";
-            $mailmess .= "Full stopping on child error\n";
-            if ($options['mail'] >= 1) {
-                local_ent_installer_send_mail_checkpoint('sync_hosts_worker', $mailmess);
-            }
             die ("Course groups Worker failed");
         } else {
-            $mess = "Course Groups Worker execution error on {$host->vhostname}:\n";
-            echo $mess;
-            $mailmess .= $mess;
+            echo "Course Groups Worker execution error on {$host->vhostname}:\n";
             echo implode("\n", $output)."\n";
             echo "Pursuing anyway.\n";
         }
@@ -310,10 +268,6 @@ foreach ($nodes as $nodeid) {
     }
 
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
-}
-
-if ($mailmode >= 1) {
-    local_ent_installer_send_mail_checkpoint('sync_hosts_worker', $mailmess);
 }
 
 return 0;

@@ -129,7 +129,7 @@ if (!empty($options['debug'])) {
 global $USER;
 
 // Get main siteadmin.
-$USER = $DB->get_record('user', array('username' => $CFG->admin, 'mnethostid' => $CFG->mnet_localhost_id));
+$USER = $DB->get_record('user', array('username' => $CFG->admin));
 
 // If failed, get first available site admin.
 if (empty($USER)) {

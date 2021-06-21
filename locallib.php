@@ -27,7 +27,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/local/ent_installer/compatlib.php');
-require_once($CFG->dirroot.'/local/ent_installer/lib.php');
 
 // This allows 2 minutes synchronisation before trigering an overtime.
 define('OVERTIME_THRESHOLD', 120);
@@ -103,7 +102,7 @@ function local_ent_installer_get_teacher_cat_idnumber($user = null) {
         $user = $USER;
     }
 
-    $teachercatidnum = core_text::strtoupper($user->lastname).'_'.core_text::substr(core_text::strtoupper($user->firstname), 0, 1).'$'.$user->idnumber.'$CAT';
+    $teachercatidnum = strtoupper($user->lastname).'_'.substr(strtoupper($user->firstname), 0, 1).'$'.$user->idnumber.'$CAT';
 
     return $teachercatidnum;
 }
@@ -129,7 +128,7 @@ function local_ent_installer_teacher_category_name($user) {
         preg_match_all('/[\wéèöëêôÏîàùç]+/u', $user->firstname, $matches);
         $firstnameinitials = '';
         foreach (array_values($matches) as $res) {
-            $firstnameinitials .= core_text::strtoupper(core_text::substr($res[0], 0, 1)).'.';
+            $firstnameinitials .= core_text::strtoupper(substr($res[0], 0, 1)).'.';
         }
 
         if (empty($user->personalTitle)) {
@@ -765,45 +764,12 @@ function local_ent_installer_get_profile_classes($u) {
     return '';
 }
 
-function local_ent_installer_get_aux_groups($ldapuser, $options) {
-
-    $config = get_config('local_ent_installer');
-
-    if (empty($ldapuser->entauxensgroupes) && empty($ldapuser->entelevegroupes)) {
-        // Note : No groups at all. But a user cannot have both at the same time !
-        return;
+function local_ent_installer_get_aux_groups($ldapuser) {
+    $groups = $ldapuser->entauxensgroupes;
+    $groupsarr = explode(',', $groups);
+    foreach ($groupsarr as $g) {
+        // Filter group name.
     }
-
-    $ldapgroups = [];
-    if (!empty($ldapuser->entauxensgroupes)) {
-        $groups = $ldapuser->entauxensgroupes;
-        if (is_array($groups)) {
-            $ldapgroups = $ldapgroups + $ldapuser->entauxensgroupes;
-        } else {
-            $ldapgroups = $ldapgroups + [$ldapuser->entauxensgroupes];
-        }
-    }
-
-    if (!empty($ldapuser->entelevegroupes)) {
-        $groups = $ldapuser->entelevegroupes;
-        if (is_array($groups)) {
-            $ldapgroups = $ldapgroups + $ldapuser->entelevegroupes;
-        } else {
-            $ldapgroups = $ldapgroups + [$ldapuser->entelevegroupes];
-        }
-    }
-
-    $groups = [];
-    foreach ($ldapgroups as $group) {
-        if (!empty($options['verbose'])) {
-            mtrace("\tApplying filter \"/{$config->aux_groupname_filter}/\" to $group");
-        }
-        if (preg_match('/'.$config->aux_groupname_filter.'/', $group, $matches)) {
-            $groups[] = $matches[1];
-        }
-    }
-
-    return $groups;
 }
 
 /**
@@ -821,46 +787,35 @@ function local_ent_installer_get_aux_groups($ldapuser, $options) {
  * @param object $ldapuser the users ldap attributes
  * @return string
  */
-function local_ent_installer_process_aux_groups($user, $options = []) {
-    global $DB;
-    static $auxcohorts = [];
+function local_ent_installer_process_aux_groups($user, $isteacher) {
+    static $auxgroups;
 
-    $config = get_config('local_ent_installer');
-
-    // Get group values.
-    $auxensgroups = local_ent_installer_get_aux_groups($user, $options);
-
-    if (empty($user->entauxensgroupes) && empty($user->entelevegroupes)) {
-        mtrace('Auxiliary groups : No auxiliary groups defined');
+    if (empty($user->entauxensgroupes)) {
+        mtrace('Auxiliary groups : No auxiliary groups');
         return;
     } else {
-        if (empty($auxensgroups)) {
-            mtrace("User has auxiliary groups, but none retained by the filter.");
-            return;
-        } else {
-            mtrace('Processing aux groups on '.implode(', ', $auxensgroups).' for usertype '.$user->usertype);
-        }
+        mtrace('Processing aux groups on '.$user->entauxensgroupes);
     }
 
-    $context = context_system::instance();
+    // Get group values.
+    $auxensgroups = local_ent_installer_get_aux_groups($user);
 
-    if ($user->usertype != 'eleve') {
+    if ($isteacher) {
         /*
         $teachercatidnum = local_ent_installer_get_teacher_cat_idnumber($user);
         $context = context_coursecat::instance($teachercatidnum);
         */
 
-        foreach ($auxensgroups as $auxgroup) {
-            $auxcohorts[$auxgroup] = local_ent_installer_make_aux_group($auxgroup, $context, $options);
-        }
+        $context = context_system::instance();
+        $auxcohorts[$auxgroup] = local_ent_installer_make_aux_group($auxgroup, $context);
         // At the moment, do NOT attach to context.
     } else {
         foreach ($auxensgroups as $auxgroup) {
             if (!array_key_exists($auxgroup, $auxcohorts)) {
-                $cohort = $DB->get_record('cohort', ['idnumber' => $config->cohort_ix.'_GRP_'.$auxgroup]);
+                $cohort = $DB->get_record('cohort', ['idnumber' => 'GRP_'.$auxgroup]);
                 if (!$cohort) {
                     // Cohort not yet created.
-                    $auxcohorts[$auxgroup] = local_ent_installer_make_aux_group($auxgroup, $context, $options);
+                    $auxcohorts[$auxgroup] = local_ent_installer_make_aux_group($auxgroup);
                 } else {
                     $auxcohorts[$auxgroup] = $cohort;
                 }
@@ -870,23 +825,15 @@ function local_ent_installer_process_aux_groups($user, $options = []) {
 
             // Assign user to that cohort.
             cohort_add_member($cohort->id, $user->id);
-            if (!empty($options['verbose'])) {
-                mtrace("\t\tAdding user {$user->username} to cohort {$cohort->name} ({$cohort->idnumber})");
-            }
         }
     }
 }
 
-/**
- * Makes a cohort based on ldap group
- * @param string $auxgroup cohort name.
- * @param object $context moodle context where to create the cohort.
- */
-function local_ent_installer_make_aux_group($auxgroup, $context, $options) {
+function local_ent_installer_make_aux_group($auxgroup, $context) {
     global $DB;
 
     $config = get_config('local_ent_installer');
-    $cohortname = $config->cohort_ix.'_GRP_'.$auxgroup;
+    $cohortname = $config->yearprefix.'_'.$auxgroup;
     $params = ['name' => $cohortname, 'idnumber' => $cohortname];
     if (!$oldrecord = $DB->get_record('cohort', $params)) {
         $cohort = new StdClass;
@@ -900,32 +847,6 @@ function local_ent_installer_make_aux_group($auxgroup, $context, $options) {
         $cohort->timecreated = time();
         $cohort->timemodified = time();
         $cohort->theme = '';
-        $cohort->id = $DB->insert_record('cohort', $cohort);
-        if (!empty($options['verbose'])) {
-            mtrace("\tCreating auxiliary group cohort $cohortname ($cohortname)");
-        }
-        return $cohort;
-    } else {
-        if (!empty($options['verbose'])) {
-            mtrace("\tAuxiliary group cohort $cohortname ($cohortname) exists");
-        }
-        return $oldrecord;
-    }
-}
-
-/**
- * Pro wrapper for sending mail processing checkpoints. Sends a mail to a set of users 
- * defined in local_ent_installer settings.
- * @param string $toolname Name of the script and processing level that sends the notification. 
- * @param string $mailmess Mail report message
- */
-function local_ent_installer_send_mail_checkpoint($toolname, $mailmess) {
-    global $CFG;
-
-    if (local_ent_installer_supports_feature('clinotifs/mail')) {
-        include_once($CFG->dirroot.'/local/ent_installer/pro/lib.php');
-        \local_ent_installer\pro_api::send_mail_checkpoint($toolname, $mailmess);
-    } else {
-        mtrace("Unsupported notification outout");
+        $DB->insert_record('cohort', $cohort);
     }
 }

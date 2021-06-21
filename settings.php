@@ -47,22 +47,20 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
         $ADMIN->add('root', new admin_category('automation', new lang_string('automation', 'local_ent_installer')));
     }
 
-    $settings = new admin_settingpage('local_ent_installer_light', get_string('entupdate', 'local_ent_installer'));
+    $settings = new admin_settingpage('localsettingent_installer_light', get_string('entupdate', 'local_ent_installer'));
 
     if (local_ent_installer_supports_feature('emulate/community') == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        $promanager = new \local_ent_installer\pro_manager();
     }
 
     if ($ADMIN->fulltree) {
         if (local_ent_installer_supports_feature() == 'pro') {
             $PAGE->requires->js_call_amd('local_ent_installer/pro', 'init');
             $config = get_config('local_ent_installer');
-            $promanager = new \local_ent_installer\pro_manager();
-            $check = $promanager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
-
+            $manager = new \local_ent_installer\pro_manager();
+            $check = $manager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
             if (!preg_match('/SET OK/', $check)) {
-                $licensemess = $promanager->print_empty_license_message();
+                $licensemess = $manager->print_empty_license_message();
                 $settings->add(new admin_setting_heading('licensesatus', get_string('licensestatus', 'local_ent_installer'), $licensemess));
             }
         }

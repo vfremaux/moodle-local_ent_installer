@@ -65,7 +65,6 @@ list($options, $unrecognized) = cli_get_params(
         'host'              => false,
         'force'             => false,
         'debug'             => false,
-        'mail'              => false,
     ),
     array(
         'h' => 'help',
@@ -76,7 +75,6 @@ list($options, $unrecognized) = cli_get_params(
         'r' => 'role',
         'H' => 'host',
         'd' => 'debug',
-        'M' => 'mail',
     )
 );
 
@@ -99,7 +97,6 @@ Options:
     -D, --fulldelete    Forces full deletion of user datas for deleted users.
     -H, --host          Set the host (physical or virtual) to operate on
     -d, --debug         Turn on debug mode.
-    -M, --mail          Sends mail on complete.
 
 "; // TODO: localize - to be translated later when everything is finished.
 
@@ -162,22 +159,13 @@ if (empty($USER)) {
     exit(1);
 }
 
-$mailmode = @$options['mail'];
-$mailmess = '';
-
 // Get ldap params from real ldap plugin.
 $ldapauth = get_auth_plugin('ldap');
 
 // Run the customised synchro, with NO logs generated.
 $logmuter = new \ent_installer\logmuter();
 $logmuter->activate();
-
 local_ent_installer_sync_users($ldapauth, $options);
-
-if ($mailmode >= 1) {
-    local_ent_installer_send_mail_checkpoint('sync_users', "User synced for {$options['host']} ");
-}
-
 $logmuter->deactivate();
 
 exit(0);

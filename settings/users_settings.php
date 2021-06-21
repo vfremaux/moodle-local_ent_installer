@@ -148,12 +148,6 @@ class users {
         $default = 0;
         $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
 
-        $key = 'local_ent_installer/aux_groupname_filter';
-        $label = get_string('configauxgroupnamefilter', 'local_ent_installer');
-        $desc = get_string('configauxgroupnamefilter_desc', 'local_ent_installer');
-        $default = '(.*)';
-        $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
-
         /* Regime */
         /* no refactoring */
 

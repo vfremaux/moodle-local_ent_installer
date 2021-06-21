@@ -22,8 +22,6 @@ define('JOB_INTERLEAVE', 2);
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions
 require_once($CFG->dirroot.'/local/vmoodle/lib.php');
-require_once($CFG->dirroot.'/local/vmoodle/cli/clilib.php');
-require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 raise_memory_limit(MEMORY_HUGE);
 
@@ -45,7 +43,6 @@ list($options, $unrecognized) = cli_get_params(
         'notify'           => false,
         'debug'            => false,
         'fullstop'         => false,
-        'mail'             => false,
     ),
     array(
         'h' => 'help',
@@ -59,7 +56,6 @@ list($options, $unrecognized) = cli_get_params(
         'n' => 'notify',
         'd' => 'debug',
         's' => 'fullstop',
-        'M' => 'mail',
     )
 );
 
@@ -84,7 +80,6 @@ if ($options['help']) {
         -n, --notify        If present will send a mail when a sync host fails.
         -d, --debug         Turn on debug in workers.
         -s, --fullstop      Stops on first error.
-        -M, --mail          Sends mail on key process phases. 1 : bulk level, 2 : up to worker level, 3 : up to task level
 
         "; // TODO: localize - to be translated later when everything is finished.
 
@@ -115,16 +110,6 @@ if (!empty($options['force'])) {
 $notify = '';
 if (!empty($options['notify'])) {
     $notify = ' --notify ';
-}
-
-$mailmode = @$options['mail'];
-$mailmess = '';
-$mail = '';
-if ($mailmode > 0) {
-    $nextmailmode = $mailmode - 1;
-    if ($nextmailmode > 0) {
-        $mail = '--mail='.$nextmailmode;
-    }
 }
 
 $fullstop = '';
@@ -180,8 +165,7 @@ if (!empty($options['fulldelete'])) {
 // Start spreading workers, and pass the list of vhost ids. Launch workers in background
 // Linux only implementation.
 
-$i = 0;
-$numjobs = count($joblist);
+$i = 1;
 foreach ($joblist as $jl) {
     $jobids = array();
     if (!empty($jl)) {
@@ -193,12 +177,11 @@ foreach ($joblist as $jl) {
         }
 
         $workercmd = "php {$CFG->dirroot}/local/ent_installer/cli/sync_users_worker.php {$debug} --nodes=\"$hids\" {$logfile} ";
-        $workercmd .= " {$force} {$role} {$verbose} {$fulldelete} {$notify} {$fullstop} {$mail}";
+        $workercmd .= " {$force} {$role} {$verbose} {$fulldelete} {$notify} {$fullstop}";
         if ($options['distributed']) {
             $workercmd .= ' &';
         }
         mtrace("Executing $workercmd\n######################################################\n");
-        $mailmess .= "Executing $workercmd\n";
         $output = array();
         exec($workercmd, $output, $return);
         if ($return) {
@@ -215,13 +198,6 @@ foreach ($joblist as $jl) {
             echo implode("\n", $output)."\n";
         }
         $i++;
-        if ($mailmode >= 1) {
-            vmoodle_send_cli_progress($numjobs, $i, 'bulksyncusers');
-        }
         sleep(JOB_INTERLEAVE);
     }
-}
-
-if ($mailmode >= 1) {
-    local_ent_installer_send_mail_checkpoint('bulk_sync_users', $mailmess);
 }

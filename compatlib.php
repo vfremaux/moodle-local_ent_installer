@@ -22,12 +22,12 @@
  * @license http://www.gnu.org/copyleft/gpl.html GNU Public License
  */
 defined('MOODLE_INTERNAL') || die();
-require_once($CFG->dirroot.'/lib/coursecatlib.php');
+
 
 function local_ent_installer_coursecat_get($id, $strictness = MUST_EXIST, $alwaysreturnhidden = false, $user = null) {
-    return coursecat::get($id, $strictness, $alwaysreturnhidden, $user);
+    \core_course_category::get($id, $strictness, $alwaysreturnhidden, $user);
 }
 
 function local_ent_installer_coursecat_create($data, $editoroptions = null) {
-    return coursecat::create($data, $editoroptions);
+    return \core_course_category::create($data, $editoroptions);
 }

@@ -36,7 +36,6 @@ list($options, $unrecognized) = cli_get_params(
         'fullstop'          => false,
         'debug'             => false,
         'nocheck'           => false,
-        'mail'              => false,
     ),
     array(
         'h' => 'help',
@@ -51,7 +50,6 @@ list($options, $unrecognized) = cli_get_params(
         's' => 'fullstop',
         'd' => 'debug',
         'x' => 'nocheck',
-        'M' => 'mail',
     )
 );
 
@@ -78,7 +76,6 @@ Options:
     -S, --fullstop      Stops on first error.
     -d, --debug         Turn on debug in workers.
     -x, --nocheck       Do NOT check component origin.
-    -M, --mail          Sends mail on key process phases. 1 : worker level, 2 : up to task level
 
 "; // TODO: localize - to be translated later when everything is finished.
 
@@ -118,19 +115,7 @@ if (!empty($options['nocheck'])) {
     $nocheck = ' --nocheck ';
 }
 
-$mailmode = @$options['mail'];
-$mailmess = '';
-$mail = '';
-if ($mailmode > 0) {
-    $nextmailmode = $mailmode - 1;
-    if ($nextmailmode > 0) {
-        $mail = '--mail='.$nextmailmode;
-    }
-}
-
 $nodes = explode(',', $options['nodes']);
-$i = 0;
-$numhosts = count($nodes);
 foreach ($nodes as $nodeid) {
 
     if (!empty($options['logroot'])) {
@@ -180,16 +165,7 @@ foreach ($nodes as $nodeid) {
         fclose($LOG);
     }
 
-    $i++;
-    if ($mailmode >= 1) {
-        vmoodle_send_cli_progress($numhosts, $i, 'synccohortsworker');
-    }
-
     sleep(ENT_INSTALLER_SYNC_INTERHOST);
-}
-
-if ($mailmode >= 1) {
-    local_ent_installer_send_mail_checkpoint('sync_cohorts_worker', $mailmess);
 }
 
 exit(0);

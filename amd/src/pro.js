@@ -17,11 +17,11 @@
 
 define(['jquery', 'core/log', 'core/config'], function($, log, cfg) {
 
-    var ent_installerpro = {
+    var %PLUGINNAME%pro = {
 
         component: 'local_ent_installer',
         shortcomponent: 'local_ent_installer',
-        componentpath: '/local/ent_installer',
+        componentpath: 'local/ent_installer',
 
         init: function() {
 
