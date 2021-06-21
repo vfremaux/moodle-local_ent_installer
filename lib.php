@@ -31,13 +31,10 @@ function local_ent_installer_supports_feature($feature = null, $getsupported = f
     }
 
     if (!isset($supports)) {
-        /*
-         * Give here descriptors of feature/subfeatures of pro vs. community
-         *
-         * eg : 'feature1' => ['subfeature1', 'subfeature2', etc.]
-         */
         $supports = [
             'pro' => [
+                'volume' => array('unlimited'),
+                'clinotifs' => array('mail'),
             ],
             'community' => [
             ],

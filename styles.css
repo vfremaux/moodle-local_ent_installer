@@ -48,3 +48,7 @@
 .is-ent-user.administration td {
     background-color: #FDD0BB !important;
 }
+
+.jqplot-table-legend {
+    position: absolute;
+}

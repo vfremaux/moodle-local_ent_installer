@@ -64,6 +64,20 @@ $matchstatusarr = array(
 function local_ent_installer_sync_users($ldapauth, $options) {
     global $CFG, $DB, $matchstatusarr;
 
+    $config = get_config('local_ent_installer');
+
+    mtrace('');
+
+    if (!$config->sync_enable) {
+        mtrace(get_string('syncdisabled', 'local_ent_installer'));
+        return;
+    }
+
+    if (!$config->sync_users_enable) {
+        mtrace(get_string('syncusersdisabled', 'local_ent_installer'));
+        return;
+    }
+
     $debughardlimit = '';
     $licenselimit = 1000000;
     if (($CFG->debug == DEBUG_DEVELOPER) && !empty($CFG->usedebughardlimit)) {
@@ -83,27 +97,15 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     $inserterrorcount = 0;
     $updateerrorcount = 0;
 
-    $config = get_config('local_ent_installer');
-
     if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
+        $promanager = new \local_ent_installer\pro_manager();
+        $check = $promanager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
         if (!preg_match('/SET OK/', $check)) {
             $licenselimit = 1000;
         }
     } else {
         $licenselimit = 1000;
-    }
-    mtrace('');
-
-    if (!$config->sync_enable) {
-        mtrace(get_string('syncdisabled', 'local_ent_installer'));
-        return;
-    }
-
-    if (!$config->sync_users_enable) {
-        mtrace(get_string('syncusersdisabled', 'local_ent_installer'));
-        return;
     }
 
     ent_installer_check_archive_category_exists();
@@ -919,6 +921,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         $user->maildisplay = 0 + $maildisplay;
                         try {
                             $id = $DB->insert_record('user', $user);
+                            $user->id = $id;
                             mtrace(get_string('dbinsertuser', 'local_ent_installer', $a));
                             $insertcount++;
                         } catch (Exception $e) {
@@ -1024,7 +1027,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 }
 
                 if (!empty($config->process_aux_groups)) {
-                    local_ent_installer_process_aux_groups($user, !$user->usertype == 'eleve');
+                    local_ent_installer_process_aux_groups($user, $options);
                 }
 
                 if ($isent) {
@@ -1202,10 +1205,10 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     $benchrec->synctype = 'users';
     $benchrec->timestart = floor($starttick);
     $benchrec->timerun = ceil($deltatime);
-    $benchrec->added = 0 + @$insertcount;
-    $benchrec->updated = 0 + @$updatecount;
-    $benchrec->updateerrors = 0 + @$inserterrorcount;
-    $benchrec->inserterrors = 0 + @$updateerrorcount;
+    $benchrec->added = 0 + $insertcount;
+    $benchrec->updated = 0 + $updatecount;
+    $benchrec->updateerrors = 0 + $inserterrorcount;
+    $benchrec->inserterrors = 0 + $updateerrorcount;
     try {
         $DB->insert_record('local_ent_installer', $benchrec);
     } catch (Exception $e) {
@@ -1317,6 +1320,9 @@ function local_ent_installer_user_add_info(&$user, $role, $info) {
             $filter = $config->$filterkey;
         }
 
+        if (is_array(@$user->$field)) {
+            $user->$field = array_shift($user->$field);
+        }
         preg_match("/$filter/", @$user->$field, $matches);
         $pfkey = 'profile_field_'.$info;
 
@@ -1516,6 +1522,7 @@ function local_ent_installer_get_userinfo($ldapauth, $username, $options = array
 
         if (!empty($config->process_aux_groups)) {
             $entattributes[] = 'ENTAuxEnsGroupes';
+            $entattributes[] = 'ENTEleveGroupes';
         }
     }
 
@@ -1626,7 +1633,11 @@ function local_ent_installer_get_userinfo($ldapauth, $username, $options = array
             $result[core_text::strtolower($key)] = $ldapval;
         }
         if (!empty($options['verbose'])) {
-            mtrace("Requested value $key : $ldapval");
+            if (is_array($ldapval)) {
+                mtrace("Requested value $key : (Array) ".implode(';', $ldapval));
+            } else {
+                mtrace("Requested value $key : $ldapval");
+            }
         }
 
     }
@@ -1916,6 +1927,8 @@ function local_ent_installer_merge_siteadmins($newadmins, $options = array()) {
             }
         }
     }
+
+    sort($newadmins);
 
     $newadminlist = implode(',', $newadmins);
     $newadminlist = rtrim(preg_replace('/,+/', ',', $newadminlist), ','); // Fix and cleanup the list.

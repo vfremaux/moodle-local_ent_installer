@@ -47,13 +47,22 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
         return;
     }
 
+    $insertcount = 0;
+    $updatecount = 0;
+    $inserterrorcount = 0;
+    $updateerrorcount = 0;
+
+    list($usec, $sec) = explode(' ', microtime());
+    $starttick = (float)$sec + (float)$usec;
+
     $systemcontext = context_system::instance();
 
     core_php_time_limit::raise(600);
 
     if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
+        $promanager = new \local_ent_installer\pro_manager();
+        $check = $promanager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
         if (!preg_match('/SET OK/', $check)) {
             $licenselimit = 3000;
         }
@@ -178,6 +187,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                                 $modify = time();
                             }
 
+                            $value = $config->cohort_ix.'_'.$value;
                             local_ent_installer_ldap_bulk_cohort_insert($value, $modify, $options);
                         } while ($entry = ldap_next_entry($ldapconnection, $entry));
                     }
@@ -185,6 +195,24 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                     unset($ldapresult); // Free mem.
                 } while ($ldappagedresults && !empty($ldapcookie));
             }
+        }
+
+        /*
+         * preserve our cohort database
+         * if the temp table is empty, it probably means that something went wrong, exit
+         * so as to avoid mass deletion of cohorts; which is hard to undo.
+         */
+        $count = $DB->count_records_sql('SELECT COUNT(*) AS count, 1 FROM {tmp_extcohort}');
+        if ($count < 1) {
+            mtrace(get_string('didntgetcohortsfromldap', 'auth_ldap'));
+            $dbman->drop_table($table);
+            $ldapauth->ldap_close(true);
+
+            // Mark last time the cohort sync was run.
+            set_config('last_sync_date_cohort', time(), 'local_ent_installer');
+            return false;
+        } else {
+            mtrace(get_string('gotcountrecordsfromldap', 'auth_ldap', $count));
         }
 
         /*
@@ -274,7 +302,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
 
         $updated = $DB->get_records_sql($sql, $params);
 
-        if (empty($options['updateonly'])) {
+        if (!empty($options['force']) && empty($options['updateonly'])) {
             mtrace("\n>> ".get_string('deletingcohorts', 'local_ent_installer'));
 
             // Getting site level cohorts ids to protect.
@@ -355,8 +383,14 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 $oldrec->timemodified = time();
 
                 if (empty($options['simulate'])) {
-                    $DB->update_record('cohort', $oldrec);
-                    mtrace(get_string('cohortupdated', 'local_ent_installer', $oldrec)."\n");
+                    try {
+                        $DB->update_record('cohort', $oldrec);
+                        $updatecount++;
+                        mtrace(get_string('cohortupdated', 'local_ent_installer', $oldrec)."\n");
+                    } catch (Exception $e) {
+                        $updateerrorcount++;
+                        mtrace("ERROR : ".get_string('cohortupdated', 'local_ent_installer', $oldrec)."\n");
+                    }
                 } else {
                     mtrace('[SIMULATION] '.get_string('cohortupdated', 'local_ent_installer', $oldrec)."\n");
                 }
@@ -405,10 +439,33 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                     $cohort->timecreated = time();
                     $cohort->timemodified = time();
                     if (empty($options['simulate'])) {
-                        $cohort->id = $DB->insert_record('cohort', $cohort);
-                        mtrace(get_string('cohortcreated', 'local_ent_installer', $cohort)."\n");
+                        // Even when creating, do really check idnumber not in base.
+                        if (!$oldrecord = $DB->get_record('cohort', ['idnumber' => $cohort->idnumber])) {
+                            try {
+                                $cohort->id = $DB->insert_record('cohort', $cohort);
+                                $insertcount++;
+                                mtrace(get_string('cohortcreated', 'local_ent_installer', $cohort)."\n");
+                            } catch (Exception $e) {
+                                $inserterrorcount++;
+                                mtrace('ERROR : '.get_string('cohortcreated', 'local_ent_installer', $cohort)."\n");
+                            }
+                        } else {
+                            $cohort->id = $oldrecord->id;
+                            try {
+                                $DB->update_record('cohort', $cohort);
+                                $updatecount++;
+                                mtrace(get_string('cohortupdated', 'local_ent_installer', $cohort)."\n");
+                            } catch (Exception $e) {
+                                $updateerrorcount++;
+                                mtrace('ERROR : '.get_string('cohortupdated', 'local_ent_installer', $cohort)."\n");
+                            }
+                        }
                     } else {
-                        mtrace('[SIMULATION] '.get_string('cohortcreated', 'local_ent_installer', $cohort)."\n");
+                        if (!$oldrecord = $DB->get_record('cohort', ['idnumber' => $cohort->idnumber])) {
+                            mtrace('[SIMULATION] '.get_string('cohortcreated', 'local_ent_installer', $cohort)."\n");
+                        } else {
+                            mtrace('[SIMULATION/+] '.get_string('cohortupdated', 'local_ent_installer', $cohort)."\n");
+                        }
                     }
 
                     local_ent_installer_cohort_process_members($cohortinfo, $cohort, $options);
@@ -435,6 +492,32 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
     }
 
     $ldapauth->ldap_close();
+
+    // Calculate bench time.
+    list($usec, $sec) = explode(' ', microtime());
+    $stoptick = (float)$sec + (float)$usec;
+
+    $deltatime = $stoptick - $starttick;
+
+    mtrace('Execution time : '.$deltatime);
+    mtrace('Insertions : '.$insertcount);
+    mtrace('Updates : '.$updatecount);
+    mtrace('Insertion errors : '.$inserterrorcount);
+    mtrace('Update errors : '.$updateerrorcount);
+
+    $benchrec = new StdClass();
+    $benchrec->synctype = 'cohorts';
+    $benchrec->timestart = floor($starttick);
+    $benchrec->timerun = ceil($deltatime);
+    $benchrec->added = 0 + @$insertcount;
+    $benchrec->updated = 0 + @$updatecount;
+    $benchrec->updateerrors = 0 + @$inserterrorcount;
+    $benchrec->inserterrors = 0 + @$updateerrorcount;
+    try {
+        $DB->insert_record('local_ent_installer', $benchrec);
+    } catch (Exception $e) {
+        mtrace('Stat insertion failure');
+    }
 
     set_config('last_sync_date_cohort', time(), 'local_ent_installer');
 

@@ -37,15 +37,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
     $config = get_config('local_ent_installer');
 
-    $licenselimit = 1000000;
-    $debughardlimit = '';
-    if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
-        $debughardlimit = ' LIMIT 30 ';
-        echo '<span style="font-size:2.5em">';
-        mtrace('RUNNING WITH HARD LIMIT OF 30 OBJECTS');
-        echo '</span>';
-        mtrace('Turn off the developper mode to process all records.');
-    }
+    mtrace('');
 
     $enrolplugin = null;
     if (!empty($config->roleassign_enrol_method)) {
@@ -57,6 +49,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
     } else {
         mtrace("No enrol plugin in config. Only assign roles\n");
     }
+
     if (empty($config->sync_enable)) {
         mtrace(get_string('syncdisabled', 'local_ent_installer'));
         return;
@@ -67,13 +60,24 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
         return;
     }
 
+    $licenselimit = 1000000;
+    $debughardlimit = '';
+    if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
+        $debughardlimit = ' LIMIT 30 ';
+        echo '<span style="font-size:2.5em">';
+        mtrace('RUNNING WITH HARD LIMIT OF 30 OBJECTS');
+        echo '</span>';
+        mtrace('Turn off the developper mode to process all records.');
+    }
+
     $systemcontext = context_system::instance();
 
     core_php_time_limit::raise(600);
 
     if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
+        $promanager = new \local_ent_installer\pro_manager();
+        $check = $promanager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
         if (!preg_match('/SET OK/', $check)) {
             $licenselimit = 3000;
         }

@@ -37,6 +37,8 @@ $string['configadminssitecohortname'] = 'Nom de la cohorte de site des administr
 $string['configadminssitecohortname_desc'] = '';
 $string['configadminstaffsitecohortname'] = 'Nom de la cohorte de site des personnels administratifs non enseignant';
 $string['configadminstaffsitecohortname_desc'] = '';
+$string['configauxgroupnamefilter'] = 'filtre d\'extraction des noms de groupes auciliaires';
+$string['configauxgroupnamefilter_desc'] = 'Une expression régulière pour capturer le nom du groupe. Le résultat sera préfixé par le millésime.';
 $string['configinstitutionaliasing'] = 'Aliasing d\'institution';
 $string['configinstitutionaliasing_desc'] = 'Usage de l\'alias lors des imports d\'utilisateur.';
 $string['configbuildteachercategory'] = 'Construire la catégorie enseignant';
@@ -78,6 +80,8 @@ $string['configlastsyncdate'] = 'Dernière synchro';
 $string['configlastsyncdate_desc'] = 'Dernière date de synchro. Si vous changez cette date, la prochaine synchro considèrera tous les utilisateur créés ou modifiés à partir de cette date.';
 $string['configmaildisplay'] = 'Visibilité des adresses courriel initiales';
 $string['configmaildisplay_desc'] = 'La visibilité initiale des adresses courriel pour les utilisateurs nouvellement créés.';
+$string['configmailcheckusers'] = 'Utilisateurs à informer';
+$string['configmailcheckusers_desc'] = 'Liste des id ou noms d\'utilisateur à informer.';
 $string['configrealauth'] = 'Méthode d\'authentification effective';
 $string['configrealauth_desc'] = 'Ce réglage définit la méthode d\'authentification à attribuer aux comptes synchronisés de l\'ENT, indépendamment du plugin utilisé pour contacter l\'annuaire.';
 $string['configrecorddatefieldname'] = 'Champ de datation';
@@ -119,6 +123,8 @@ $string['dbskipnewusersimul'] = 'SIMULATION IGNORE : Nouvel utilisateur ignoré 
 $string['dbupdateuser'] = 'ALIMENTATION : Mise à jour (heuristique d\'existance : {$a->status}) utilisateur {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
 $string['dbupdateusersimul'] = 'SIMULATION : Mise à jour (heuristique d\'existance : {$a->status}) utilisateur {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
 $string['defaultarchivecatname'] = 'Corbeille';
+$string['didntgetcohortsfromldap'] = 'Aucune cohorte remontée du LDAP. Arrêt du traitement.';
+$string['didntgetusersfromldap'] = 'Aucun utilisateur remontée du LDAP. Arrêt du traitement.';
 $string['doit'] = 'Créer les catégories manquantes';
 $string['emptygroups'] = 'Groupes vides';
 $string['enrolled'] = 'Inscrit par la méthode {$a}';
@@ -134,7 +140,7 @@ $string['generals'] = 'Réglages généraux';
 $string['id'] = 'Identifiant RNE';
 $string['moodleid'] = 'ID Moodle interne';
 $string['inserterrors'] = 'Erreurs d\'insertion';
-$string['inserts'] = 'Insertions (utilisateurs ajoutés)';
+$string['inserts'] = 'Insertions (enregistrements ajoutés)';
 $string['installcats'] = 'Installation des catégories initiales';
 $string['lastrun'] = 'Dernière exécution {$a}';
 $string['lasttime'] == 'Dernier passage';
@@ -193,7 +199,7 @@ $string['updateerrors'] = 'Erreur de mises à jour';
 $string['updateonly'] = 'Uniquement raffraichir les enregistrements existants. Ne pas en créer de nouveaux.';
 $string['createonly'] = 'Uniquement créer les nouveaux.';
 $string['deleteonly'] = 'Uniquement supprimer les enregistrements obsolètes.';
-$string['updates'] = 'Mises à jour (utilisateurs modifiés)';
+$string['updates'] = 'Mises à jour (enregistrements modifiés)';
 $string['updatingusers'] = 'Mise à jour des utilisateurs (attributs seulement)';
 $string['users'] = 'Comptes utilisateur';
 $string['usersdeletion'] = 'Suppression des utilisateurs';
@@ -583,12 +589,4 @@ catégorie standard de l\'enseignant. Ceci affecte tous les cours de moodle sauf
 placés dans des catégories protégées (voir réglages globaux du composant d\'installation ENT).
 ';
 
-$string['plugindist'] = 'Plugin distribution';
-$string['plugindist_desc'] = '
-<p>This plugin is the community version and is published for anyone to use as is and check the plugin\'s
-core application. A "pro" version of this plugin exists and is distributed under conditions to feed the life cycle, upgrade, documentation
-and improvement effort.</p>
-<p>Please contact one of our distributors to get "Pro" version support.</p>
-<p><a href="http://www.mylearningfactory.com/index.php/documentation/Distributeurs?lang=en_utf8">MyLF Distributors</a></p>';
-
-include(__DIR__.'/pro_additional_strings.php');
+require(__DIR__.'/pro_additional_strings.php');
