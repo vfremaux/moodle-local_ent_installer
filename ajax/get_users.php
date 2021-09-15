@@ -45,7 +45,7 @@ $params = array($config->real_used_auth, $CFG->mnet_localhost_id);
 $fields = 'id, username, '.get_all_user_name_fields(true, '');
 if ($users = $DB->get_records_select('user', $select, $params, 'lastname, firstname', $fields)) {
     foreach ($users as $user) {
-        $useropts[$user->id] = $user->lastname.' '.$user->firstname.' ('.$user->username.')';
+        $useropts[$user->id] = fullname($user).' ('.$user->username.')';
     }
 } else {
     $useropts = array();
