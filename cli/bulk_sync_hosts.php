@@ -22,6 +22,8 @@ define('JOB_INTERLEAVE', 2);
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
 require_once($CFG->dirroot.'/local/vmoodle/lib.php');
+require_once($CFG->dirroot.'/local/ent_installer/lib.php');
+require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 raise_memory_limit(MEMORY_HUGE);
 
@@ -45,6 +47,7 @@ list($options, $unrecognized) = cli_get_params(
         'notify'           => false,
         'debug'            => false,
         'fullstop'         => false,
+        'mail'             => false,
     ),
     array(
         'h' => 'help',
@@ -60,6 +63,7 @@ list($options, $unrecognized) = cli_get_params(
         'N' => 'notify',
         'd' => 'debug',
         's' => 'fullstop',
+        'M' => 'mail',
     )
 );
 
@@ -86,6 +90,7 @@ if ($options['help']) {
     -N, --notify        Notify on failure.
     -d, --debug         Turn on debug mode in workers.
     -S, --fullstop      Stop on first failure.
+    -M, --mail          0, 1, 2, or 3. If not 0, sends mail to admin when process finishes at its level. 1 : bulk, 2 : worker, 3 : task
 
 "; // TODO: localize - to be translated later when everything is finished.
 
@@ -121,6 +126,12 @@ if (!empty($options['empty'])) {
 $notify = '';
 if (!empty($options['notify'])) {
     $notify = '--notify';
+}
+
+$mail = '';
+if (!empty($options['mail']) && $options['mail'] > 1) {
+    // Send mail and reduce level for next step.
+    $mail = '--mail='.($options['mail'] - 1);
 }
 
 $fullstop = '';
@@ -180,6 +191,8 @@ if (!empty($options['fulldelete'])) {
 // Start spreading workers, and pass the list of vhost ids. Launch workers in background
 // Linux only implementation.
 
+$mailmess = '';
+
 $i = 1;
 foreach ($joblist as $jl) {
     $jobids = array();
@@ -194,6 +207,7 @@ foreach ($joblist as $jl) {
         }
 
         mtrace("Executing $workercmd\n######################################################\n");
+        $mailmess .= "Executing $workercmd\n";
 
         $output = array();
         exec($workercmd, $output, $return);
@@ -203,8 +217,9 @@ foreach ($joblist as $jl) {
                 echo implode("\n", $output)."\n";
                 die("Worker ended with error\n");
             } else {
-                echo "Worker ended with error:\n";
-                echo implode("\n", $output)."\n";
+                $str = "Worker ended with error:\n";
+                $mailmess .= $str;
+                echo $str.implode("\n", $output)."\n";
             }
         }
 
@@ -214,4 +229,8 @@ foreach ($joblist as $jl) {
         $i++;
         sleep(JOB_INTERLEAVE);
     }
+}
+
+if ($options['mail'] >= 1) {
+    local_ent_installer_send_mail_checkpoint('bulk_sync_host', $mailmess);
 }

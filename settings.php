@@ -47,7 +47,12 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
         $ADMIN->add('root', new admin_category('automation', new lang_string('automation', 'local_ent_installer')));
     }
 
-    $settings = new admin_settingpage('local_ent_installer_light', get_string('entupdate', 'local_ent_installer'));
+    $settings = new admin_settingpage('localsettingent_installer_light', get_string('entupdate', 'local_ent_installer'));
+
+    if (local_ent_installer_supports_feature('emulate/community') == 'pro') {
+        include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
+        $promanager = new \local_ent_installer\pro_manager();
+    }
 
     if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
@@ -57,9 +62,17 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
         if (local_ent_installer_supports_feature() == 'pro') {
             $PAGE->requires->js_call_amd('local_ent_installer/pro', 'init');
             $config = get_config('local_ent_installer');
+<<<<<<< HEAD
             $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->customerkey, @$config->provider, true);
             if (!preg_match('/SET OK/', $check)) {
                 $licensemess = \local_ent_installer\pro_manager::print_empty_license_message();
+=======
+            $promanager = new \local_ent_installer\pro_manager();
+            $check = $promanager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
+
+            if (!preg_match('/SET OK/', $check)) {
+                $licensemess = $promanager->print_empty_license_message();
+>>>>>>> MOODLE_39_STABLE
                 $settings->add(new admin_setting_heading('licensesatus', get_string('licensestatus', 'local_ent_installer'), $licensemess));
             }
         }

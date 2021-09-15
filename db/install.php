@@ -27,7 +27,11 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/mnet/lib.php');
-require_once($CFG->dirroot.'/local/vmoodle/plugins/plugins/pluginscontrolslib.php');
+
+if (is_dir($CFG->dirroot.'/local/vmoodle')) {
+    require_once($CFG->dirroot.'/local/vmoodle/plugins/plugins/pluginscontrolslib.php');
+}
+
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 /**

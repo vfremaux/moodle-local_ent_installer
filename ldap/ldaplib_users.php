@@ -30,6 +30,10 @@ require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_cohorts.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_coursegroups.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_roleassigns.php');
 require_once($CFG->dirroot.'/cohort/lib.php');
+<<<<<<< HEAD:ldap/ldaplib_users.php
+=======
+require_once($CFG->dirroot.'/local/ent_installer/compatlib.php');
+>>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
 
 define('ENT_MATCH_FULL', 100);
 define('ENT_MATCH_ID_NO_USERNAME', 50);
@@ -63,6 +67,20 @@ $matchstatusarr = array(
 function local_ent_installer_sync_users($ldapauth, $options) {
     global $CFG, $DB, $matchstatusarr;
 
+    $config = get_config('local_ent_installer');
+
+    mtrace('');
+
+    if (!$config->sync_enable) {
+        mtrace(get_string('syncdisabled', 'local_ent_installer'));
+        return;
+    }
+
+    if (!$config->sync_users_enable) {
+        mtrace(get_string('syncusersdisabled', 'local_ent_installer'));
+        return;
+    }
+
     $debughardlimit = '';
     $licenselimit = 1000000;
     if (($CFG->debug == DEBUG_DEVELOPER) && !empty($CFG->usedebughardlimit)) {
@@ -82,16 +100,24 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     $inserterrorcount = 0;
     $updateerrorcount = 0;
 
+<<<<<<< HEAD:ldap/ldaplib_users.php
     $config = get_config('local_ent_installer');
 
     if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
         $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
+=======
+    if (local_ent_installer_supports_feature() == 'pro') {
+        include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
+        $promanager = new \local_ent_installer\pro_manager();
+        $check = $promanager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
+>>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
         if (!preg_match('/SET OK/', $check)) {
             $licenselimit = 1000;
         }
     } else {
         $licenselimit = 1000;
+<<<<<<< HEAD:ldap/ldaplib_users.php
     }
     mtrace('');
 
@@ -103,6 +129,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     if (!$config->sync_users_enable) {
         mtrace(get_string('syncusersdisabled', 'local_ent_installer'));
         return;
+=======
+>>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
     }
 
     ent_installer_check_archive_category_exists();
@@ -341,6 +369,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
         $filter = '(&('.$ldapauth->config->user_attribute.'='.$requid.')'.$filterdef->usertype.$institutions.')';
 
+        $ldaperrors = [];
+
         foreach ($contexts as $context) {
             $cnt = 0;
 
@@ -364,6 +394,11 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                     $params = array($ldapauth->config->user_attribute, $config->record_date_fieldname);
                     $ldapresult = ldap_list($ldapconnection, $context, $filter, $params);
                 }
+
+                if ($ldaperror = ldap_error($ldapconnection)) {
+                    $ldaperrors[$context] = $ldaperror;
+                }
+
                 if (!$ldapresult) {
                     continue;
                 }
@@ -393,6 +428,16 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 echo "\n";
                 unset($ldapresult); // Free mem.
             } while ($ldappagedresults && !empty($ldapcookie));
+<<<<<<< HEAD:ldap/ldaplib_users.php
+=======
+
+            if ($cnt == 0 && !empty($ldaperrors)) {
+                foreach ($ldaperrors as $ctx => $err) {
+                    echo "LDAP had error $err in context $ctx\n";
+                }
+            }
+
+>>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
             echo "Got $cnt records in context\n";
         }
     }
@@ -456,10 +501,21 @@ function local_ent_installer_sync_users($ldapauth, $options) {
      * Find users in DB that aren't in ldap -- to be removed!
      * this is still not as scalable (but how often do we mass delete?)
      */
-    if (empty($options['role'])) {
+    if (!empty($options['force']) && empty($options['role'])) {
         if (@$ldapauth->config->removeuser != AUTH_REMOVEUSER_KEEP) {
 
             mtrace("\n>> ".get_string('usersdeletion', 'local_ent_installer'));
+
+            $retiredclause = "
+                u.deleted = 0 AND
+            ";
+
+            if (@$ldapauth->config->removeuser == AUTH_REMOVEUSER_SUSPEND) {
+                mtrace("\n>> Adding unsuspended filter ");
+                $retiredclause .= "
+                    u.suspended = 0 AND
+                ";
+            }
 
             $sql = '
                 SELECT
@@ -471,9 +527,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 ON
                     (u.username = e.username AND u.mnethostid = e.mnethostid)
                 WHERE
-                    u.auth = ? AND
-                    u.deleted = 0 AND
-                    u.suspended = 0 AND
+                    (u.auth = ? OR u.auth = "nologin") AND
+                    '.$retiredclause.'
                     e.username IS NULL
             '.@$debughardlimit;
             $realuserauth = $config->real_used_auth;
@@ -535,7 +590,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     // Revive suspended users. *********************************.
 
-    if (!empty($ldapauth->config->removeuser) && $ldapauth->config->removeuser == AUTH_REMOVEUSER_SUSPEND) {
+    if (!empty($ldapauth->config->removeuser) && ($ldapauth->config->removeuser == AUTH_REMOVEUSER_SUSPEND)) {
 
         mtrace("\n>> ".get_string('revivingdeletedorsuspended', 'local_ent_installer'));
 
@@ -577,7 +632,11 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     // User Updates - time-consuming (optional). ***************************.
 
     // This might be an OBSOLETE code, regarding the update capability of the create process.
+<<<<<<< HEAD:ldap/ldaplib_users.php
     if (($options['operation'] == 0) || ($options['operation'] == 'update') && !empty($CFG->ent_installer_hard_updates)) {
+=======
+    if ((@$options['operation'] == 0) || (@$options['operation'] == 'update') && !empty($CFG->ent_installer_hard_updates)) {
+>>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
 
         mtrace("\n>> ".get_string('updatingusers', 'local_ent_installer'));
 
@@ -672,6 +731,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
     // Diff get users for temporary table.
     if (empty($options['force']) && empty($requid)) {
+        // Only consider recent moves.
         $sql = '
             SELECT
                 e.id,
@@ -692,7 +752,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
         '.@$debughardlimit;
         $params = array(0 + $config->last_sync_date_user);
     } else {
-        // If we are asking for a user, do update anyway.
+        // If we are asking for a user, or operating in forced mode, do update anyway.
         $sql = '
             SELECT
                 e.id,
@@ -903,6 +963,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         $user->maildisplay = 0 + $maildisplay;
                         try {
                             $id = $DB->insert_record('user', $user);
+                            $user->id = $id;
                             mtrace(get_string('dbinsertuser', 'local_ent_installer', $a));
                             $insertcount++;
                         } catch (Exception $e) {
@@ -1005,6 +1066,10 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                             cohort_add_member($adminstaffsitecohortid, $id);
                         }
                     }
+                }
+
+                if (!empty($config->process_aux_groups)) {
+                    local_ent_installer_process_aux_groups($user, $options);
                 }
 
                 if ($isent) {
@@ -1182,10 +1247,10 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     $benchrec->synctype = 'users';
     $benchrec->timestart = floor($starttick);
     $benchrec->timerun = ceil($deltatime);
-    $benchrec->added = 0 + @$insertcount;
-    $benchrec->updated = 0 + @$updatecount;
-    $benchrec->updateerrors = 0 + @$inserterrorcount;
-    $benchrec->inserterrors = 0 + @$updateerrorcount;
+    $benchrec->added = 0 + $insertcount;
+    $benchrec->updated = 0 + $updatecount;
+    $benchrec->updateerrors = 0 + $inserterrorcount;
+    $benchrec->inserterrors = 0 + $updateerrorcount;
     try {
         $DB->insert_record('local_ent_installer', $benchrec);
     } catch (Exception $e) {
@@ -1297,6 +1362,9 @@ function local_ent_installer_user_add_info(&$user, $role, $info) {
             $filter = $config->$filterkey;
         }
 
+        if (is_array(@$user->$field)) {
+            $user->$field = array_shift($user->$field);
+        }
         preg_match("/$filter/", @$user->$field, $matches);
         $pfkey = 'profile_field_'.$info;
 
@@ -1417,94 +1485,19 @@ function local_ent_installer_ldap_bulk_insert($username, $usertype, $timemodifie
 }
 
 /**
- * loads User Type special info fields definition
- * @return an array of info/custom field mappings
+ * Getting a full LDAP user DN value, gets from LDAP the associated username. This is
+ * used when the user DN do NOT contain the username as part of it, and must indirectly 
+ * be retrieved from an entry attribute.
  */
-function local_ent_installer_load_user_fields() {
-    global $DB, $CFG;
+function local_ent_installer_get_username_from_dn($ldapauth, $userdn, $options = array(), $ldapconnection = null) {
 
-    $userfields = array();
-
-    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'eleve'));
-    assert($fieldid != 0);
-    $userfields['eleve'] = $fieldid;
-
-    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'parent'));
-    assert($fieldid != 0);
-    $userfields['parent'] = $fieldid;
-
-    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'enseignant'));
-    assert($fieldid != 0);
-    $userfields['enseignant'] = $fieldid;
-
-    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'administration'));
-    assert($fieldid != 0);
-    $userfields['administration'] = $fieldid;
-
-    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'cdt'));
-    assert($fieldid != 0);
-    $userfields['cdt'] = $fieldid;
-
-    // Academic info.
-
-    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'cohort'));
-    assert($fieldid != 0);
-    $userfields['cohort'] = $fieldid;
-
-    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'transport'));
-    assert($fieldid != 0);
-    $userfields['transport'] = $fieldid;
-
-    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'regime'));
-    assert($fieldid != 0);
-    $userfields['regime'] = $fieldid;
-
-    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'fullage'));
-    assert($fieldid != 0);
-    $userfields['fullage'] = $fieldid;
-
-    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'isprimaryassignation'));
-    assert($fieldid != 0);
-    $userfields['isprimaryassignation'] = $fieldid;
-
-    $fieldid = $DB->get_field('user_info_field', 'id', array('shortname' => 'personaltitle'));
-    if (!$fieldid) {
-
-        // Try to add the field if missing.
-        require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
-
-        $categoryname = ent_installer_string('academicinfocategoryname');
-        $academicinfocategoryid = $DB->get_field('user_info_category', 'id', array('name' => $categoryname));
-        $lastorder = $DB->get_field('user_info_field', 'MAX(sortorder)', array('categoryid' => $academicinfocategoryid));
-
-        // Adding primary assignation.
-        /*
-         * Primary assignation should be marked if the Moodle node
-         * matches the registered primary facility of the user in ldap attributes.
-         */
-        $userfield = new StdClass;
-        $userfield->name = ent_installer_string('personaltitle');
-        $userfield->shortname = 'personaltitle';
-        $userfield->datatype = 'text';
-        $userfield->description = ent_installer_string('personaltitledesc');
-        $userfield->descriptionformat = FORMAT_MOODLE;
-        $userfield->categoryid = $academicinfocategoryid;
-        $userfield->sortorder = $lastorder + 1;
-        $userfield->required = 0;
-        $userfield->locked = 1;
-        $userfield->visible = 0;
-        $userfield->forceunique = 0;
-        $userfield->signup = 0;
-        $userfield->param1 = 10;
-        $userfield->param2 = 10;
-        $fieldid = $DB->insert_record('user_info_field', $userfield);
+    $localconnection = false;
+    if (is_null($ldapconnection)) {
+        $ldapconnection = $ldapauth->ldap_connect();
+        $localconnection = true;
     }
-    assert($fieldid != 0);
-    $userfields['personaltitle'] = $fieldid;
 
-    return $userfields;
-}
-
+<<<<<<< HEAD:ldap/ldaplib_users.php
 /**
  * Getting a full LDAP user DN value, gets from LDAP the associated username. This is
  * used when the user DN do NOT contain the username as part of it, and must indirectly 
@@ -1518,6 +1511,8 @@ function local_ent_installer_get_username_from_dn($ldapauth, $userdn, $options =
         $localconnection = true;
     }
 
+=======
+>>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
     if ($options['verbose']) {
         mtrace("Getting $userdn for ".$ldapauth->config->user_attribute);
     }
@@ -1562,6 +1557,8 @@ function local_ent_installer_get_username_from_dn($ldapauth, $userdn, $options =
 function local_ent_installer_get_userinfo($ldapauth, $username, $options = array()) {
     static $entattributes;
 
+    $config = get_config('local_ent_installer');
+
     // Load some cached static data.
     if (!isset($entattributes)) {
         // Aggregate additional ent specific attributes that hold interesting information.
@@ -1579,6 +1576,11 @@ function local_ent_installer_get_userinfo($ldapauth, $username, $options = array
                                    'seeAlso');
         } else {
             $entattributes = explode(',', $configattribs);
+        }
+
+        if (!empty($config->process_aux_groups)) {
+            $entattributes[] = 'ENTAuxEnsGroupes';
+            $entattributes[] = 'ENTEleveGroupes';
         }
     }
 
@@ -1689,7 +1691,15 @@ function local_ent_installer_get_userinfo($ldapauth, $username, $options = array
             $result[core_text::strtolower($key)] = $ldapval;
         }
         if (!empty($options['verbose'])) {
+<<<<<<< HEAD:ldap/ldaplib_users.php
             mtrace("Requested value $key : $ldapval");
+=======
+            if (is_array($ldapval)) {
+                mtrace("Requested value $key : (Array) ".implode(';', $ldapval));
+            } else {
+                mtrace("Requested value $key : $ldapval");
+            }
+>>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
         }
 
     }
@@ -1853,7 +1863,11 @@ function local_ent_installer_make_teacher_category($user) {
         $category->idnumber = $teachercatidnum;
         $category->parent = $teacherstubcategory;
         $category->visible = 1;
+<<<<<<< HEAD:ldap/ldaplib_users.php
         $category = \core_course_category::create($category);
+=======
+        $category = local_ent_installer_coursecat_create($category);
+>>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
 
         role_assign($managerrole->id, $user->id, $category->get_context()->id);
     } else {
@@ -1979,6 +1993,8 @@ function local_ent_installer_merge_siteadmins($newadmins, $options = array()) {
             }
         }
     }
+
+    sort($newadmins);
 
     $newadminlist = implode(',', $newadmins);
     $newadminlist = rtrim(preg_replace('/,+/', ',', $newadminlist), ','); // Fix and cleanup the list.

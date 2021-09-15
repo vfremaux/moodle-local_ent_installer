@@ -44,7 +44,11 @@ class courses {
         $key = 'local_ent_installer/sync_coursecat_enable';
         $label = get_string('configsynccoursecatsenable', 'local_ent_installer');
         $desc = '';
+<<<<<<< HEAD
         $default = 1;
+=======
+        $default = 0;
+>>>>>>> MOODLE_39_STABLE
         $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
 
         $key = 'local_ent_installer/last_sync_date_coursecats';
@@ -130,7 +134,11 @@ class courses {
         $key = 'local_ent_installer/sync_course_enable';
         $label = get_string('configsynccourseenable', 'local_ent_installer');
         $desc = '';
+<<<<<<< HEAD
         $default = 1;
+=======
+        $default = 0;
+>>>>>>> MOODLE_39_STABLE
         $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
 
         $key = 'local_ent_installer/last_sync_date_courses';

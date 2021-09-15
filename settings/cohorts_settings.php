@@ -137,6 +137,15 @@ class cohorts {
         $default = '';
         $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
+<<<<<<< HEAD
+=======
+        $key = 'local_ent_installer/sync_cohort_to_course_enable';
+        $label = get_string('configsynccohorttocourseenable', 'local_ent_installer');
+        $desc = get_string('configsynccohorttocourseenable_desc', 'local_ent_installer');
+        $default = 0;
+        $settings->add(new admin_setting_configcheckbox($key, $label, $desc, $default));
+
+>>>>>>> MOODLE_39_STABLE
         $key = 'local_ent_installer/cohort_course_binding_attribute';
         $label = get_string('configcohortcoursebindingattribute', 'local_ent_installer');
         $desc = get_string('configcohortcoursebindingattribute_desc', 'local_ent_installer');

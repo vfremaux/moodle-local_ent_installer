@@ -53,9 +53,12 @@ global $CLI_VMOODLE_PRECHECK;
 $CLI_VMOODLE_PRECHECK = true; // force first config to be minimal
 require(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 require_once($CFG->dirroot.'/lib/clilib.php'); // CLI only functions.
+<<<<<<< HEAD
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_users.php'); // Ldap primitives.
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_coursegroups.php'); // Ldap primitives for course groups.
 require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // General primitives.
+=======
+>>>>>>> MOODLE_39_STABLE
 
 // Now get cli options.
 list($options, $unrecognized) = cli_get_params(
@@ -119,6 +122,9 @@ if (!defined('MOODLE_INTERNAL')) {
     include(dirname(dirname(dirname(dirname(__FILE__)))).'/config.php'); // Global moodle config file.
 }
 echo('Config check : playing for '.$CFG->wwwroot);
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_users.php'); // Ldap primitives.
+require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_coursegroups.php'); // Ldap primitives for course groups.
+require_once($CFG->dirroot.'/local/ent_installer/locallib.php'); // General primitives.
 require_once($CFG->dirroot.'/local/ent_installer/logmuter.class.php'); // Ensure we have coursecat class.
 
 // Ensure errors are well explained.
@@ -130,7 +136,7 @@ if (!empty($options['debug'])) {
 global $USER;
 
 // Get main siteadmin.
-$USER = $DB->get_record('user', array('username' => $CFG->admin));
+$USER = $DB->get_record('user', array('username' => $CFG->admin, 'mnethostid' => $CFG->mnet_localhost_id));
 
 // If failed, get first available site admin.
 if (empty($USER)) {

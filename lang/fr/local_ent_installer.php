@@ -37,9 +37,11 @@ $string['configadminssitecohortname'] = 'Nom de la cohorte de site des administr
 $string['configadminssitecohortname_desc'] = '';
 $string['configadminstaffsitecohortname'] = 'Nom de la cohorte de site des personnels administratifs non enseignant';
 $string['configadminstaffsitecohortname_desc'] = '';
+$string['configauxgroupnamefilter'] = 'filtre d\'extraction des noms de groupes auciliaires';
+$string['configauxgroupnamefilter_desc'] = 'Une expression régulière pour capturer le nom du groupe. Le résultat sera préfixé par le millésime.';
 $string['configinstitutionaliasing'] = 'Aliasing d\'institution';
 $string['configinstitutionaliasing_desc'] = 'Usage de l\'alias lors des imports d\'utilisateur.';
-$string['configbuildteachercategory'] = 'Contruire la catégorie enseignant';
+$string['configbuildteachercategory'] = 'Construire la catégorie enseignant';
 $string['configbuildteachercategory_desc'] = 'Si actif, tout nouvel enseignant importé se verra attribuer une catégorie de cours à son nom dont il sera gestionnaire dans l\'espace pédagogique des enseignants.';
 $string['configcohortindex'] = 'Préfixe de cohorte';
 $string['configcohortindex_desc'] = 'Ce préfixe est ajouté aux noms de cohortes générées. Ce prefixe devrait être changé lors d\'un changement de session pédagogique (année scolaire) pour générer et maintenir un nouveau jeu de cohortes pour la session.';
@@ -78,6 +80,8 @@ $string['configlastsyncdate'] = 'Dernière synchro';
 $string['configlastsyncdate_desc'] = 'Dernière date de synchro. Si vous changez cette date, la prochaine synchro considèrera tous les utilisateur créés ou modifiés à partir de cette date.';
 $string['configmaildisplay'] = 'Visibilité des adresses courriel initiales';
 $string['configmaildisplay_desc'] = 'La visibilité initiale des adresses courriel pour les utilisateurs nouvellement créés.';
+$string['configmailcheckusers'] = 'Utilisateurs à informer';
+$string['configmailcheckusers_desc'] = 'Liste des id ou noms d\'utilisateur à informer.';
 $string['configrealauth'] = 'Méthode d\'authentification effective';
 $string['configrealauth_desc'] = 'Ce réglage définit la méthode d\'authentification à attribuer aux comptes synchronisés de l\'ENT, indépendamment du plugin utilisé pour contacter l\'annuaire.';
 $string['configrecorddatefieldname'] = 'Champ de datation';
@@ -90,6 +94,7 @@ $string['configsynccohortsenable'] = 'Activer les cohortes';
 $string['configsyncenable'] = 'Actif';
 $string['configsyncenable_desc'] = 'Active la synchronisation régulière des données ENT (CLI). Si désactivé, le script de synchronisation n\'aura aucun effet même s\'il est lancé par cron.';
 $string['configsyncgroupsenable'] = 'Activer les groupes de cours';
+$string['configsynccohorttocourseenable'] = 'Activer la synchro des liaisons de cohortes aux cours';
 $string['configsyncsystemrolesenable'] = 'Activer l\'attribution de roles système';
 $string['configsyncusersenable'] = 'Activer les comptes utilisateur';
 $string['configteachermaskfirstname'] = 'Masquer le prénom des enseignants';
@@ -104,6 +109,11 @@ $string['configprotectcategoriesfromrelocate'] = 'Catégories protégées';
 $string['configprotectcategoriesfromrelocate_desc'] = 'Une liste à virgules des id de catégories de cours dont les cours NE DOIVENT PAS être déplacés lors d\'un rappatriement de cours des enseignants.';
 $string['configtimestampformat'] = 'Format du champ de datation';
 $string['configtimestampformat_desc'] = 'Format unix UTC ou Active Directory (YYYYMMDDHHIISS.TZ)';
+<<<<<<< HEAD
+=======
+$string['configprocessauxgroups'] = 'Traiter les groupes auxiliaires';
+$string['configprocessauxgroups_desc'] = 'Traite le champ ENSAuxEnsGroupes pour forger des cohortes supplémentaires de groupes de spécialité';
+>>>>>>> MOODLE_39_STABLE
 $string['coursefilters'] = 'Filtres de cours';
 $string['coursegroups'] = 'Groupes des cours';
 $string['cohort'] = 'Cohorte';
@@ -116,6 +126,8 @@ $string['dbskipnewusersimul'] = 'SIMULATION IGNORE : Nouvel utilisateur ignoré 
 $string['dbupdateuser'] = 'ALIMENTATION : Mise à jour (heuristique d\'existance : {$a->status}) utilisateur {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
 $string['dbupdateusersimul'] = 'SIMULATION : Mise à jour (heuristique d\'existance : {$a->status}) utilisateur {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
 $string['defaultarchivecatname'] = 'Corbeille';
+$string['didntgetcohortsfromldap'] = 'Aucune cohorte remontée du LDAP. Arrêt du traitement.';
+$string['didntgetusersfromldap'] = 'Aucun utilisateur remontée du LDAP. Arrêt du traitement.';
 $string['doit'] = 'Créer les catégories manquantes';
 $string['emptygroups'] = 'Groupes vides';
 $string['emulatecommunity'] = 'Emuler la version communautaire';
@@ -133,7 +145,7 @@ $string['generals'] = 'Réglages généraux';
 $string['id'] = 'Identifiant RNE';
 $string['moodleid'] = 'ID Moodle interne';
 $string['inserterrors'] = 'Erreurs d\'insertion';
-$string['inserts'] = 'Insertions (utilisateurs ajoutés)';
+$string['inserts'] = 'Insertions (enregistrements ajoutés)';
 $string['installcats'] = 'Installation des catégories initiales';
 $string['lastrun'] = 'Dernière exécution {$a}';
 $string['lasttime'] == 'Dernier passage';
@@ -153,11 +165,14 @@ $string['noresults'] = 'Aucun résultat';
 $string['normalmeantime'] = 'Moyenne usuelle (sans dépassements)';
 $string['nothingtodo'] = 'Aucune donnée à traiter';
 $string['nousers'] = 'Aucun utilisateur dans la cohorte';
+$string['oldcohortdeleted'] = 'Cohorte obsolète {$a} supprimée';
 $string['options'] = 'Options de traitement';
+$string['othercommands'] = 'Autres commandes';
 $string['overtime'] = 'Dépassements';
 $string['overtimes'] = 'Dépassement de temps critique (> {$a} secs)';
 $string['plugindist'] = 'Distribution du plugin';
 $string['pluginname'] = 'Installation spécifique Moodle ENT';
+$string['purgeobsoletecohorts'] = 'Supprimer les cohortes obsoletes';
 $string['refreshsitemetadata'] = 'Raffraichir les métadonnées de site';
 $string['relocatingcourse'] = 'Cours {$a} relocalisé.';
 $string['relocatingcourseignored'] = 'Cours {$a} non déplacé (catégorie protégée).';
@@ -194,8 +209,13 @@ $string['doall'] = 'Faire toutes les opérations.';
 $string['updateerrors'] = 'Erreur de mises à jour';
 $string['updateonly'] = 'Uniquement raffraichir les enregistrements existants. Ne pas en créer de nouveaux.';
 $string['createonly'] = 'Uniquement créer les nouveaux.';
+<<<<<<< HEAD
 $string['deleteonly'] = 'Uniquement supprimer les enregsitrements obsolètes.';
 $string['updates'] = 'Mises à jour (utilisateurs modifiés)';
+=======
+$string['deleteonly'] = 'Uniquement supprimer les enregistrements obsolètes.';
+$string['updates'] = 'Mises à jour (enregistrements modifiés)';
+>>>>>>> MOODLE_39_STABLE
 $string['updatingusers'] = 'Mise à jour des utilisateurs (attributs seulement)';
 $string['users'] = 'Comptes utilisateur';
 $string['usersdeletion'] = 'Suppression des utilisateurs';
@@ -216,6 +236,10 @@ $string['settingsroleassigns'] = 'Synchronisation des affectations de rôle';
 $string['settingscoursegroups'] = 'Synchronisation des groupes de cours';
 $string['settingsstructures'] = 'Information sur les établissements';
 $string['ldapfilters'] = 'Filtres ldap';
+<<<<<<< HEAD
+=======
+$string['usefilternotice'] = 'Plus de 200 utilisateurs sont inscrits. Utilisez le filtre pour réduire...';
+>>>>>>> MOODLE_39_STABLE
 
 $string['personfilters'] = 'Filtres LDAP pour les comptes utilisateur';
 $string['configgenericusertypefilter'] = 'Discriminant des utilisateurs génériques';
@@ -255,7 +279,11 @@ $string['configstudentfullageuserfield_desc'] = 'Champ indiquant si l\'élève e
 $string['configstudentfullageuserfieldfilter'] = 'Extracteur de majorité';
 $string['configstudentfullageuserfieldfilter_desc'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier sous-motif disponible';
 $string['configuserpicturefield'] = 'Champ d\'avatar';
+<<<<<<< HEAD
 $string['configuserpicturefield_desc'] = 'Champ Ldap contenant l\'informaiton permettant de synthétiser une url vers l\'image de profil.';
+=======
+$string['configuserpicturefield_desc'] = 'Champ Ldap contenant l\'information permettant de synthétiser une url vers l\'image de profil.';
+>>>>>>> MOODLE_39_STABLE
 $string['configuserpicturefilter'] = 'Extracteur de l\'avatar';
 $string['configuserpicturefilter_desc'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier sous-motif disponible';
 $string['configuserpictureurlpattern'] = 'Motif de constrution de l\'url d\'avatar';
@@ -297,6 +325,12 @@ $string['configcohorthardcohortunenrol'] = 'Mode de suppression des cohortes';
 $string['configcohorthardcohortunenrol_desc'] = 'Ce qui se passe lorsqu\'une relation au cours disparait de l\'annuaire. Vous pouvez choisir entre la désactivation (sans suppression des données utilisateur liées à l\'inscription), ou la suppression avec désinscription.';
 $string['id'] = 'Id primaire';
 
+<<<<<<< HEAD
+=======
+$string['configsynccohorttocourseenable_desc'] = 'Active la synchronisation des liaisons entre les cours et les cohortes, gérant les méthodes d\'inscriptions par synchronisation de cohortes. Attention, dans ce cas les affectations manuelles de méthodes de synchonisation de cohortes ne peuvent plus être maintenues si elles ne sont
+pas répercutées sur la référence externe de données.';
+
+>>>>>>> MOODLE_39_STABLE
 $string['configcohortuseridentifier_desc'] = 'Champ interne d\'identifiant utilisateur utilisé pour trouver l\'ID utilisateur';
 
 $string['configcohortmembershipfilter_desc'] = 'Une expression régulière appliquée à la valeur du champ qui capture le premier
@@ -581,6 +615,7 @@ catégorie standard de l\'enseignant. Ceci affecte tous les cours de moodle sauf
 placés dans des catégories protégées (voir réglages globaux du composant d\'installation ENT).
 ';
 
+<<<<<<< HEAD
 $string['plugindist_desc'] = '
 <p>Ce plugin est distribué dans la communauté Moodle pour l\'évaluation de ses fonctions centrales
 correspondant à une utilisation courante du plugin. Une version "professionnelle" de ce plugin existe et est distribuée
@@ -588,3 +623,6 @@ sous certaines conditions, afin de soutenir l\'effort de développement, amélio
 <p>Contactez un distributeur pour obtenir la version "Pro" et son support.</p>
 <p>Notez que les deux composant local_sharedresources et mod_sharedresource doivent fonctionner au même niveau de distribution</p>
 <p><a href="http://www.mylearningfactory.com/index.php/documentation/Distributeurs?lang=fr_utf8">Distributeurs MyLF</a></p>';
+=======
+require(__DIR__.'/pro_additional_strings.php');
+>>>>>>> MOODLE_39_STABLE

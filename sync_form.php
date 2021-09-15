@@ -137,6 +137,12 @@ class SyncForm extends moodleform {
             $mform->addElement('checkbox', 'disableautocohortscheck', $label);
         }
 
+        $mform->addElement('html', '<h3>'.get_string('othercommands', 'local_ent_installer').'</h3>');
+
+        if (!empty($config->cohort_old_prefixes)) {
+            $mform->addElement('submit', 'purgeobsoletecohorts', get_string('purgeobsoletecohorts', 'local_ent_installer'));
+        }
+
         if ($isent) {
             $mform->addElement('submit', 'teachercatreorder', get_string('teachercatreorder', 'local_ent_installer'));
 
@@ -145,7 +151,7 @@ class SyncForm extends moodleform {
             $label = get_string('relocateteachercourses', 'local_ent_installer');
             $group[] = & $mform->createElement('submit', 'teachercourserelocatesubmit', $label);
             $label = get_string('relocateteachercourses', 'local_ent_installer');
-            $mform->addGroup($group, 'teachercourserelocate', $label, array(), false);
+            $mform->addGroup($group, 'teachercourserelocate', $label, array(''), false);
             $mform->addHelpButton('teachercourserelocate', 'relocateteachercourses', 'local_ent_installer');
         }
 

@@ -70,11 +70,21 @@ if ($category) {
 
 echo $OUTPUT->header();
 
+<<<<<<< HEAD
 if ($showall) {
     $cohorts = cohort_get_all_cohorts($page, 25, $searchquery);
 } else {
     $cohorts = cohort_get_cohorts($context->id, $page, 25, $searchquery);
 }
+=======
+// CHANGE+ : sort cohorts.
+if ($showall) {
+    $cohorts = cohort_get_all_sorted_cohorts($page, 25, $searchquery);
+} else {
+    $cohorts = cohort_get_sorted_cohorts($context->id, $page, 25, $searchquery);
+}
+// CHANGE-.
+>>>>>>> MOODLE_39_STABLE
 
 $count = '';
 if ($cohorts['allcohorts'] > 0) {
@@ -105,11 +115,19 @@ if ($editcontrols = cohort_edit_controls($context, $baseurl)) {
 
 // Add search form.
 $search  = html_writer::start_tag('form', array('id'=>'searchcohortquery', 'method'=>'get', 'class' => 'form-inline search-cohort'));
+<<<<<<< HEAD
 $search .= html_writer::start_div('m-b-1');
 $search .= html_writer::label(get_string('searchcohort', 'cohort'), 'cohort_search_q', true,
         array('class' => 'm-r-1')); // No : in form labels!
 $search .= html_writer::empty_tag('input', array('id' => 'cohort_search_q', 'type' => 'text', 'name' => 'search',
         'value' => $searchquery, 'class' => 'form-control m-r-1'));
+=======
+$search .= html_writer::start_div('mb-1');
+$search .= html_writer::label(get_string('searchcohort', 'cohort'), 'cohort_search_q', true,
+        array('class' => 'mr-1')); // No : in form labels!
+$search .= html_writer::empty_tag('input', array('id' => 'cohort_search_q', 'type' => 'text', 'name' => 'search',
+        'value' => $searchquery, 'class' => 'form-control mr-1'));
+>>>>>>> MOODLE_39_STABLE
 $search .= html_writer::empty_tag('input', array('type' => 'submit', 'value' => get_string('search', 'cohort'),
         'class' => 'btn btn-secondary'));
 $search .= html_writer::empty_tag('input', array('type'=>'hidden', 'name'=>'contextid', 'value'=>$contextid));
@@ -214,7 +232,11 @@ foreach($cohorts['cohorts'] as $cohort) {
 }
 $table = new html_table();
 $table->head  = array(get_string('name', 'cohort'), get_string('idnumber', 'cohort'), get_string('description', 'cohort'),
+<<<<<<< HEAD
                       get_string('courses'), get_string('memberscount', 'cohort'), get_string('component', 'cohort'));
+=======
+                      get_string('memberscount', 'cohort'), get_string('component', 'cohort'));
+>>>>>>> MOODLE_39_STABLE
 $table->colclasses = array('leftalign name', 'leftalign id', 'leftalign description', 'leftalign size','centeralign source');
 if ($showall) {
     array_unshift($table->head, get_string('category'));
