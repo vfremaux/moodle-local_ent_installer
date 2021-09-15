@@ -45,125 +45,26 @@ $murl = new moodle_url('/admin/category.php', array('category' => 'local_ent_ins
 $PAGE->navbar->add(get_string('pluginname', 'local_ent_installer'), $murl);
 $PAGE->navbar->add(get_string('syncbench', 'local_ent_installer'));
 
-echo $OUTPUT->header();
-echo $OUTPUT->heading($titlestr);
-
 // Three month horizon.
-
 $horizon = time() - DAYSECS * 90;
 
-$sumduration = 0;
-$minduration = null;
-$maxduration = 0;
-$suminserts = 0;
-$sumupdates = 0;
-$suminserterrors = 0;
-$sumupdateerrors = 0;
-$overtime = 0;
-$meantime = 0;
-$normalmeantime = 0;
-$sumdurationwovertimes = 0;
+$renderer = $PAGE->get_renderer('local_ent_installer');
 
-$timegrid = array(array(array(date('d-M-Y', time()), '0')));
-if ($benchrecs = $DB->get_records_select('local_ent_installer', " timestart > $horizon ")) {
-    $i = 0;
-    $iwo = 0;
-    foreach ($benchrecs as $b) {
-        $sumduration += $b->timerun;
-        if ($b->timerun > $maxduration) {
-            $maxduration = $b->timerun;
-        }
-        if (is_null($minduration)) {
-            $minduration = $b->timerun;
-        } else {
-            if ($b->timerun < $minduration) {
-                $minduration = $b->timerun;
-            }
-        }
-        $suminserts += $b->added;
-        $sumupdates += $b->updated;
-        $suminserterrors += $b->inserterrors;
-        $sumupdateerrors += $b->updateerrors;
-        if ($b->timerun > OVERTIME_THRESHOLD) {
-            $overtime++;
-        } else {
-            $iwo++;
-            $sumdurationwovertimes += $b->timerun;
-        }
-        $timegrid[0][] = array(date('d-M-Y', $b->timestart), $b->timerun);
-        $i++;
-    }
-    $meantime = $sumduration / $i;
-    $normalmeantime = $sumdurationwovertimes / $iwo;
-}
+echo $OUTPUT->header();
 
-echo $OUTPUT->box_start('ent-installer-curve');
-$jqplot = array(
-    'title' => array(
-        'text' => get_string('syncbench', 'local_ent_installer'),
-        'fontSize' => '1.3em',
-        'color' => '#000080',
-        ),
-    'legend' => array(
-        'show' => true,
-        'location' => 'e',
-        'placement' => 'outsideGrid',
-        'marginLeft' => '10px',
-        'border' => '1px solid #808080',
-        'labels' => array(get_string('synctime', 'local_ent_installer')),
-    ),
-    'axesDefaults' => array('labelRenderer' => '$.jqplot.CanvasAxisLabelRenderer'),
-    'axes' => array(
-        'xaxis' => array(
-            'label' => get_string('day'),
-            'renderer' => '$.jqplot.DateAxisRenderer',
-            'tickOptions' => array('formatString' => '%b&nbsp;%#d'),
-            ),
-        'yaxis' => array(
-            'autoscale' => true,
-            'tickOptions' => array('formatString' => '%.2f'),
-            'label' => get_string('seconds'),
-            'labelRenderer' => '$.jqplot.CanvasAxisLabelRenderer',
-            'labelOptions' => array('angle' => 90)
-            )
-        ),
-    'series' => array(
-        array('color' => '#C00000'),
-    ),
-    'cursor' => array(
-        'show' => true,
-        'zoom' => true,
-        'showTooltip' => false
-    ),
-);
-local_vflibs_jqplot_print_graph('plot1', $jqplot, $timegrid, 750, 250, 'margin:20px;');
+// Users drawing.
 
-echo '<center>';
-$resetstr = get_string('reset', 'local_ent_installer');
-echo '<button id="timegraph-zoom-reset" onclick="plot.resetZoom();return true;" value="'.$resetstr.'">';
-echo '</center>';
-echo $OUTPUT->box_end();
+$select = " synctype = 'users' AND timestart > ? ";
+$usersdata = $DB->get_records_select('local_ent_installer', $select, [$horizon]);
+echo $renderer->print_time_report('users', $usersdata);
 
-echo $OUTPUT->box_start('ent-installer-report-globals');
+// Cohorts drawing
 
-$table = new html_table();
-$table->head = array('', '');
-$table->align = array('right', 'left');
-$table->size = array('60%', '40%');
-$table->colstyles = array('head', 'value');
-$table->data[] = array(get_string('inserts', 'local_ent_installer'), $suminserts);
-$table->data[] = array(get_string('updates', 'local_ent_installer'), $sumupdates);
-$table->data[] = array(get_string('inserterrors', 'local_ent_installer'), $suminserterrors);
-$table->data[] = array(get_string('updateerrors', 'local_ent_installer'), $sumupdateerrors);
-$table->data[] = array(get_string('overtimes', 'local_ent_installer'), $overtime);
-$table->data[] = array(get_string('minduration', 'local_ent_installer'), sprintf('%0.2f', $minduration));
-$table->data[] = array(get_string('maxduration', 'local_ent_installer'), sprintf('%0.2f', $maxduration));
-$table->data[] = array(get_string('meantime', 'local_ent_installer'), sprintf('%0.2f', $meantime));
-$table->data[] = array(get_string('normalmeantime', 'local_ent_installer'), sprintf('%0.2f', $normalmeantime));
+$select = " synctype = 'cohorts' AND timestart > ? ";
+$cohortdata = $DB->get_records_select('local_ent_installer', $select, [$horizon]);
+echo $renderer->print_time_report('cohorts', $cohortdata);
 
-echo html_writer::table($table);
-
-echo $OUTPUT->box_end();
+// End of page.
 
 echo '<center>';
 $url = new moodle_url('/local/ent_installer/synctimereport.php', array('reset' => 1));
