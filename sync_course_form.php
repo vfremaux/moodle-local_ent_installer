@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Form for activating manual resync of a single user.
+ * Form for activating manual resync of a single course.
  *
  * @package     local_ent_installer
  * @category    local
@@ -28,10 +28,10 @@ defined('MOODLE_INTERNAL') || die();
 
 require_once($CFG->dirroot.'/lib/formslib.php');
 
-class SyncUserForm extends moodleform {
+class SyncCourseForm extends moodleform {
 
     public function definition() {
-        global $CFG, $DB, $OUTPUT;
+        global $CFG, $DB;
 
         $config = get_config('local_ent_installer');
         $isent = is_dir($CFG->dirroot.'/local/ent_access_point');
@@ -40,27 +40,20 @@ class SyncUserForm extends moodleform {
 
         $mform->addElement('html', '<h3>'.get_string('entities', 'local_ent_installer').'</h3>');
 
-        $params = array('auth' => $config->real_used_auth, 'mnethostid' => $CFG->mnet_localhost_id, 'deleted' => 0);
-        $fields = 'id, CONCAT(lastname, " ", firstname, " (", username, ")")';
-        $usersopts = $DB->get_records_menu('user', $params, 'lastname, firstname', $fields, 0, 200);
-        $countall = $DB->count_records('user', $params);
-        if ($countall > 200) {
-            $mform->addelement('static', 'overnumnotice', '', $OUTPUT->notification(get_string('usefilternotice', 'local_ent_installer')));
-        }
+        $fields = 'id, CONCAT(shortname, " - ", fullname, " (", idnumber, ")")';
+        $coursesopts = $DB->get_records_menu('course', array(), 'shortname', $fields, 0, 200);
 
-        if (!empty($config->sync_users_enable)) {
+        if (!empty($config->sync_course_enable)) {
             $attrs = array('size' => 15);
-            $select = & $mform->addElement('text', 'filter', get_string('filter', 'local_ent_installer'), $attrs);
-            $mform->setType('filter', PARAM_TEXT);
+            $select = & $mform->addElement('text', 'coursefilter', get_string('filter', 'local_ent_installer'), $attrs);
+            $mform->setType('coursefilter', PARAM_TEXT);
 
-            $select = & $mform->addElement('select', 'uid', get_string('user'), $usersopts);
+            $select = & $mform->addElement('select', 'cid', get_string('course'), $coursesopts);
             $select->setMultiple(false); // May become multiple.
         }
 
         $mform->addElement('html', '<h3>'.get_string('options', 'local_ent_installer').'</h3>');
 
-        $mform->addElement('hidden', 'operation', 'update');
-        $mform->setType('operation', PARAM_TEXT);
         /*
         $radioarr = array();
         $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('doall', 'local_ent_installer'), 0);

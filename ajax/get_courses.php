@@ -15,8 +15,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   tool_mnetusers
- * @category  tool
+ * @package   local_ent_installer
+ * @category  local
  * @author    Valery Fremaux <valery.fremaux@gmail.com>
  */
 
@@ -29,26 +29,21 @@ require_capability('moodle/site:config', context_system::instance());
 
 $config = get_config('local_ent_installer');
 
-$filter = optional_param('filter', '', PARAM_TEXT);
+$filter = optional_param('coursefilter', '', PARAM_TEXT);
 
-$select = " AND
-        (lastname LIKE '%$filter%' OR
-         firstname LIKE '%$filter%' OR
-         username LIKE '%$filter%')
+$select = "
+        shortname LIKE '%$filter%' OR
+        fullname LIKE '%$filter%'
 ";
 
 $filterclause = (!empty($filter)) ? $select : '';
 
-$select = " auth = ? AND deleted = 0 AND mnethostid = ? $filterclause";
-$params = array($config->real_used_auth, $CFG->mnet_localhost_id);
-
-$fields = 'id, username, '.get_all_user_name_fields(true, '');
-if ($users = $DB->get_records_select('user', $select, $params, 'lastname, firstname', $fields)) {
-    foreach ($users as $user) {
-        $useropts[$user->id] = fullname($user).' ('.$user->username.')';
+if ($courses = $DB->get_records_select('course', $filterclause, array(), 'shortname', 'id, shortname, fullname, idnumber')) {
+    foreach ($courses as $course) {
+        $courseopts[$course->id] = $course->shortname. ' - '.$course->fullname.' ('.$course->idnumber.')';
     }
 } else {
-    $useropts = array();
+    $courseopts = array();
 }
 
-echo json_encode($useropts);
+echo json_encode($courseopts);

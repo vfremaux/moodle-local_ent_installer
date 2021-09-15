@@ -82,6 +82,13 @@ if ($data = $mform->get_data()) {
         echo "Categories order fixed";
         echo '</pre>';
         echo '</div>';
+    } else if (!empty($data->purgeobsoletecohorts)) {
+        ent_installer_clear_obsolete_cohorts();
+        echo '<div class="console">';
+        echo '<pre>';
+        echo "Obsolete cohorts deleted";
+        echo '</pre>';
+        echo '</div>';
     } else {
 
         // Get ldap params from real ldap plugin.

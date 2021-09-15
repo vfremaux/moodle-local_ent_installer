@@ -70,8 +70,20 @@ class logmuter {
      * ensures that the log is
      */
     public function __destruct() {
+        global $CFG;
+
         if ($this->stackidx !== -1) {
-            throw new \Exception('Coding error: logmuter must be deactivated before destruction');
+            if ($CFG->debug !== DEBUG_DEVELOPER) {
+                if (empty($CFG->logmuternotrap)) {
+                    throw new \Exception('Coding error: logmuter must be deactivated before destruction');
+                }
+            } else {
+                if (empty($CFG->logmuternotrap)) {
+                    throw new \Exception('Coding error: logmuter must be deactivated before destruction');
+                } else {
+                    echo "Logmuter Exception : logmuter must be deactivated before destruction";
+                }
+            }
         }
     }
 
@@ -116,7 +128,17 @@ class logmuter {
 
         // Make sure that muters are deactivated in the reverse order of activation.
         if ($this->stackidx !== self::$stacksize) {
-            throw new \Exception('Coding error: logmuter being deactivated out of order');
+            if ($CFG->debug !== DEBUG_DEVELOPER) {
+                if (empty($CFG->logmuternotrap)) {
+                    throw new \Exception('Coding error: logmuter being deactivated out of order');
+                }
+            } else {
+                if (empty($CFG->logmuternotrap)) {
+                    throw new \Exception('Coding error: logmuter being deactivated out of order');
+                } else {
+                    echo "Logmuter Exception : logmuter being deactivated out of order";
+                }
+            }
         }
 
         // Deal with unstacking logic.
