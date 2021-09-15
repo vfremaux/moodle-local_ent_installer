@@ -25,6 +25,7 @@
 require('../../../config.php');
 require($CFG->dirroot.'/cohort/lib.php');
 require_once($CFG->libdir.'/adminlib.php');
+require_once($CFG->dirroot.'/local/ent_installer/locallib.php');
 
 $cohortid = required_param('id', PARAM_INT);
 $contextid = optional_param('contextid', 0, PARAM_INT);
@@ -55,12 +56,11 @@ if (!$manager) {
 
 $strcohorts = get_string('automatedcohortmembers', 'local_ent_installer');
 
-if ($category) {
+if ($category || ($context->contextlevel == CONTEXT_SYSTEM)) {
     $PAGE->set_pagelayout('admin');
     $PAGE->set_context($context);
     $PAGE->set_url('/local/ent_installer/cohort/list.php', array('id' => $cohortid, 'contextid' => $contextid));
-    $PAGE->navbar->add(new moodle_url('/cohort/index.php', array('contextid' => $contextid)), get_string('cohorts', 'cohort'));
-    $PAGE->set_url('/cohort/index.php', array('contextid' => $context->id));
+    $PAGE->navbar->add(get_string('cohorts', 'cohort'), new moodle_url('/cohort/index.php', array('contextid' => $contextid)));
     $PAGE->set_title($strcohorts);
     $PAGE->set_heading($COURSE->fullname);
 } else {
@@ -90,8 +90,20 @@ if (!empty($members)) {
     $table->size = array('10%', '25%', '25%', '40%');
     $table->align = array('left', 'left', 'left', 'right');
     $table->width = '90%';
+    $i = 0;
     foreach ($members as $u) {
         $table->data[] = array($OUTPUT->user_picture($u), $u->lastname, $u->firstname, userdate($u->cohorttimeadded));
+        if ($u->deleted) {
+            $rowclasses = 'deleted-user';
+        } else if ($u->suspended) {
+            $rowclasses = 'suspended-user';
+        } else {
+            $rowclasses = 'normal-user';
+        }
+        $rowclasses .= local_ent_installer_get_profile_classes($u);
+
+        $table->rowclasses[$i] = $rowclasses;
+        $i++;
     }
 
     echo html_writer::table($table);

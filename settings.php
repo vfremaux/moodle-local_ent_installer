@@ -49,7 +49,7 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
 
     $settings = new admin_settingpage('local_ent_installer_light', get_string('entupdate', 'local_ent_installer'));
 
-    if (local_ent_installer_supports_feature() == 'pro') {
+    if (local_ent_installer_supports_feature('emulate/community') == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
     }
 
@@ -57,9 +57,10 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
         if (local_ent_installer_supports_feature() == 'pro') {
             $PAGE->requires->js_call_amd('local_ent_installer/pro', 'init');
             $config = get_config('local_ent_installer');
-            $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
+            $manager = new \local_ent_installer\pro_manager();
+            $check = $manager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
             if (!preg_match('/SET OK/', $check)) {
-                $licensemess = \local_ent_installer\pro_manager::print_empty_license_message();
+                $licensemess = $manager->print_empty_license_message();
                 $settings->add(new admin_setting_heading('licensesatus', get_string('licensestatus', 'local_ent_installer'), $licensemess));
             }
         }
@@ -199,6 +200,7 @@ if ($hassiteconfig) {
     $key = 'local_ent_installer/teacher_stub_category';
     $label = get_string('configteacherstubcategory', 'local_ent_installer');
     $desc = get_string('configteacherstubcategory_desc', 'local_ent_installer');
+    $default = 'ldap';
     $settings->add(new admin_setting_configselect($key, $label, $desc, 1, $categoryoptions));
 
     $key = 'local_ent_installer/teacher_mask_firstname';

@@ -32,7 +32,9 @@ $config = get_config('local_ent_installer');
 $filter = optional_param('filter', '', PARAM_TEXT);
 
 $select = " AND
-        (lastname LIKE '%$filter%')
+        (lastname LIKE '%$filter%' OR
+         firstname LIKE '%$filter%' OR
+         username LIKE '%$filter%')
 ";
 
 $filterclause = (!empty($filter)) ? $select : '';
@@ -43,7 +45,7 @@ $params = array($config->real_used_auth, $CFG->mnet_localhost_id);
 $fields = 'id, username, '.get_all_user_name_fields(true, '');
 if ($users = $DB->get_records_select('user', $select, $params, 'lastname, firstname', $fields)) {
     foreach ($users as $user) {
-        $useropts[$user->id] = $user->lastname.' '.$user->firstname.' ('.$user->username.')';
+        $useropts[$user->id] = fullname($user).' ('.$user->username.')';
     }
 } else {
     $useropts = array();
