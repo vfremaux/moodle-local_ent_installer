@@ -217,7 +217,9 @@ function local_ent_installer_reorder_teacher_categories() {
 
     $sort = 'idnumber';
     $cattosort = local_ent_installer_coursecat_get($teacherrootcat, MUST_EXIST, true);
-    \core_course\management\helper::action_category_resort_subcategories($cattosort, $sort, true);
+    if ($cattosort) {
+        \core_course\management\helper::action_category_resort_subcategories($cattosort, $sort, true);
+    }
 }
 
 /**

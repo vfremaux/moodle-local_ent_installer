@@ -478,6 +478,17 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
             mtrace("\n>> ".get_string('usersdeletion', 'local_ent_installer'));
 
+            $retiredclause = "
+                u.deleted = 0 AND
+            ";
+
+            if (@$ldapauth->config->removeuser == AUTH_REMOVEUSER_SUSPEND) {
+                mtrace("\n>> Adding unsuspended filter ");
+                $retiredclause .= "
+                    u.suspended = 0 AND
+                ";
+            }
+
             $sql = '
                 SELECT
                     u.*
@@ -488,9 +499,8 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 ON
                     (u.username = e.username AND u.mnethostid = e.mnethostid)
                 WHERE
-                    u.auth = ? AND
-                    u.deleted = 0 AND
-                    u.suspended = 0 AND
+                    (u.auth = ? OR u.auth = "nologin") AND
+                    '.$retiredclause.'
                     e.username IS NULL
             '.@$debughardlimit;
             $realuserauth = $config->real_used_auth;
