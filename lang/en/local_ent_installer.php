@@ -38,6 +38,8 @@ $string['configadminssitecohortname'] = 'Name for the global admins cohort';
 $string['configadminssitecohortname_desc'] = '';
 $string['configadminstaffsitecohortname'] = 'Name for the global site admin staff cohort';
 $string['configadminstaffsitecohortname_desc'] = '';
+$string['configauxgroupnamefilter'] = 'Filter for moodle auxiliary group name';
+$string['configauxgroupnamefilter_desc'] = 'A regexp content for capturing the group name. Result wil be prefixed by millesim.';
 $string['configbuildteachercategory'] = 'Build teacher category';
 $string['configbuildteachercategory_desc'] = 'If enabled, a teacher dedicated category will be built in the teachers workplaces category for each new teacher imported.';
 $string['configcohortindex'] = 'Cohort index';
@@ -75,10 +77,12 @@ $string['configinstitutionid'] = 'Institution ID';
 $string['configinstitutionid_desc'] = 'The Education system school id';
 $string['configlastsyncdate'] = 'Last synchro';
 $string['configlastsyncdate_desc'] = 'Last synchonisation date. If you change this, the next synchronisation will condsider all users changed or created since this date';
+$string['configmailcheckusers'] = 'Mail check users';
+$string['configmailcheckusers_desc'] = 'List of user ids or usernames to send a process check email to.';
 $string['configmaildisplay'] = 'Initial mail visibility';
 $string['configmaildisplay_desc'] = 'The initial mail visibility profile setting for new synced users.';
 $string['configrealauth'] = 'Real authentication';
-$string['configrealauth_desc'] = 'This setting sets the real authenticaiton method that will assigned to imported users, whatever the auth scheme used for import (hardlinked to LDAP)';
+$string['configrealauth_desc'] = 'This setting sets the real authentication method that will assigned to imported users, whatever the auth scheme used for import (hardlinked to LDAP)';
 $string['configrecorddatefieldname'] = 'Time modified LDAP fieldname';
 $string['configrecorddatefieldname_desc'] = 'The LDAP field name providing the LastModifiedTimestamp';
 $string['configstaffsitecohortname'] = 'Name for the global site staff cohort';
@@ -86,6 +90,7 @@ $string['configstaffsitecohortname_desc'] = '';
 $string['configstudentssitecohortname'] = 'Name for the global student cohort';
 $string['configstudentssitecohortname_desc'] = '';
 $string['configsynccohortsenable'] = 'Enable cohorts';
+$string['configsynccohorttocourseenable'] = 'Enable cohort to course bindings';
 $string['configsyncenable'] = 'Enable';
 $string['configsyncenable_desc'] = 'enables the synchronisation script (CLI). If disabled, the sync script will have no effect at all, even if lauched by cron.';
 $string['configsyncgroupsenable'] = 'Enable course groups';
@@ -101,6 +106,8 @@ $string['configtimestampformat'] = 'Timestamp format';
 $string['configtimestampformat_desc'] = 'Choose between Unix or Active Directory format (YYYYMMDDHHIISS.TZ)';
 $string['configtimestampshift'] = 'Timestamp forth shift delay';
 $string['configtimestampshift_desc'] = 'A delay in seconds added to ldap incoming times';
+$string['configprocessauxgroups'] = 'process auxiliary groups';
+$string['configprocessauxgroups_desc'] = 'Process the ENSAuxEnsGroupes field to forge auxiliary cohorts';
 $string['coursefilters'] = 'Course filter';
 $string['coursegroups'] = 'Course groups';
 $string['datasync'] = 'ENT Data Synchronisation';
@@ -112,10 +119,10 @@ $string['dbskipnewusersimul'] = 'SIMULATION SKIPPED : New user skipped {$a->user
 $string['dbupdateuser'] = 'ALIM : User update (guess status : {$a->status}) or complete {$a->username} - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
 $string['dbupdateusersimul'] = 'SIMULATION : User update (guess status : {$a->status}) or complete {$a->username} - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
 $string['defaultarchivecatname'] = 'Archives';
+$string['didntgetcohortsfromldap'] = 'Did not get any cohort from LDAP. Stopping process.';
+$string['didntgetusersfromldap'] = 'Did not get any user from LDAP. Stopping process.';
 $string['doit'] = 'Do it really!';
 $string['emptygroups'] = 'Empty groups';
-$string['emulatecommunity'] = 'Emulate the community version.';
-$string['emulatecommunity_desc'] = 'Switches the code to the community version. The result will be more compatible, but some features will not be available anymore.';
 $string['enrolled'] = 'Enrolled with method {$a}';
 $string['enrolmethod'] = 'Enrol plugin';
 $string['entities'] = 'Entities';
@@ -123,20 +130,15 @@ $string['entupdate'] = 'Update ENT definitions';
 $string['filter'] = 'Filter';
 $string['finaloperations'] = 'Final cleanup operations';
 $string['force'] = 'Force updating all entries (even unmodified since last reference)';
-$string['forcedebugwarning'] = 'Vous ne pouvez pas activer la synchronisation complète en mode de déboggage développeur car les informations récupérées du ldap seront incomplète. Seul le traitement différentiel est supporté.';
+$string['forcedebugwarning'] = 'You cannot run the complete synchrosnisation in developer debugging mode as ldap fetched set is incomplete.';
 $string['getinstitutionidservice'] = 'Structure ID Search';
 $string['generals'] = 'General settings';
 $string['id'] = 'Structure Identifier';
 $string['inserterrors'] = 'Insert errors';
-$string['inserts'] = 'Inserts (users added)';
+$string['inserts'] = 'Inserts (records added)';
 $string['installcats'] = 'site initial categories installation';
 $string['lastrun'] = 'Last run on {$a}';
 $string['lasttime'] = 'Last run time';
-$string['licensestatus'] = 'Pro License status';
-$string['licenseprovider'] = 'Pro License provider';
-$string['licenseprovider_desc'] = 'Input here your provider key';
-$string['licensekey'] = 'Pro license key';
-$string['licensekey_desc'] = 'Input here the product license key you got from your provider';
 $string['maxduration'] = 'Max sync duration';
 $string['meantime'] = 'Mean syncing time';
 $string['mergesiteadmins'] = 'Update site admins to {$a}';
@@ -153,14 +155,17 @@ $string['onceaday'] = 'daily';
 $string['onceamonth'] = 'monthly';
 $string['onceaweek'] = 'weekly';
 $string['options'] = 'Processing options';
+$string['othercommands'] = 'Other commands';
 $string['overtime'] = 'Overtimes';
 $string['overtimes'] = 'Overtimes (> {$a} secs)';
-$string['plugindist'] = 'Plugin distribution';
+$string['oldcohortdeleted'] = 'Old cohort {$a} deleted';
 $string['pluginname'] = 'Installation Moodle ENT';
+$string['purgeobsoletecohorts'] = 'Delete obsolete cohorts';
 $string['refreshsitemetadata'] = 'Reset site metadata';
 $string['relocatingcourse'] = 'Relocating course {$a}.';
 $string['relocatingcourseignored'] = 'Course {$a} ignored (protected category).';
 $string['reset'] = 'Reset stats data';
+$string['resetzoom'] = 'Reset zoom factor';
 $string['resetallvnodes'] = 'Reset stats data in all nodes';
 $string['revivingdeletedorsuspended'] = 'Reviving suspended or deleted users';
 $string['roleassigns'] = 'Role assignments';
@@ -190,11 +195,12 @@ $string['teachercatreorder'] = 'Reorder teacher categories';
 $string['relocateteachercourses'] = 'Relocate teacher courses in owned category';
 $string['unenrolled'] = 'Unenrolled from method {$a}';
 $string['updateerrors'] = 'Updates errors';
+$string['usefilternotice'] = 'More than 200 users in the list. Use filter to reduce.';
 $string['doall'] = 'Do all operations.';
 $string['createonly'] = 'Only create new records.';
 $string['updateonly'] = 'Only update existing records. Do not create any more.';
 $string['deleteonly'] = 'Only delete old discarded records.';
-$string['updates'] = 'Updates (users updated)';
+$string['updates'] = 'Updates (records updated)';
 $string['updatingusers'] = 'Updating user (attributes only)';
 $string['users'] = 'User accounts';
 $string['usersdeletion'] = 'Users deletion';
@@ -299,6 +305,8 @@ $string['configcohorthardcohortunenrol'] = 'Unenrol cohort mode';
 $string['configcohorthardcohortunenrol_desc'] = 'What will happen when a cohort is unenrolled from course. When using soft method, enrol method is disabled and enrolments are kept with all user data and group assignations. When using hard unenrol, method is destroyed and all relevant membership so are user data in course.';
 $string['id'] = 'Primary id';
 
+$string['configsynccohorttocourseenable_desc'] = 'Enable cohort to course bindings synchronisation, generating cohort enrol methods. Beware that manual setup of cohort synchronisations cannot be preserved, unless the binding has been reported in the external reference data source.';
+
 $string['cohortbindings'] = 'Cohorts to course bindings';
 $string['cohortnobindings'] = 'No cohort bindings';
 $string['deletingcohorts'] = 'Deleting old cohorts';
@@ -317,6 +325,7 @@ $string['cohortbindingenabled'] = 'Cohort enrol method enabled for cohort {$a->i
 $string['cohortbindingdisabled'] = 'Cohort enrol method disabled for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}] with role {$a->role}.';
 $string['disableautocohortscheck'] = 'Disable autocohort check';
 $string['removingoldcohort'] = 'Removing obsolete cohort {$a->id} {$a->name}';
+$string['removingoldcohorts'] = 'Removing obsolete cohorts';
 
 // Role assignments.
 
@@ -586,9 +595,4 @@ standard owned category. This affects all courses in moodle complying the owners
 in a protected category (See ENT installer global settings).
 ';
 
-$string['plugindist_desc'] = '
-<p>This plugin is the community version and is published for anyone to use as is and check the plugin\'s
-core application. A "pro" version of this plugin exists and is distributed under conditions to feed the life cycle, upgrade, documentation
-and improvement effort.</p>
-<p>Please contact one of our distributors to get "Pro" version support.</p>
-<p><a href="http://www.mylearningfactory.com/index.php/documentation/Distributeurs?lang=en_utf8">MyLF Distributors</a></p>';
+require(__DIR__.'/pro_additional_strings.php');

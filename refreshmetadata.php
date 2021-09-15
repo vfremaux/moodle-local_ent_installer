@@ -58,7 +58,7 @@ if (!empty($config->institution_id)) {
 
     $metadatas = array();
     foreach ($ids as $iid) {
-        $metadatas = local_ent_installer_ldap_search_institution_id($ldapauth, $search, $searchby = 'name')
+        $metadatas = local_ent_installer_ldap_search_institution_id($ldapauth, $search, $searchby = 'name');
     }
 
     $metadatastr = serialize($metadatas);
@@ -70,6 +70,6 @@ if (!empty($config->institution_id)) {
 echo '<div class="return-button">';
 $buttonurl = new moodle_url('');
 echo $OUTPUT->single_button($buttonurl, get_string('backtosettings', 'local_ent_sintaller'));
-echo '</div>;
+echo '</div>';
 
 echo $OUTPUT->footer();
