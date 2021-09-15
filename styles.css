@@ -16,3 +16,35 @@
     border:1px dashed #808080;
     border-radius:5px;
 }
+
+#fgroup_id_usersgroup input[type=button],
+#fgroup_id_cohortgroup input[type=button] {
+    margin-left: 80px;
+}
+
+.is-ent-user.deleted-user td {
+    -moz-opacity: 0.3;
+    opacity: 0.3;
+    text-decoration: line-through;
+}
+
+.is-ent-user.suspended-user td {
+    -moz-opacity: 0.6;
+    opacity: 0.6;
+}
+
+.is-ent-user.enseignant td {
+    background-color: #F2DF84 !important;
+}
+
+.is-ent-user.parent td {
+    background-color: #C7E2F1 !important;
+}
+
+.is-ent-user.cdt td {
+    background-color: #FBBDE9 !important;
+}
+
+.is-ent-user.administration td {
+    background-color: #FDD0BB !important;
+}
