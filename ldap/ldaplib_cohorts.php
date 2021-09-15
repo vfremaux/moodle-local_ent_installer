@@ -299,7 +299,6 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                     }
 
                     mtrace('--'.++$dlcnt.'--');
-
                     if (empty($options['simulate'])) {
                         if ($members = $DB->get_records('cohort_members', array('cohortid' => $dl->cid))) {
                             foreach ($members as $m) {
@@ -341,14 +340,14 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                 $oldrec = $DB->get_record('cohort', array('id' => $up->cid));
                 // Ensure we have a correctly prefixed cohort IDNum and wellformed idnumber.
                 if (!empty($config->cohort_ix)) {
-                    $oldrec->idnumber = str_replace('__', '_', $config->cohort_ix.'_'.$cidnumber);
+                    $oldrec->idnumber = $config->cohort_ix.'_'.$cidnumber;
                     $oldrec->name = $config->cohort_ix.' '.$cohortinfo->name;
                 } else {
                     $oldrec->idnumber = $cidnumber;
                     $oldrec->name = $cohortinfo->name;
                 }
 
-                $oldrec->description = '' + @$cohortinfo->description;
+                $oldrec->description = ''.@$cohortinfo->description;
                 $oldrec->descriptionformat = FORMAT_HTML;
                 $oldrec->contextid = $systemcontext->id;
                 $oldrec->component = 'local_ent_installer';
@@ -387,6 +386,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                     $cohortldapidentifier = str_replace('%ID%', $config->institution_id, $cohortldapidentifier);
 
                     if (!$cohortinfo = local_ent_installer_get_cohortinfo_asobj($ldapauth, $cohortldapidentifier, $options)) {
+
                         continue;
                     }
 
@@ -394,7 +394,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
                     $cohort->description = ''.@$cohortinfo->description;
                     $cohort->descriptionformat = FORMAT_HTML;
                     if (!empty($config->cohort_ix)) {
-                        $cohort->name = $config->cohort_ix.'_'.$cohortinfo->name;
+                        $cohort->name = $config->cohort_ix.' '.$cohortinfo->name;
                         $cohort->idnumber = $config->cohort_ix.'_'.$cohortinfo->idnumber;
                     } else {
                         $cohort->name = $cohortinfo->name;
@@ -456,6 +456,7 @@ function ent_installer_clear_obsolete_cohorts($options = array()) {
                 mtrace("\n>> ".get_string('removingoldcohorts', 'local_ent_installer'));
                 foreach ($cohorts as $ch) {
                     if (empty($options['simulate'])) {
+                        mtrace(get_string('removingoldcohort', 'local_ent_installer', $ch));
                         cohort_delete_cohort($ch);
                     } else {
                         mtrace('[SIMULATION] '.get_string('oldcohortdeleted', 'local_ent_installer', $ch->id));

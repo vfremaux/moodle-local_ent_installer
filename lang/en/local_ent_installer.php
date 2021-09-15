@@ -102,6 +102,8 @@ $string['configtimestampformat'] = 'Timestamp format';
 $string['configtimestampformat_desc'] = 'Choose between Unix or Active Directory format (YYYYMMDDHHIISS.TZ)';
 $string['configtimestampshift'] = 'Timestamp forth shift delay';
 $string['configtimestampshift_desc'] = 'A delay in seconds added to ldap incoming times';
+$string['configprocessauxgroups'] = 'process auxiliary groups';
+$string['configprocessauxgroups_desc'] = 'Process the ENSAuxEnsGroupes field to forge auxiliary cohorts';
 $string['coursefilters'] = 'Course filter';
 $string['coursegroups'] = 'Course groups';
 $string['datasync'] = 'ENT Data Synchronisation';
@@ -157,8 +159,8 @@ $string['options'] = 'Processing options';
 $string['othercommands'] = 'Other commands';
 $string['overtime'] = 'Overtimes';
 $string['overtimes'] = 'Overtimes (> {$a} secs)';
-$string['oldcohortdeleted'] = 'Old cohort {$a} deleted';
 $string['plugindist'] = 'Plugin distribution';
+$string['oldcohortdeleted'] = 'Old cohort {$a} deleted';
 $string['pluginname'] = 'Installation Moodle ENT';
 $string['purgeobsoletecohorts'] = 'Delete obsolete cohorts';
 $string['refreshsitemetadata'] = 'Reset site metadata';
@@ -304,6 +306,8 @@ $string['configcohorthardcohortunenrol'] = 'Unenrol cohort mode';
 $string['configcohorthardcohortunenrol_desc'] = 'What will happen when a cohort is unenrolled from course. When using soft method, enrol method is disabled and enrolments are kept with all user data and group assignations. When using hard unenrol, method is destroyed and all relevant membership so are user data in course.';
 $string['id'] = 'Primary id';
 
+$string['configsynccohorttocourseenable_desc'] = 'Enable cohort to course bindings synchronisation, generating cohort enrol methods. Beware that manual setup of cohort synchronisations cannot be preserved, unless the binding has been reported in the external reference data source.';
+
 $string['cohortbindings'] = 'Cohorts to course bindings';
 $string['cohortnobindings'] = 'No cohort bindings';
 $string['deletingcohorts'] = 'Deleting old cohorts';
@@ -322,6 +326,7 @@ $string['cohortbindingenabled'] = 'Cohort enrol method enabled for cohort {$a->i
 $string['cohortbindingdisabled'] = 'Cohort enrol method disabled for cohort {$a->idnumber} in course {$a->shortname} [{$a->cidnumber}] with role {$a->role}.';
 $string['disableautocohortscheck'] = 'Disable autocohort check';
 $string['removingoldcohort'] = 'Removing obsolete cohort {$a->id} {$a->name}';
+$string['removingoldcohorts'] = 'Removing obsolete cohorts';
 
 // Role assignments.
 
@@ -591,9 +596,12 @@ standard owned category. This affects all courses in moodle complying the owners
 in a protected category (See ENT installer global settings).
 ';
 
+$string['plugindist'] = 'Plugin distribution';
 $string['plugindist_desc'] = '
 <p>This plugin is the community version and is published for anyone to use as is and check the plugin\'s
 core application. A "pro" version of this plugin exists and is distributed under conditions to feed the life cycle, upgrade, documentation
 and improvement effort.</p>
 <p>Please contact one of our distributors to get "Pro" version support.</p>
 <p><a href="http://www.mylearningfactory.com/index.php/documentation/Distributeurs?lang=en_utf8">MyLF Distributors</a></p>';
+
+include(__DIR__.'/pro_additional_strings.php');

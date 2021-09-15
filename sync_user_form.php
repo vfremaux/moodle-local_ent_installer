@@ -45,7 +45,7 @@ class SyncUserForm extends moodleform {
         $usersopts = $DB->get_records_menu('user', $params, 'lastname, firstname', $fields, 0, 200);
         $countall = $DB->count_records('user', $params);
         if ($countall > 200) {
-            $mform->addelement('static', 'overnumnotice', $OUTPUT->notification(get_string('usefilternotice', 'local_ent_installer')));
+            $mform->addelement('static', 'overnumnotice', '', $OUTPUT->notification(get_string('usefilternotice', 'local_ent_installer')));
         }
 
         if (!empty($config->sync_users_enable)) {
@@ -59,12 +59,16 @@ class SyncUserForm extends moodleform {
 
         $mform->addElement('html', '<h3>'.get_string('options', 'local_ent_installer').'</h3>');
 
+        $mform->addElement('hidden', 'operation', 'update');
+        $mform->setType('operation', PARAM_TEXT);
+        /*
         $radioarr = array();
         $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('doall', 'local_ent_installer'), 0);
         $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('createonly', 'local_ent_installer'), 'create');
         $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('updateonly', 'local_ent_installer'), 'update');
         $radioarr[] = $mform->createElement('radio', 'operation', '', get_string('deleteonly', 'local_ent_installer'), 'delete');
         $mform->addGroup($radioarr, 'operationgroup', '', array(''), false);
+        */
 
         $mform->addElement('checkbox', 'simulate', get_string('simulate', 'local_ent_installer'));
 
