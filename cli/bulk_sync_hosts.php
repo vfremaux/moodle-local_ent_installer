@@ -232,5 +232,5 @@ foreach ($joblist as $jl) {
 }
 
 if ($options['mail'] >= 1) {
-    local_ent_installer_send_mail_checkpoint('bulk_sync_host', $mailmess);
+    local_ent_installer_send_mail_checkpoint('bulk_sync_hosts', $mailmess);
 }

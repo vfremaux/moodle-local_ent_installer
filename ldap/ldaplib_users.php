@@ -812,12 +812,14 @@ function local_ent_installer_sync_users($ldapauth, $options) {
             $user->mnethostid = $CFG->mnet_localhost_id;
             $user->country = get_config('moodle', 'country');
 
-            // If is set, User is being deleted or faked account. Ignore.
+            // If is set, User is being deleted or faked account. Do nothing BUT remove from any current cohort memberships.
+            // This is an early processing that will terminate by skipping all further data update or changes.
             // Atrium related.
             if (!empty($user->entpersondatesuppression)) {
                 mtrace('ERROR : User upon deletion process '.$user->username);
                 $updateerrorcount++;
 
+                ent_installer_remove_from_active_cohorts($user);
                 ent_installer_check_category_archiving($user);
 
                 continue;
@@ -1358,6 +1360,8 @@ function local_ent_installer_user_add_info(&$user, $role, $info) {
  * some translation ro catch older records.
  *
  * the matching strategy adopted is a regressive check from very constrainted match to less constraint match
+ * @param object $newuser a user object with data coming from ldap.
+ * @param stringref $status when returning a moodle user record, gives back the matching case found by matching algorithm.
  */
 function local_ent_installer_guess_old_record($newuser, &$status) {
     global $DB;
@@ -1687,7 +1691,7 @@ function local_ent_installer_get_userinfo_asobj($ldapauth, $username, $options =
  * Cohorts are handled in the 'local_ent_installer' component scope and will NOT interfere
  * with locally manually created cohorts.
  * Old cohorts from a preceding session might be protected by switching their component
- * scope to somethin else than 'local_ent_installer'. This will help keeping students from preceding
+ * scope to something else than 'local_ent_installer'. This will help keeping students from preceding
  * sessions in those historical cohorts.
  * @param int $userid the user id
  * @param string $cohortidentifier a fully qualified cohort or single qualified name (SDET compliant).
@@ -2106,3 +2110,43 @@ function ent_installer_save_profile_image($userid, $originalfile, $options = arr
     return process_new_icon($context, 'user', 'icon', 0, $originalfile);
 }
 
+/**
+ * Removes any menbership from the current year active cohorts, as user is being deleted.
+ * Precedebnt cohort assignaitons may remain. This is mostly the case when reloading all data for a new
+ * yearly session : In that case, cohort IX is indexed before feeding is restarted, and we expect that
+ * users have been marked for suppression. If not immediately, the current cohort set has changed and
+ * previous IXes will not be affected by this removal.
+ * 
+ * @param object $user 
+ */
+function ent_installer_remove_from_active_cohorts($user) {
+    global $DB;
+
+    $prefix = get_config('local_ent_installer', 'cohortix');
+
+    $oldrec = local_ent_installer_guess_old_record($user, $status);
+
+    if (!$oldrec) {
+        // this is likely a new user not yet in moodle. So no need to check for active memberships.
+        return;
+    }
+
+    // Get actual enrollments on active cohorts :
+    $sql = "
+        SELECT
+            cm.id
+        FROM
+            {cohort} c,
+            {cohort_members} cm
+        WHERE
+            c.id = cm.cohortid AND
+            c.idnumnber LIKE '{$prefix}%' AND
+            cm.userid = ?
+    ";
+    $memberships = $DB->get_records_sql($sql, [$oldrec->id]);
+    if (!empty($memberships)) {
+        foreach ($memberships as $cm) {
+            $DB->delete_records('cohort_memmbers', ['id' => $cm->id]);
+        }
+    }
+}

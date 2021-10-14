@@ -17,23 +17,23 @@
 
 define(['jquery', 'core/log', 'core/config'], function($, log, cfg) {
 
-    var ent_installerpro = {
+    var localentinstallerpro = {
 
         component: 'local_ent_installer',
         shortcomponent: 'local_ent_installer',
-        componentpath: '/local/ent_installer',
+        componentpath: 'local/ent_installer',
 
         init: function() {
 
-            var licensekeyid = '#id_s_' + ent_installerpro.component + '_licensekey';
+            var licensekeyid = '#id_s_' + localentinstallerpro.component + '_licensekey';
             $(licensekeyid).bind('change', this.check_product_key);
             $(licensekeyid).trigger('change');
-            log.debug('AMD Pro js initialized for ' + ent_installerpro.component + ' system');
+            log.debug('AMD Pro js initialized for ' + localentinstallerpro.component + ' system');
         },
 
         check_product_key: function() {
 
-            var licensekeyid = '#id_s_' + ent_installerpro.component + '_licensekey';
+            var licensekeyid = '#id_s_' + localentinstallerpro.component + '_licensekey';
 
             var that = $(this);
 
@@ -41,7 +41,7 @@ define(['jquery', 'core/log', 'core/config'], function($, log, cfg) {
             var payload = productkey.substr(0, 14);
             var crc = productkey.substr(14, 2);
 
-            var calculated = ent_installerpro.checksum(payload);
+            var calculated = localentinstallerpro.checksum(payload);
 
             var validicon = ' <img src="' + cfg.wwwroot + '/pix/i/valid.png' + '">';
             var cautionicon = ' <img src="' + cfg.wwwroot + '/pix/i/warning.png' + '">';
@@ -50,11 +50,11 @@ define(['jquery', 'core/log', 'core/config'], function($, log, cfg) {
             var found;
 
             if (crc === calculated) {
-                var url = cfg.wwwroot + '/' + ent_installerpro.componentpath + '/pro/ajax/services.php?';
+                var url = cfg.wwwroot + '/' + localentinstallerpro.componentpath + '/pro/ajax/services.php?';
                 url += 'what=license';
                 url += '&service=check';
                 url += '&customerkey=' + that.val();
-                url += '&provider=' + $('#id_s_' + ent_installerpro.component + '_licenseprovider').val();
+                url += '&provider=' + $('#id_s_' + localentinstallerpro.component + '_licenseprovider').val();
 
                 $(licensekeyid + ' + img').remove();
                 $(licensekeyid).after(waiticon);
@@ -101,5 +101,5 @@ define(['jquery', 'core/log', 'core/config'], function($, log, cfg) {
         }
     };
 
-    return ent_installerpro;
+    return localentinstallerpro;
 });
