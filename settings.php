@@ -47,7 +47,7 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
         $ADMIN->add('root', new admin_category('automation', new lang_string('automation', 'local_ent_installer')));
     }
 
-    $settings = new admin_settingpage('local_ent_installer_light', get_string('entupdate', 'local_ent_installer'));
+    $settings = new admin_settingpage('localsettingent_installer_light', get_string('entupdate', 'local_ent_installer'));
 
     if (local_ent_installer_supports_feature('emulate/community') == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
