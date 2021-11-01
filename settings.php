@@ -51,14 +51,13 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
 
     if (local_ent_installer_supports_feature('emulate/community') == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        $promanager = new \local_ent_installer\pro_manager();
+        $promanager = local_ent_installer\pro_manager::instance();
     }
 
     if ($ADMIN->fulltree) {
         if (local_ent_installer_supports_feature() == 'pro') {
             $PAGE->requires->js_call_amd('local_ent_installer/pro', 'init');
             $config = get_config('local_ent_installer');
-            $promanager = new \local_ent_installer\pro_manager();
             $check = $promanager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
 
             if (!preg_match('/SET OK/', $check)) {

@@ -1918,6 +1918,7 @@ function local_ent_installer_match_structure($personstructure) {
  */
 function local_ent_installer_merge_siteadmins($newadmins, $options = array()) {
     global $DB;
+    global $CFG;
     static $config;
 
     if (!isset($config)) {
@@ -1926,7 +1927,7 @@ function local_ent_installer_merge_siteadmins($newadmins, $options = array()) {
     }
 
     $oldadmins = array();
-    if ($oldadminlist = get_config('moodle', 'siteadmins')) {
+    if ($oldadminlist = $CFG->siteadmins) {
 
         $oldadmins = explode(',', $oldadminlist);
 
@@ -2120,14 +2121,19 @@ function ent_installer_save_profile_image($userid, $originalfile, $options = arr
  * @param object $user 
  */
 function ent_installer_remove_from_active_cohorts($user) {
-    global $DB;
+    global $DB, $CFG;
 
     $prefix = get_config('local_ent_installer', 'cohortix');
+
+    if (empty($CFG->extendedusernamechars)) {
+        $user->username = trim(core_text::strtolower($user->username));
+    }
 
     $oldrec = local_ent_installer_guess_old_record($user, $status);
 
     if (!$oldrec) {
         // this is likely a new user not yet in moodle. So no need to check for active memberships.
+        debug_trace("Could not guess user", TRACE_ERROR);
         return;
     }
 
