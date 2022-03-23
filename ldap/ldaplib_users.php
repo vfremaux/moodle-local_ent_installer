@@ -102,10 +102,10 @@ function local_ent_installer_sync_users($ldapauth, $options) {
         $promanager = local_ent_installer\pro_manager::instance();
         $check = $promanager->set_and_check_license_key($config->licensekey, $config->licenseprovider, true);
         if (!preg_match('/SET OK/', $check)) {
-            $licenselimit = 1000;
+            $licenselimit = 10000;
         }
     } else {
-        $licenselimit = 1000;
+        $licenselimit = 10000;
     }
 
     ent_installer_check_archive_category_exists();
@@ -1927,7 +1927,7 @@ function local_ent_installer_merge_siteadmins($newadmins, $options = array()) {
     }
 
     $oldadmins = array();
-    if ($oldadminlist = $CFG->siteadmins) {
+    if ($oldadminlist = get_config('moodle', 'siteadmins')) {
 
         $oldadmins = explode(',', $oldadminlist);
 
@@ -2146,13 +2146,13 @@ function ent_installer_remove_from_active_cohorts($user) {
             {cohort_members} cm
         WHERE
             c.id = cm.cohortid AND
-            c.idnumnber LIKE '{$prefix}%' AND
+            c.idnumber LIKE '{$prefix}%' AND
             cm.userid = ?
     ";
     $memberships = $DB->get_records_sql($sql, [$oldrec->id]);
     if (!empty($memberships)) {
         foreach ($memberships as $cm) {
-            $DB->delete_records('cohort_memmbers', ['id' => $cm->id]);
+            $DB->delete_records('cohort_members', ['id' => $cm->id]);
         }
     }
 }

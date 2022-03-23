@@ -314,7 +314,8 @@ if ($hassiteconfig) {
 
     if (local_ent_installer_supports_feature('emulate/community') == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        \local_ent_installer\pro_manager::add_settings($ADMIN, $settings);
+        $promanager = local_ent_installer\pro_manager::instance();
+        $promanager->add_settings($ADMIN, $settings);
     } else {
         $label = get_string('plugindist', 'local_ent_installer');
         $desc = get_string('plugindist_desc', 'local_ent_installer');

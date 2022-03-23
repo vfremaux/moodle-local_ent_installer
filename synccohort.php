@@ -66,8 +66,8 @@ if ($data = $mform->get_data()) {
 
     require_sesskey();
 
-    // Secure the reception of uid.
-    $data->chid = $_REQUEST['chid'];
+    // Secure the reception of cohort id.
+    $data->chid = clean_param($_REQUEST['chid'], PARAM_INT);
 
     // Get ldap params from real ldap plugin.
     $ldapauth = get_auth_plugin('ldap');

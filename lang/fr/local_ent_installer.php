@@ -137,6 +137,7 @@ $string['force'] = 'Forcer la mise à jour de toutes les entrées (y compris cel
 $string['forcedebugwarning'] = 'You cannot enable forced mode when being in developer debug mode as this will get partial info from ldap';
 $string['getinstitutionidservice'] = 'Recherche d\'identifiants d\'établissements';
 $string['generals'] = 'Réglages généraux';
+$string['gotcountrecordsfromldap'] = '{$a} enregistrements de cohorts trouvés dans l\'annuaire.';
 $string['id'] = 'Identifiant RNE';
 $string['moodleid'] = 'ID Moodle interne';
 $string['inserterrors'] = 'Erreurs d\'insertion';
@@ -582,6 +583,17 @@ $string['configstructureaddress'] = 'Adresse';
 $string['configstructureaddress_desc'] = 'L\'attribut LDAP contenant l\'adresse de la structure';
 $string['configstructuregeoloc'] = 'Géolocalisation';
 $string['configstructuregeoloc_desc'] = 'L\'attribut LDAP portant les données de géolocalisation de la structure';
+
+// Profile filtered user selector
+$string['all'] = 'Tous';
+$string['eleve'] = 'Elèves';
+$string['enseignant'] = 'Enseignants';
+$string['parent'] = 'Parents';
+$string['cdt'] = 'Chefs de travaux';
+$string['administration'] = 'Administration';
+$string['cohort'] = 'Cohorte';
+$string['reload'] = 'Recharger le filtre';
+$string['allusers'] = 'Tous les utilisateurs';
 
 $string['relocateteachercourses_help'] = '
 Déplacer tous les cours appartenant à un seul enseignant (en édition) dans la

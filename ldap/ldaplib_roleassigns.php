@@ -79,10 +79,10 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
         $promanager = local_ent_installer\pro_manager::instance();
         $check = $promanager->set_and_check_license_key($config->licensekey, $config->licenseprovider, true);
         if (!preg_match('/SET OK/', $check)) {
-            $licenselimit = 3000;
+            $licenselimit = 30000;
         }
     } else {
-        $licenselimit = 3000;
+        $licenselimit = 30000;
     }
 
     $ldapconnection = $ldapauth->ldap_connect();

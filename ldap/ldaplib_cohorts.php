@@ -64,10 +64,10 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
         $promanager = local_ent_installer\pro_manager::instance();
         $check = $promanager->set_and_check_license_key($config->licensekey, $config->licenseprovider, true);
         if (!preg_match('/SET OK/', $check)) {
-            $licenselimit = 3000;
+            $licenselimit = 100000;
         }
     } else {
-        $licenselimit = 3000;
+        $licenselimit = 100000;
     }
 
     $ldapconnection = $ldapauth->ldap_connect();
@@ -114,10 +114,17 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
     $ldapcookie = '';
     $requid = '*';
     if (!empty($options['chid'])) {
-        // Force the ldap filter to match only one single user. We cannot be in forced mode in this case.
+        // Force the ldap filter to match only one single cohort. We cannot be in forced mode in this case.
         $options['force'] = false;
         $cohort = $DB->get_record('cohort', array('id' => $options['chid']));
-        $requid = $cohort->idnumber;
+        // Strip millesim from cohort idnumber.
+        // Note : idnumber will have been lowercased. We assume SQL compare is case independant for that
+        // match to work.
+        if (!empty($config->cohort_ix)) {
+            $requid = preg_replace('/^'.$config->cohort_ix.'_/', '', $cohort->idnumber);
+        } else {
+            $requid = $cohort->idnumber;
+        }
     }
 
     $cohortrecordfields = array($config->cohort_idnumber_attribute,
@@ -204,7 +211,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
          */
         $count = $DB->count_records_sql('SELECT COUNT(*) AS count, 1 FROM {tmp_extcohort}');
         if ($count < 1) {
-            mtrace(get_string('didntgetcohortsfromldap', 'auth_ldap'));
+            mtrace(get_string('didntgetcohortsfromldap', 'local_ent_installer'));
             $dbman->drop_table($table);
             $ldapauth->ldap_close(true);
 
@@ -212,7 +219,7 @@ function local_ent_installer_sync_cohorts($ldapauth, $options = array()) {
             set_config('last_sync_date_cohort', time(), 'local_ent_installer');
             return false;
         } else {
-            mtrace(get_string('gotcountrecordsfromldap', 'auth_ldap', $count));
+            mtrace(get_string('gotcountrecordsfromldap', 'local_ent_installer', $count));
         }
 
         /*

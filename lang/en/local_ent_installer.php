@@ -132,6 +132,7 @@ $string['finaloperations'] = 'Final cleanup operations';
 $string['force'] = 'Force updating all entries (even unmodified since last reference)';
 $string['forcedebugwarning'] = 'You cannot run the complete synchrosnisation in developer debugging mode as ldap fetched set is incomplete.';
 $string['getinstitutionidservice'] = 'Structure ID Search';
+$string['gotcountrecordsfromldap'] = '{$a} cohort records from ldap.';
 $string['generals'] = 'General settings';
 $string['id'] = 'Structure Identifier';
 $string['inserterrors'] = 'Insert errors';
@@ -588,6 +589,17 @@ $string['configstructureaddress'] = 'Current address';
 $string['configstructureaddress_desc'] = 'LDAP attribute holding the structure address';
 $string['configstructuregeoloc'] = 'Geolocation';
 $string['configstructuregeoloc_desc'] = 'LDAP attribute holding the structure geolocation';
+
+// Profile filtered user selector
+$string['all'] = 'Any';
+$string['eleve'] = 'Students';
+$string['enseignant'] = 'Trachers';
+$string['cdt'] = 'Mentors';
+$string['administration'] = 'Administration';
+$string['parent'] = 'Parents';
+$string['cohort'] = 'Cohort';
+$string['reload'] = 'Reload filter';
+$string['allusers'] = 'All cohorts';
 
 $string['relocateteachercourses_help'] = '
 Relocating teacher courses will move courses belonging (in edition) to a single teacher to his
