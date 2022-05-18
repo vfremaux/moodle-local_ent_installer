@@ -814,7 +814,22 @@ function ldap_find_cohortdn($ldapauth, $ldapconnection, $cohortidentifier, $cont
 
     if (empty($ldapconnection) || empty($cohortidentifier) || empty($contexts) || empty($objectclass) || empty($searchattrib)) {
         if (!empty($options['verbose'])) {
-            mtrace('Missing data at find_cohortdn input');
+            mtrace("Missing data at find_cohortdn input: \n");
+            if (empty($ldapconnection)) {
+                mtrace(" No connection\n");
+            }
+            if (empty($cohortidentifier)) {
+                mtrace(" No cohort identifier\n");
+            }
+            if (empty($contexts)) {
+                mtrace(" No contexts\n");
+            }
+            if (empty($objectclass)) {
+                mtrace(" Empty objectClass\n");
+            }
+            if (empty($searchattrib)) {
+                mtrace(" Undefined search attributes\n");
+            }
         }
         return false;
     }

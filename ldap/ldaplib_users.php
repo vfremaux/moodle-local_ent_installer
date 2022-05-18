@@ -911,6 +911,38 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
                 if ($oldrec = local_ent_installer_guess_old_record($user, $status)) {
 
+                    // If is set, User is being deleted or faked account. Suspend and remove from any current cohort memberships.
+                    // This is an early processing that will terminate by skipping all further data update or changes.
+                    // Atrium related.
+                    // Atrium date format is dd/mm/yyyy
+                    if (!empty($user->entpersondatesuppression)) {
+                        if ($user->entpersondatesuppression < date('d/m/Y', time())) {
+                            // It's time to suppress.
+                            $updateerrorcount++;
+
+                            if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_SUSPEND) {
+                                // suspend only
+                                $oldrec->suspended = 1;
+                                $DB->update_record('user', $oldrec);
+                                ent_installer_remove_from_active_cohorts($user);
+                                mtrace(get_string('dbusertosuspend', 'local_ent_installer', $a));
+                            } else if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_FULLDELETE) {
+                                // remove completely
+                                user_delete_user($oldrec);
+                                mtrace(get_string('dbusertodelete', 'local_ent_installer', $a));
+                            } else {
+                                // Neither suspend nor delete, only retire from active cohorts.
+                                ent_installer_remove_from_active_cohorts($user);
+                                mtrace(get_string('dbusertodeletedonothing', 'local_ent_installer', $a));
+                            }
+
+                            ent_installer_check_category_archiving($user);
+                        }
+
+                        continue;
+                    }
+
+
                     $a->status = $matchstatusarr[$status];
                     $id = $user->id = $oldrec->id;
                     try {
@@ -928,6 +960,15 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         continue;
                     }
                 } else {
+
+                    if (!empty($user->entpersondatesuppression)) {
+                        if ($user->entpersondatesuppression < date('d/m/Y', time())) {
+                            // It's time to suppress.
+                            mtrace(get_string('usertoskipasdeleted', 'local_ent_installer', $a));
+                            continue;
+                        }
+                    }
+
                     // This is a real new user.
                     if (empty($options['operation']) || ($options['operation'] == 'create')) {
                         $user->maildisplay = 0 + $maildisplay;
@@ -956,13 +997,31 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 $a = clone($user);
                 $a->function = $personfunction;
                 if (!$oldrec = local_ent_installer_guess_old_record($user, $status)) {
-                    if (empty($options['updateonly'])) {
+                    if (!empty($user->entpersondatesuppression)) {
+                        if ($user->entpersondatesuppression < date('d/m/Y', time())) {
+                            // It's time to suppress.
+                            if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_SUSPEND) {
+                                mtrace(get_string('dbusertodeletesimul', 'local_ent_installer', $a));
+                            } else if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_FULLDELETE) {
+                                mtrace(get_string('dbusertosuspendsimul', 'local_ent_installer', $a));
+                            } else {
+                                mtrace(get_string('dbusertodeletedonothingsimul', 'local_ent_installer', $a));
+                            }
+                            continue;
+                        }
+                    } elseif (empty($options['updateonly'])) {
                         mtrace(get_string('dbinsertusersimul', 'local_ent_installer', $a));
                     } else {
                         mtrace(get_string('dbskipnewusersimul', 'local_ent_installer', $a));
                         continue;
                     }
                 } else {
+                    if (!empty($user->entpersondatesuppression)) {
+                        if ($user->entpersondatesuppression < date('d/m/Y', time())) {
+                            mtrace(get_string('usertoskipasdeletedsimul', 'local_ent_installer', $a));
+                            continue;
+                        }
+                    }
                     $a->status = $matchstatusarr[$status];
                     mtrace(get_string('dbupdateusersimul', 'local_ent_installer', $a));
                 }
@@ -1927,7 +1986,7 @@ function local_ent_installer_merge_siteadmins($newadmins, $options = array()) {
     }
 
     $oldadmins = array();
-    if ($oldadminlist = get_config('moodle', 'siteadmins')) {
+    if ($oldadminlist = $CFG->siteadmins) {
 
         $oldadmins = explode(',', $oldadminlist);
 
@@ -2133,7 +2192,7 @@ function ent_installer_remove_from_active_cohorts($user) {
 
     if (!$oldrec) {
         // this is likely a new user not yet in moodle. So no need to check for active memberships.
-        debug_trace("Could not guess user", TRACE_ERROR);
+        debug_trace("Could not guess user", TRACE_ERRORS);
         return;
     }
 

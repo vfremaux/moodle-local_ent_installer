@@ -49,7 +49,7 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
 
     $settings = new admin_settingpage('localsettingent_installer_light', get_string('entupdate', 'local_ent_installer'));
 
-    if (local_ent_installer_supports_feature('emulate/community') == 'pro') {
+    if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
         $promanager = local_ent_installer\pro_manager::instance();
     }
@@ -60,7 +60,7 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
             $config = get_config('local_ent_installer');
             $check = $promanager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
 
-            if (!preg_match('/SET OK/', $check)) {
+            if (!preg_match('/(CHECK|SET) OK/', $check)) {
                 $licensemess = $promanager->print_empty_license_message();
                 $settings->add(new admin_setting_heading('licensesatus', get_string('licensestatus', 'local_ent_installer'), $licensemess));
             }
