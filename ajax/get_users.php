@@ -42,7 +42,9 @@ $filterclause = (!empty($filter)) ? $select : '';
 $select = " auth = ? AND deleted = 0 AND mnethostid = ? $filterclause";
 $params = array($config->real_used_auth, $CFG->mnet_localhost_id);
 
-$fields = 'id, username, '.get_all_user_name_fields(true, '');
+// M4.
+$fields = \core_user\fields::for_name()->with_userpic()->get_required_fields();
+$fields = implode(',', $fields);
 if ($users = $DB->get_records_select('user', $select, $params, 'lastname, firstname', $fields)) {
     foreach ($users as $user) {
         $useropts[$user->id] = fullname($user).' ('.$user->username.')';

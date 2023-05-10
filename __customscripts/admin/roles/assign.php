@@ -319,7 +319,9 @@ if ($roleid) {
     foreach ($assignableroles as $roleid => $notused) {
         $roleusers = '';
         if (0 < $assigncounts[$roleid] && $assigncounts[$roleid] <= MAX_USERS_TO_LIST_PER_ROLE) {
-            $userfields = 'u.id, u.username, ' . get_all_user_name_fields(true, 'u');
+            // M4.
+            $fields = \core_user\fields::for_name()->with_userpic()->excluding('id')->get_required_fields();
+            $userfields = 'u.id,'.implode(',', $fields);
             $roleusers = get_role_users($roleid, $context, false, $userfields);
             if (!empty($roleusers)) {
                 $strroleusers = array();
