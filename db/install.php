@@ -106,6 +106,12 @@ function xmldb_local_ent_installer_install() {
         }
     }
 
+    // Register zabbix indicators if installed
+    if (is_dir($CFG->dirroot.'/report/zabbix')) {
+        include_once($CFG->dirroot.'/report/zabbix/xlib.php');
+        report_zabbix_register_plugin('local', 'ent_installer');
+    }
+
     // Adjust some fields length.
 
     $dbman = $DB->get_manager();
