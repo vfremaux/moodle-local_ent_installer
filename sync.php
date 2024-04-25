@@ -101,6 +101,7 @@ if ($data = $mform->get_data()) {
         $options['disableautocohortscheck'] = @$data->disableautocohortscheck;
         $options['empty'] = @$data->clearemptygroups;
         $options['enrol'] = @$data->enrol;
+        $options['debug'] = ($CFG->debug == DEBUG_DEVELOPER);
         $options['operation'] = @$data->operation;
         $options['skipmembership'] = @$data->skipmembership;
 

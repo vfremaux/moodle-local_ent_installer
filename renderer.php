@@ -68,7 +68,7 @@ class local_ent_installer_renderer extends plugin_renderer_base {
             $normalmeantime = $sumdurationwovertimes / $iwo;
         }
 
-        echo $OUTPUT->box_start('ent-installer-curve');
+        $str .= $OUTPUT->box_start('ent-installer-curve');
         $jqplot = array(
             'title' => array(
                 'text' => get_string('syncbench', 'local_ent_installer'),
@@ -108,15 +108,15 @@ class local_ent_installer_renderer extends plugin_renderer_base {
                 'showTooltip' => false
             ),
         );
-        local_vflibs_jqplot_print_graph('plot2', $jqplot, $timegrid, 750, 250, 'margin:20px;');
+        $str .= local_vflibs_jqplot_print_graph('plot2', $jqplot, $timegrid, 750, 250, 'margin:20px;', true);
 
-        echo '<center>';
+        $str .= '<center>';
         $resetstr = get_string('resetzoom', 'local_ent_installer');
-        echo '<button id="timegraph-zoom-reset" onclick="plot2.resetZoom();return true;" value="1">'.$resetstr.'</button>';
-        echo '</center>';
-        echo $OUTPUT->box_end();
+        $str .= '<button id="timegraph-zoom-reset" onclick="plot2.resetZoom();return true;" value="1">'.$resetstr.'</button>';
+        $str .= '</center>';
+        $str .= $OUTPUT->box_end();
 
-        echo $OUTPUT->box_start('ent-installer-report-globals');
+        $str .= $OUTPUT->box_start('ent-installer-report-globals');
 
         $table = new html_table();
         $table->head = array('', '');
@@ -133,8 +133,9 @@ class local_ent_installer_renderer extends plugin_renderer_base {
         $table->data[] = array(get_string('meantime', 'local_ent_installer'), sprintf('%0.2f', $meantime));
         $table->data[] = array(get_string('normalmeantime', 'local_ent_installer'), sprintf('%0.2f', $normalmeantime));
 
-        echo html_writer::table($table);
+        $str .= html_writer::table($table);
 
-        echo $OUTPUT->box_end();
+        $str .= $OUTPUT->box_end();
+        return $str;
     }
 }

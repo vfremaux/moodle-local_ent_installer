@@ -125,6 +125,14 @@ $string['dbskipnewuser'] = 'IGNORE : Nouvel utilisateur ignoré {$a->username} -
 $string['dbskipnewusersimul'] = 'SIMULATION IGNORE : Nouvel utilisateur ignoré {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
 $string['dbupdateuser'] = 'ALIMENTATION : Mise à jour (heuristique d\'existance : {$a->status}) utilisateur {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
 $string['dbupdateusersimul'] = 'SIMULATION : Mise à jour (heuristique d\'existance : {$a->status}) utilisateur {$a->username} - [{$a->idnumber}] Type utilisateur : {$a->usertype} / {$a->function}';
+$string['dbusertodelete'] = 'Utilisateur {$a->username} marqué pour SUPPRESSION - Supression de [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbusertosuspend'] = 'Utilisateur {$a->username} marqué pour SUPPRESSION - Suspension de [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbusertodeletedonothing'] = 'Utilisateur {$a->username} marqué pour SUPPRESSION - MAIS Conservation de [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbusertodeletesimul'] = 'SIMULATION : Utilisateur {$a->username} marqué pour SUPPRESSION - Suppression de [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbusertosuspendsimul'] = 'SIMULATION : Utilisateur {$a->username} marqué pour SUPPRESSION - Suspension de [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbusertodeletedonothingsimul'] = 'SIMULATION : Utilisateur {$a->username} marqué pour SUPPRESSION - MAIS conservation de [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['usertoskipasdeleted'] = 'Nouvel utilisateur {$a->username} marqué pour SUPPRESSION - [{$a->idnumber}] user type : {$a->usertype} / {$a->function} ignoré';
+$string['usertoskipasdeletedsimul'] = 'SIMULATION : Nouvel utilisateur {$a->username} marqué pour SUPPRESSION - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
 $string['defaultarchivecatname'] = 'Corbeille';
 $string['didntgetcohortsfromldap'] = 'Aucune cohorte remontée du LDAP. Arrêt du traitement.';
 $string['didntgetusersfromldap'] = 'Aucun utilisateur remontée du LDAP. Arrêt du traitement.';
@@ -142,6 +150,7 @@ $string['force'] = 'Forcer la mise à jour de toutes les entrées (y compris cel
 $string['forcedebugwarning'] = 'You cannot enable forced mode when being in developer debug mode as this will get partial info from ldap';
 $string['getinstitutionidservice'] = 'Recherche d\'identifiants d\'établissements';
 $string['generals'] = 'Réglages généraux';
+$string['gotcountrecordsfromldap'] = '{$a} enregistrements de cohorts trouvés dans l\'annuaire.';
 $string['id'] = 'Identifiant RNE';
 $string['moodleid'] = 'ID Moodle interne';
 $string['inserterrors'] = 'Erreurs d\'insertion';
@@ -608,6 +617,17 @@ $string['configstructureaddress'] = 'Adresse';
 $string['configstructureaddress_desc'] = 'L\'attribut LDAP contenant l\'adresse de la structure';
 $string['configstructuregeoloc'] = 'Géolocalisation';
 $string['configstructuregeoloc_desc'] = 'L\'attribut LDAP portant les données de géolocalisation de la structure';
+
+// Profile filtered user selector
+$string['all'] = 'Tous';
+$string['eleve'] = 'Elèves';
+$string['enseignant'] = 'Enseignants';
+$string['parent'] = 'Parents';
+$string['cdt'] = 'Chefs de travaux';
+$string['administration'] = 'Administration';
+$string['cohort'] = 'Cohorte';
+$string['reload'] = 'Recharger le filtre';
+$string['allusers'] = 'Tous les utilisateurs';
 
 $string['relocateteachercourses_help'] = '
 Déplacer tous les cours appartenant à un seul enseignant (en édition) dans la

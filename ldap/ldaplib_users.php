@@ -30,10 +30,7 @@ require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_cohorts.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_coursegroups.php');
 require_once($CFG->dirroot.'/local/ent_installer/ldap/ldaplib_roleassigns.php');
 require_once($CFG->dirroot.'/cohort/lib.php');
-<<<<<<< HEAD:ldap/ldaplib_users.php
-=======
 require_once($CFG->dirroot.'/local/ent_installer/compatlib.php');
->>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
 
 define('ENT_MATCH_FULL', 100);
 define('ENT_MATCH_ID_NO_USERNAME', 50);
@@ -100,37 +97,15 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     $inserterrorcount = 0;
     $updateerrorcount = 0;
 
-<<<<<<< HEAD:ldap/ldaplib_users.php
-    $config = get_config('local_ent_installer');
-
     if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
-=======
-    if (local_ent_installer_supports_feature() == 'pro') {
-        include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        $promanager = new \local_ent_installer\pro_manager();
-        $check = $promanager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
->>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
+        $promanager = local_ent_installer\pro_manager::instance();
+        $check = $promanager->set_and_check_license_key($config->licensekey, $config->licenseprovider, true);
         if (!preg_match('/SET OK/', $check)) {
-            $licenselimit = 1000;
+            $licenselimit = 10000;
         }
     } else {
-        $licenselimit = 1000;
-<<<<<<< HEAD:ldap/ldaplib_users.php
-    }
-    mtrace('');
-
-    if (!$config->sync_enable) {
-        mtrace(get_string('syncdisabled', 'local_ent_installer'));
-        return;
-    }
-
-    if (!$config->sync_users_enable) {
-        mtrace(get_string('syncusersdisabled', 'local_ent_installer'));
-        return;
-=======
->>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
+        $licenselimit = 10000;
     }
 
     ent_installer_check_archive_category_exists();
@@ -428,8 +403,6 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 echo "\n";
                 unset($ldapresult); // Free mem.
             } while ($ldappagedresults && !empty($ldapcookie));
-<<<<<<< HEAD:ldap/ldaplib_users.php
-=======
 
             if ($cnt == 0 && !empty($ldaperrors)) {
                 foreach ($ldaperrors as $ctx => $err) {
@@ -437,7 +410,6 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 }
             }
 
->>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
             echo "Got $cnt records in context\n";
         }
     }
@@ -632,11 +604,7 @@ function local_ent_installer_sync_users($ldapauth, $options) {
     // User Updates - time-consuming (optional). ***************************.
 
     // This might be an OBSOLETE code, regarding the update capability of the create process.
-<<<<<<< HEAD:ldap/ldaplib_users.php
-    if (($options['operation'] == 0) || ($options['operation'] == 'update') && !empty($CFG->ent_installer_hard_updates)) {
-=======
     if ((@$options['operation'] == 0) || (@$options['operation'] == 'update') && !empty($CFG->ent_installer_hard_updates)) {
->>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
 
         mtrace("\n>> ".get_string('updatingusers', 'local_ent_installer'));
 
@@ -844,12 +812,14 @@ function local_ent_installer_sync_users($ldapauth, $options) {
             $user->mnethostid = $CFG->mnet_localhost_id;
             $user->country = get_config('moodle', 'country');
 
-            // If is set, User is being deleted or faked account. Ignore.
+            // If is set, User is being deleted or faked account. Do nothing BUT remove from any current cohort memberships.
+            // This is an early processing that will terminate by skipping all further data update or changes.
             // Atrium related.
             if (!empty($user->entpersondatesuppression)) {
                 mtrace('ERROR : User upon deletion process '.$user->username);
                 $updateerrorcount++;
 
+                ent_installer_remove_from_active_cohorts($user);
                 ent_installer_check_category_archiving($user);
 
                 continue;
@@ -941,6 +911,38 @@ function local_ent_installer_sync_users($ldapauth, $options) {
 
                 if ($oldrec = local_ent_installer_guess_old_record($user, $status)) {
 
+                    // If is set, User is being deleted or faked account. Suspend and remove from any current cohort memberships.
+                    // This is an early processing that will terminate by skipping all further data update or changes.
+                    // Atrium related.
+                    // Atrium date format is dd/mm/yyyy
+                    if (!empty($user->entpersondatesuppression)) {
+                        if ($user->entpersondatesuppression < date('d/m/Y', time())) {
+                            // It's time to suppress.
+                            $updateerrorcount++;
+
+                            if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_SUSPEND) {
+                                // suspend only
+                                $oldrec->suspended = 1;
+                                $DB->update_record('user', $oldrec);
+                                ent_installer_remove_from_active_cohorts($user);
+                                mtrace(get_string('dbusertosuspend', 'local_ent_installer', $a));
+                            } else if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_FULLDELETE) {
+                                // remove completely
+                                user_delete_user($oldrec);
+                                mtrace(get_string('dbusertodelete', 'local_ent_installer', $a));
+                            } else {
+                                // Neither suspend nor delete, only retire from active cohorts.
+                                ent_installer_remove_from_active_cohorts($user);
+                                mtrace(get_string('dbusertodeletedonothing', 'local_ent_installer', $a));
+                            }
+
+                            ent_installer_check_category_archiving($user);
+                        }
+
+                        continue;
+                    }
+
+
                     $a->status = $matchstatusarr[$status];
                     $id = $user->id = $oldrec->id;
                     try {
@@ -958,6 +960,15 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                         continue;
                     }
                 } else {
+
+                    if (!empty($user->entpersondatesuppression)) {
+                        if ($user->entpersondatesuppression < date('d/m/Y', time())) {
+                            // It's time to suppress.
+                            mtrace(get_string('usertoskipasdeleted', 'local_ent_installer', $a));
+                            continue;
+                        }
+                    }
+
                     // This is a real new user.
                     if (empty($options['operation']) || ($options['operation'] == 'create')) {
                         $user->maildisplay = 0 + $maildisplay;
@@ -986,13 +997,31 @@ function local_ent_installer_sync_users($ldapauth, $options) {
                 $a = clone($user);
                 $a->function = $personfunction;
                 if (!$oldrec = local_ent_installer_guess_old_record($user, $status)) {
-                    if (empty($options['updateonly'])) {
+                    if (!empty($user->entpersondatesuppression)) {
+                        if ($user->entpersondatesuppression < date('d/m/Y', time())) {
+                            // It's time to suppress.
+                            if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_SUSPEND) {
+                                mtrace(get_string('dbusertodeletesimul', 'local_ent_installer', $a));
+                            } else if ($ldapauth->config->removeuser == AUTH_REMOVEUSER_FULLDELETE) {
+                                mtrace(get_string('dbusertosuspendsimul', 'local_ent_installer', $a));
+                            } else {
+                                mtrace(get_string('dbusertodeletedonothingsimul', 'local_ent_installer', $a));
+                            }
+                            continue;
+                        }
+                    } elseif (empty($options['updateonly'])) {
                         mtrace(get_string('dbinsertusersimul', 'local_ent_installer', $a));
                     } else {
                         mtrace(get_string('dbskipnewusersimul', 'local_ent_installer', $a));
                         continue;
                     }
                 } else {
+                    if (!empty($user->entpersondatesuppression)) {
+                        if ($user->entpersondatesuppression < date('d/m/Y', time())) {
+                            mtrace(get_string('usertoskipasdeletedsimul', 'local_ent_installer', $a));
+                            continue;
+                        }
+                    }
                     $a->status = $matchstatusarr[$status];
                     mtrace(get_string('dbupdateusersimul', 'local_ent_installer', $a));
                 }
@@ -1390,6 +1419,8 @@ function local_ent_installer_user_add_info(&$user, $role, $info) {
  * some translation ro catch older records.
  *
  * the matching strategy adopted is a regressive check from very constrainted match to less constraint match
+ * @param object $newuser a user object with data coming from ldap.
+ * @param stringref $status when returning a moodle user record, gives back the matching case found by matching algorithm.
  */
 function local_ent_installer_guess_old_record($newuser, &$status) {
     global $DB;
@@ -1497,22 +1528,6 @@ function local_ent_installer_get_username_from_dn($ldapauth, $userdn, $options =
         $localconnection = true;
     }
 
-<<<<<<< HEAD:ldap/ldaplib_users.php
-/**
- * Getting a full LDAP user DN value, gets from LDAP the associated username. This is
- * used when the user DN do NOT contain the username as part of it, and must indirectly 
- * be retrieved from an entry attribute.
- */
-function local_ent_installer_get_username_from_dn($ldapauth, $userdn, $options = array(), $ldapconnection = null) {
-
-    $localconnection = false;
-    if (is_null($ldapconnection)) {
-        $ldapconnection = $ldapauth->ldap_connect();
-        $localconnection = true;
-    }
-
-=======
->>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
     if ($options['verbose']) {
         mtrace("Getting $userdn for ".$ldapauth->config->user_attribute);
     }
@@ -1691,15 +1706,11 @@ function local_ent_installer_get_userinfo($ldapauth, $username, $options = array
             $result[core_text::strtolower($key)] = $ldapval;
         }
         if (!empty($options['verbose'])) {
-<<<<<<< HEAD:ldap/ldaplib_users.php
-            mtrace("Requested value $key : $ldapval");
-=======
             if (is_array($ldapval)) {
                 mtrace("Requested value $key : (Array) ".implode(';', $ldapval));
             } else {
                 mtrace("Requested value $key : $ldapval");
             }
->>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
         }
 
     }
@@ -1739,7 +1750,7 @@ function local_ent_installer_get_userinfo_asobj($ldapauth, $username, $options =
  * Cohorts are handled in the 'local_ent_installer' component scope and will NOT interfere
  * with locally manually created cohorts.
  * Old cohorts from a preceding session might be protected by switching their component
- * scope to somethin else than 'local_ent_installer'. This will help keeping students from preceding
+ * scope to something else than 'local_ent_installer'. This will help keeping students from preceding
  * sessions in those historical cohorts.
  * @param int $userid the user id
  * @param string $cohortidentifier a fully qualified cohort or single qualified name (SDET compliant).
@@ -1863,11 +1874,7 @@ function local_ent_installer_make_teacher_category($user) {
         $category->idnumber = $teachercatidnum;
         $category->parent = $teacherstubcategory;
         $category->visible = 1;
-<<<<<<< HEAD:ldap/ldaplib_users.php
-        $category = \core_course_category::create($category);
-=======
         $category = local_ent_installer_coursecat_create($category);
->>>>>>> MOODLE_39_STABLE:ldap/ldaplib.php
 
         role_assign($managerrole->id, $user->id, $category->get_context()->id);
     } else {
@@ -1970,6 +1977,7 @@ function local_ent_installer_match_structure($personstructure) {
  */
 function local_ent_installer_merge_siteadmins($newadmins, $options = array()) {
     global $DB;
+    global $CFG;
     static $config;
 
     if (!isset($config)) {
@@ -1978,7 +1986,7 @@ function local_ent_installer_merge_siteadmins($newadmins, $options = array()) {
     }
 
     $oldadmins = array();
-    if ($oldadminlist = get_config('moodle', 'siteadmins')) {
+    if ($oldadminlist = $CFG->siteadmins) {
 
         $oldadmins = explode(',', $oldadminlist);
 
@@ -2162,3 +2170,48 @@ function ent_installer_save_profile_image($userid, $originalfile, $options = arr
     return process_new_icon($context, 'user', 'icon', 0, $originalfile);
 }
 
+/**
+ * Removes any menbership from the current year active cohorts, as user is being deleted.
+ * Precedebnt cohort assignaitons may remain. This is mostly the case when reloading all data for a new
+ * yearly session : In that case, cohort IX is indexed before feeding is restarted, and we expect that
+ * users have been marked for suppression. If not immediately, the current cohort set has changed and
+ * previous IXes will not be affected by this removal.
+ * 
+ * @param object $user 
+ */
+function ent_installer_remove_from_active_cohorts($user) {
+    global $DB, $CFG;
+
+    $prefix = get_config('local_ent_installer', 'cohortix');
+
+    if (empty($CFG->extendedusernamechars)) {
+        $user->username = trim(core_text::strtolower($user->username));
+    }
+
+    $oldrec = local_ent_installer_guess_old_record($user, $status);
+
+    if (!$oldrec) {
+        // this is likely a new user not yet in moodle. So no need to check for active memberships.
+        debug_trace("Could not guess user", TRACE_ERRORS);
+        return;
+    }
+
+    // Get actual enrollments on active cohorts :
+    $sql = "
+        SELECT
+            cm.id
+        FROM
+            {cohort} c,
+            {cohort_members} cm
+        WHERE
+            c.id = cm.cohortid AND
+            c.idnumber LIKE '{$prefix}%' AND
+            cm.userid = ?
+    ";
+    $memberships = $DB->get_records_sql($sql, [$oldrec->id]);
+    if (!empty($memberships)) {
+        foreach ($memberships as $cm) {
+            $DB->delete_records('cohort_members', ['id' => $cm->id]);
+        }
+    }
+}

@@ -84,13 +84,13 @@ class cohorts {
         $key = 'local_ent_installer/cohort_id_attribute';
         $label = get_string('configcohortidattribute', 'local_ent_installer');
         $desc = get_string('configcohortidattribute_desc', 'local_ent_installer');
-        $default = '';
+        $default = 'cn';
         $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
         $key = 'local_ent_installer/cohort_id_pattern';
         $label = get_string('configcohortidpattern', 'local_ent_installer');
         $desc = get_string('configcohortidpattern_desc', 'local_ent_installer');
-        $default = '';
+        $default = '%CID%';
         $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
         /** membership attribute name **/
@@ -98,43 +98,43 @@ class cohorts {
         $key = 'local_ent_installer/cohort_membership_attribute';
         $label = get_string('configcohortmembershipattribute', 'local_ent_installer');
         $desc = get_string('configcohortmembershipattribute_desc', 'local_ent_installer');
-        $default = '';
+        $default = 'member';
         $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
         $key = 'local_ent_installer/cohort_membership_filter';
         $label = get_string('configcohortmembershipfilter', 'local_ent_installer');
         $desc = get_string('configcohortmembershipfilter_desc', 'local_ent_installer');
-        $default = '';
+        $default = '^(.*)$';
         $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
         $key = 'local_ent_installer/cohort_name_attribute';
         $label = get_string('configcohortnameattribute', 'local_ent_installer');
         $desc = get_string('configcohortnameattribute_desc', 'local_ent_installer');
-        $default = '';
+        $default = 'displayName';
         $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
         $key = 'local_ent_installer/cohort_name_filter';
         $label = get_string('configcohortnamefilter', 'local_ent_installer');
         $desc = get_string('configcohortnamefilter_desc', 'local_ent_installer');
-        $default = '';
+        $default = '^(.*)$';
         $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
         $key = 'local_ent_installer/cohort_idnumber_attribute';
         $label = get_string('configcohortidnumberattribute', 'local_ent_installer');
         $desc = get_string('configcohortidnumberattribute_desc', 'local_ent_installer');
-        $default = '';
+        $default = 'cn';
         $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
         $key = 'local_ent_installer/cohort_idnumber_filter';
         $label = get_string('configcohortidnumberfilter', 'local_ent_installer');
         $desc = get_string('configcohortidnumberfilter_desc', 'local_ent_installer');
-        $default = '';
+        $default = '^(.*)$';
         $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
         $key = 'local_ent_installer/cohort_description_attribute';
         $label = get_string('configcohortdescriptionattribute', 'local_ent_installer');
         $desc = get_string('configcohortdescriptionattribute_desc', 'local_ent_installer');
-        $default = '';
+        $default = 'description';
         $settings->add(new admin_setting_configtext($key, $label, $desc, $default));
 
 <<<<<<< HEAD

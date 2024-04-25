@@ -15,24 +15,16 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version details.
- *
- * @package    local_ent_installer
- * @category   local
- * @author     Valery Fremaux <valery.fremaux@gmail.com> for French Public Education
- * @copyright  2015 onwards Valery Fremaux (http://www.mylearnignfactory.com)
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package   local_ent_installer
+ * @category  local
+ * @copyright 2006 Valery Fremaux
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2022060700;   // The (date) version of this plugin.
-$plugin->requires = 2022112801;   // Requires this Moodle version.
-$plugin->component = 'local_ent_installer';
-$plugin->release = '4.1.0 (Build 2022060700)';
-$plugin->dependencies = array('local_vflibs' => '2016081100');
-$plugin->supported = [40,41];
-
-// Non moodle attributes.
-$plugin->codeincrement = '4.1.0008';
-$plugin->privacy = 'dualrelease';
+$definitions = array(
+    'pro' => array(
+        'mode' => cache_store::MODE_APPLICATION
+    )
+);

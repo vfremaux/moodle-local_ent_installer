@@ -49,30 +49,19 @@ if ($hasconfig && is_dir($CFG->dirroot.'/local/ent_installer')) {
 
     $settings = new admin_settingpage('localsettingent_installer_light', get_string('entupdate', 'local_ent_installer'));
 
-    if (local_ent_installer_supports_feature('emulate/community') == 'pro') {
-        include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        $promanager = new \local_ent_installer\pro_manager();
-    }
-
     if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
+        $promanager = local_ent_installer\pro_manager::instance();
     }
 
     if ($ADMIN->fulltree) {
         if (local_ent_installer_supports_feature() == 'pro') {
             $PAGE->requires->js_call_amd('local_ent_installer/pro', 'init');
             $config = get_config('local_ent_installer');
-<<<<<<< HEAD
-            $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->customerkey, @$config->provider, true);
-            if (!preg_match('/SET OK/', $check)) {
-                $licensemess = \local_ent_installer\pro_manager::print_empty_license_message();
-=======
-            $promanager = new \local_ent_installer\pro_manager();
             $check = $promanager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
 
-            if (!preg_match('/SET OK/', $check)) {
+            if (!preg_match('/(CHECK|SET) OK/', $check)) {
                 $licensemess = $promanager->print_empty_license_message();
->>>>>>> MOODLE_39_STABLE
                 $settings->add(new admin_setting_heading('licensesatus', get_string('licensestatus', 'local_ent_installer'), $licensemess));
             }
         }
@@ -325,7 +314,8 @@ if ($hassiteconfig) {
 
     if (local_ent_installer_supports_feature('emulate/community') == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-        \local_ent_installer\pro_manager::add_settings($ADMIN, $settings);
+        $promanager = local_ent_installer\pro_manager::instance();
+        $promanager->add_settings($ADMIN, $settings);
     } else {
         $label = get_string('plugindist', 'local_ent_installer');
         $desc = get_string('plugindist_desc', 'local_ent_installer');

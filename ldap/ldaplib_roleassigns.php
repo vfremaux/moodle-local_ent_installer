@@ -37,19 +37,7 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
     $config = get_config('local_ent_installer');
 
-<<<<<<< HEAD
-    $licenselimit = 1000000;
-    $debughardlimit = '';
-    if ($CFG->debug == DEBUG_DEVELOPER && !empty($CFG->usedebughardlimit)) {
-        $debughardlimit = ' LIMIT 30 ';
-        echo '<span style="font-size:2.5em">';
-        mtrace('RUNNING WITH HARD LIMIT OF 30 OBJECTS');
-        echo '</span>';
-        mtrace('Turn off the developper mode to process all records.');
-    }
-=======
     mtrace('');
->>>>>>> MOODLE_39_STABLE
 
     $enrolplugin = null;
     if (!empty($config->roleassign_enrol_method)) {
@@ -88,17 +76,13 @@ function local_ent_installer_sync_roleassigns($ldapauth, $options = array()) {
 
     if (local_ent_installer_supports_feature() == 'pro') {
         include_once($CFG->dirroot.'/local/ent_installer/pro/prolib.php');
-<<<<<<< HEAD
-        $check = \local_ent_installer\pro_manager::set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
-=======
-        $promanager = new \local_ent_installer\pro_manager();
-        $check = $promanager->set_and_check_license_key(@$config->licensekey, @$config->licenseprovider, true);
->>>>>>> MOODLE_39_STABLE
+        $promanager = local_ent_installer\pro_manager::instance();
+        $check = $promanager->set_and_check_license_key($config->licensekey, $config->licenseprovider, true);
         if (!preg_match('/SET OK/', $check)) {
-            $licenselimit = 3000;
+            $licenselimit = 30000;
         }
     } else {
-        $licenselimit = 3000;
+        $licenselimit = 30000;
     }
 
     $ldapconnection = $ldapauth->ldap_connect();
@@ -664,7 +648,6 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
                 if (!$ldapauth->config->memberattribute_isdn) {
                     if (!empty($options['verbose'])) {
                         mtrace("Extracting from $newvalopt with {$config->roleassign_membership_filter} ");
-<<<<<<< HEAD
                     }
                     // Member attribute contains value from where the user identifier can be directly extracted.
                     if (preg_match('/'.$config->roleassign_membership_filter.'/', $newvalopt, $matches)) {
@@ -686,29 +669,6 @@ function local_ent_installer_get_roleassigninfo($ldapauth, $dn, $options = array
                         $user->memberdn = $newvalopt; // Store original ldap record value into user.
                         $newval[] = $user;
                     }
-=======
-                    }
-                    // Member attribute contains value from where the user identifier can be directly extracted.
-                    if (preg_match('/'.$config->roleassign_membership_filter.'/', $newvalopt, $matches)) {
-                        // Exclude potential arity count that comes at end of multivalued entries.
-                        if ($config->roleassign_user_key == 'username') {
-                            $identifier = core_text::strtolower($matches[1]);
-                        } else {
-                            $identifier = $matches[1];
-                        }
-                        if (!empty($options['verbose'])) {
-                            mtrace("Getting user record for {$config->roleassign_user_key} = $identifier");
-                        }
-                        $params = array($config->roleassign_user_key => $identifier, 'deleted' => 0);
-                        $user = $DB->get_record('user', $params, 'id,username,firstname,lastname');
-                        if (!$user) {
-                            mtrace("Error : User record not found for $identifier. Skipping membership");
-                            continue;
-                        }
-                        $user->memberdn = $newvalopt; // Store original ldap record value into user.
-                        $newval[] = $user;
-                    }
->>>>>>> MOODLE_39_STABLE
                 } else {
                     /*
                      * Member attribute contains a true user DN. This may, but MAY NOT contain direct

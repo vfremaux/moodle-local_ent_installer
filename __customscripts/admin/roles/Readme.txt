@@ -1,0 +1,1 @@
+this customscript alters the standard user selector (for role assign) in order to help filtering users against their profile tag.

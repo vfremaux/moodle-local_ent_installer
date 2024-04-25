@@ -66,7 +66,7 @@ if ($data = $mform->get_data()) {
     require_sesskey();
 
     // Secure the reception of uid.
-    $data->uid = $_REQUEST['uid'];
+    $data->uid = clean_param($_REQUEST['uid'], PARAM_INT);
 
     // Get ldap params from real ldap plugin.
     $ldapauth = get_auth_plugin('ldap');

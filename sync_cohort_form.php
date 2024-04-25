@@ -41,7 +41,12 @@ class SyncCohortForm extends moodleform {
         $mform->addElement('html', '<h3>'.get_string('entities', 'local_ent_installer').'</h3>');
 
         $fields = "id, CONCAT(name, ' (', idnumber, ')')";
-        $cohortsopts = $DB->get_records_menu('cohort', array(), 'name', $fields, 0, 200);
+        if (!empty($config->cohort_sort_prefix_length)) {
+            $sort = "SUBSTR(name, 1, {$config->cohort_sort_prefix_length}) DESC, idnumber ASC";
+        } else {
+            $sort = 'name';
+        }
+        $cohortsopts = $DB->get_records_menu('cohort', array(), $sort, $fields, 0, 200);
 
         if (!empty($config->sync_cohorts_enable)) {
             $attrs = array('size' => 15);

@@ -121,6 +121,14 @@ $string['dbskipnewuser'] = 'SKIPPED : New user skipped {$a->username} - [{$a->id
 $string['dbskipnewusersimul'] = 'SIMULATION SKIPPED : New user skipped {$a->username} - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
 $string['dbupdateuser'] = 'ALIM : User update (guess status : {$a->status}) or complete {$a->username} - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
 $string['dbupdateusersimul'] = 'SIMULATION : User update (guess status : {$a->status}) or complete {$a->username} - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbusertodelete'] = 'User {$a->username} was marked to be DELETEABLE - Deleting [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbusertodeletedonothing'] = 'User {$a->username} was marked to be DELETEABLE - BUT Keeking [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbusertosuspend'] = 'User {$a->username} was marked to be DELETEABLE - Suspending [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbusertodeletesimul'] = 'SIMULATION : User {$a->username} was marked to be DELETEABLE - Deleting [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbusertosuspendsimul'] = 'SIMULATION : User {$a->username} was marked to be DELETEABLE - Suspending [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['dbusertodeletedonothingsimul'] = 'SIMULATION : User {$a->username} was marked to be DELETEABLE - BUT keeping [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['usertoskipasdeleted'] = 'New User {$a->username} was in fact marked to be DELETEABLE - Ignoring [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
+$string['usertoskipasdeletedsimul'] = 'SIMULATION : New User {$a->username} was in fact marked to be DELETEABLE - [{$a->idnumber}] user type : {$a->usertype} / {$a->function}';
 $string['defaultarchivecatname'] = 'Archives';
 $string['didntgetcohortsfromldap'] = 'Did not get any cohort from LDAP. Stopping process.';
 $string['didntgetusersfromldap'] = 'Did not get any user from LDAP. Stopping process.';
@@ -137,6 +145,7 @@ $string['finaloperations'] = 'Final cleanup operations';
 $string['force'] = 'Force updating all entries (even unmodified since last reference)';
 $string['forcedebugwarning'] = 'You cannot run the complete synchrosnisation in developer debugging mode as ldap fetched set is incomplete.';
 $string['getinstitutionidservice'] = 'Structure ID Search';
+$string['gotcountrecordsfromldap'] = '{$a} cohort records from ldap.';
 $string['generals'] = 'General settings';
 $string['id'] = 'Structure Identifier';
 $string['inserterrors'] = 'Insert errors';
@@ -615,6 +624,17 @@ $string['configstructureaddress'] = 'Current address';
 $string['configstructureaddress_desc'] = 'LDAP attribute holding the structure address';
 $string['configstructuregeoloc'] = 'Geolocation';
 $string['configstructuregeoloc_desc'] = 'LDAP attribute holding the structure geolocation';
+
+// Profile filtered user selector
+$string['all'] = 'Any';
+$string['eleve'] = 'Students';
+$string['enseignant'] = 'Trachers';
+$string['cdt'] = 'Mentors';
+$string['administration'] = 'Administration';
+$string['parent'] = 'Parents';
+$string['cohort'] = 'Cohort';
+$string['reload'] = 'Reload filter';
+$string['allusers'] = 'All cohorts';
 
 $string['relocateteachercourses_help'] = '
 Relocating teacher courses will move courses belonging (in edition) to a single teacher to his
